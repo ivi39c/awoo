@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>電子型錄</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="sidebar">
+      <div class="search-bar">
+        <input type="text" id="search-input" placeholder="搜尋產品..." />
+      </div>
+      <ul class="category-list" id="category-list">
+        <li data-category="category1">
+          電器
+          <ul class="brand-list">
+            <li data-brand="林內">林內</li>
+            <li data-brand="櫻花">櫻花</li>
+          </ul>
+        </li>
+        <li data-category="category2">桶身板</li>
+        <li data-category="category3">西班牙門板</li>
+        <li data-category="category4">發泡板</li>
+        <li data-category="category5">烤漆板</li>
+        <li data-category="category6">水槽</li>
+        <li data-category="category7">龍頭</li>
+        <li data-category="category8">五金</li>
+        <li data-category="category9">玻璃</li>
+        <li data-category="category10">檯面</li>
+        <li data-category="category11">把手</li>
+      </ul>
+    </div>
+    <div class="filter-info" id="filter-info"></div>
+    <div class="product-list" id="product-list"></div>
+
+    <script src="script.js" type="module"></script>
+  </body>
+</html>

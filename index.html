@@ -58,7 +58,7 @@
       flex-wrap: wrap;
     }
 
-    .btn-gothic {
+    .btn-gothic, select {
       background: linear-gradient(135deg, #1f1427, #0f0a14);
       color: var(--gold-light);
       border: var(--border-gold);
@@ -72,11 +72,17 @@
       gap: 6px;
     }
 
-    .btn-gothic:hover {
+    .btn-gothic:hover, select:hover {
       background: linear-gradient(135deg, #321f40, #1a1024);
       border-color: var(--gold-primary);
       box-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
       color: #fff;
+    }
+
+    select option {
+      background-color: #16101c;
+      color: var(--gold-light);
+      padding: 10px;
     }
 
     .btn-crimson {
@@ -164,6 +170,11 @@
       align-items: center;
       position: relative;
       transition: all 0.3s ease;
+    }
+
+    .seat-card.empty {
+      border: 1px dashed rgba(212, 175, 55, 0.2);
+      opacity: 0.6;
     }
 
     .seat-card.highlight {
@@ -358,7 +369,7 @@
       <div class="modal-body">
         <label style="display:block; margin-bottom: 15px;">
           <b>選擇遊戲總人數與板型：</b>
-          <select id="setupPlayerCount" class="btn-gothic" style="margin-left: 10px;" onchange="updatePresetPreview()">
+          <select id="setupPlayerCount" style="margin-left: 10px;" onchange="updatePresetPreview()">
             <option value="6">6 人 孤狼極速局</option>
             <option value="7">7 人 新手熱身局</option>
             <option value="8">8 人 預女獵白局</option>
@@ -379,7 +390,7 @@
 
         <label style="display:block; margin-bottom: 15px;">
           <b>進場身分選擇：</b>
-          <select id="entryRoleType" class="btn-gothic" style="margin-left: 10px;">
+          <select id="entryRoleType" style="margin-left: 10px;">
             <option value="seat">入座玩家 (參與視訊與遊戲)</option>
             <option value="spectator">進入觀眾席 (僅觀戰旁聽)</option>
           </select>
@@ -403,7 +414,7 @@
         <input type="text" id="joinRoomCodeInput" class="input-gothic" placeholder="請輸入 4 位數房間代碼 (例如: 8888)...">
         <label style="display:block; margin: 15px 0;">
           <b>進場身分選擇：</b>
-          <select id="joinRoleType" class="btn-gothic" style="margin-left: 10px;">
+          <select id="joinRoleType" style="margin-left: 10px;">
             <option value="seat">入座玩家 (參與視訊)</option>
             <option value="spectator">進入觀眾席 (僅觀戰旁聽)</option>
           </select>
@@ -423,7 +434,7 @@
     </div>
     <div class="top-actions">
       <button class="btn-gothic" onclick="openMediaModal()">🎥 影音</button>
-      <select id="perspectiveSelect" class="btn-gothic" onchange="switchPerspective(this.value)">
+      <select id="perspectiveSelect" onchange="switchPerspective(this.value)">
         <option value="1">🎯 視角: 1號 (您)</option>
       </select>
       <button class="btn-gothic" onclick="openCompendium()">📖 圖鑑</button>
@@ -500,7 +511,7 @@
       <div class="modal-body">
         <label style="display:block; margin-bottom: 15px;">
           <b>遊戲總人數：</b>
-          <select id="playerCountSelect" class="btn-gothic" style="margin-left: 10px;">
+          <select id="playerCountSelect" style="margin-left: 10px;">
             <option value="6">6 人局</option>
             <option value="9">9 人局</option>
             <option value="12" selected>12 人標準局</option>
@@ -513,28 +524,16 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Modal: 角色圖鑑 -->
-  <div id="compendiumModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>📖 角色圖鑑 (官方與熱門角色)</h3>
-        <span style="cursor:pointer;" onclick="closeModal('compendiumModal')">✖</span>
-      </div>
-      <div class="modal-body" id="compendiumList"></div>
-    </div>
-  </div>
+  </script>
 
   <script>
-    // --- 1. 玩家資料結構與全局遊戲狀態引擎 (Player Model & Game State) ---
     class Player {
-      constructor(id, name, role) {
+      constructor(id, name, role = '未發牌') {
         this.id = id;
         this.name = name;
-        this.role = role; // "VILLAGER", "WEREWOLF", "SEER", "WITCH", "HUNTER", "GUARD", etc.
+        this.role = role;
         this.isAlive = true;
-        this.deathReason = null; // null, "KILLED_BY_WOLF", "POISONED_BY_WITCH", "SHOT_BY_HUNTER", "VOTED_OUT"
+        this.deathReason = null;
         this.isProtected = false; 
         this.isAntidoteUsed = false; 
         this.canShoot = true; 
@@ -542,6 +541,7 @@
         this.micOn = false;
         this.camOn = false;
         this.stream = null;
+        this.isOccupied = false; // 座位是否有人
       }
     }
 
@@ -555,7 +555,6 @@
       players: []
     };
 
-    // --- 3. 核心結算演算法 (Night Settlement Algorithm) ---
     function settleNightActions(wolfTargetId, witchSaved, witchPoisonTargetId, guardTargetId) {
       let deadList = [];
       let targetedSeat = null;
@@ -569,27 +568,21 @@
         let isHealed = witchSaved;
 
         if (isGuarded && isHealed) {
-          // 1. 同守同救（奶穿邏輯）：判定死亡
           targetedSeat = wolfTargetId;
           deadList.push({ id: targetedSeat, reason: "KILLED_BY_WOLF" });
         } else if (isGuarded && !isHealed) {
-          // 2. 單獨守護：存活
         } else if (!isGuarded && isHealed) {
-          // 2. 單獨解救：存活
         } else {
-          // 3. 沒守沒救：死亡
           targetedSeat = wolfTargetId;
           deadList.push({ id: targetedSeat, reason: "KILLED_BY_WOLF" });
         }
       }
 
-      // 4. 女巫毒藥：無視守衛保護
       if (witchPoisonTargetId !== null) {
         if (!deadList.some(d => d.id === witchPoisonTargetId)) {
           deadList.push({ id: witchPoisonTargetId, reason: "POISONED_BY_WITCH" });
         }
         
-        // 5. 獵人技能剝奪
         let poisonedPlayer = gameState.players.find(p => p.id === witchPoisonTargetId);
         if (poisonedPlayer && (poisonedPlayer.role === 'HUNTER' || poisonedPlayer.role === '獵人')) {
           poisonedPlayer.canShoot = false;
@@ -608,7 +601,6 @@
       return deadList;
     }
 
-    // --- 4. 勝負判斷邏輯 (Win Condition - 屠邊規則) ---
     function checkWinCondition() {
       const wolves = gameState.players.filter(p => p.role.includes('狼') || p.role === 'WEREWOLF');
       const gods = gameState.players.filter(p => ['SEER', 'WITCH', 'HUNTER', 'GUARD', '預言家', '女巫', '獵人', '守衛'].includes(p.role));
@@ -627,7 +619,6 @@
       return null; 
     }
 
-    // --- Google 語音播報優化 ( zh-TW 優先) ---
     function speakGod(text) {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -646,6 +637,7 @@
       isHost: true,
       playerCount: 12,
       isSpectator: false,
+      mySeatId: 1, // 當前使用的座位號 (觀眾席為 null)
       sheriffMode: 'enabled',
       hasSheriffInGame: false,
       currentPhase: 'LOBBY',
@@ -668,7 +660,6 @@
       userVotes: {}
     };
 
-    // 6 - 20 人常用經典板型矩陣
     const PRESETS = {
       6: { name: "孤狼極速局", pool: ["小狼", "小狼", "預言家", "女巫", "平民", "平民"], desc: "女巫首夜不可自救，節奏明快。" },
       7: { name: "新手熱身局", pool: ["小狼", "小狼", "預言家", "女巫", "獵人", "平民", "平民"], desc: "標準新手入門配置。" },
@@ -723,18 +714,18 @@
       }
     }
 
-    // 需求 1：創建房間後才開始載入與播放 BGM
     function confirmCreateRoom() {
       const count = parseInt(document.getElementById('setupPlayerCount').value);
       const entryType = document.getElementById('entryRoleType').value;
       roomState.isSpectator = (entryType === 'spectator');
-      
+      roomState.mySeatId = roomState.isSpectator ? null : 1;
+
       closeModal('createRoomModal');
       document.getElementById('lobbyScreen').style.display = 'none';
 
       initBgmAudio();
       initPlayers(count);
-      speakGod("歡迎來到哥德狼人殺房間，遊戲準備就緒。");
+      speakGod("歡迎來到哥德狼人殺房間，等待所有玩家連線到位。");
     }
 
     function confirmJoinRoom() {
@@ -743,6 +734,7 @@
       const entryType = document.getElementById('joinRoleType').value;
       roomState.isHost = false;
       roomState.isSpectator = (entryType === 'spectator');
+      roomState.mySeatId = roomState.isSpectator ? null : 2;
 
       closeModal('joinModal');
       document.getElementById('lobbyScreen').style.display = 'none';
@@ -755,6 +747,7 @@
     function startQuickBotTest() {
       roomState.isHost = true;
       roomState.isSpectator = false;
+      roomState.mySeatId = 1;
       document.getElementById('lobbyScreen').style.display = 'none';
       initBgmAudio();
       initPlayers(12);
@@ -770,7 +763,6 @@
       `;
     }
 
-    // 需求 2：房間邀請碼與連結複製
     function copyInviteLink() {
       const dummyUrl = window.location.href.split('?')[0] + `?room=${roomState.roomId}`;
       navigator.clipboard.writeText(dummyUrl).then(() => {
@@ -778,18 +770,75 @@
       });
     }
 
+    // 初始化玩家（大廳階段暫不發角色牌）
     function initPlayers(count) {
       roomState.playerCount = count;
       roomState.players = [];
       gameState.players = [];
-      const preset = PRESETS[count] || PRESETS[12];
       
       for (let i = 1; i <= count; i++) {
-        const roleName = preset.pool[(i - 1) % preset.pool.length];
-        const p = new Player(i, i === 1 ? (document.getElementById('playerNameInput').value || '1號玩家') : `${i}號 Bot`, roleName);
+        let name = `${i}號 Bot`;
+        let isOccupied = true;
+
+        if (i === 1 && roomState.isHost && !roomState.isSpectator) {
+          name = (document.getElementById('playerNameInput').value || '房主');
+        } else if (i === roomState.mySeatId) {
+          name = (document.getElementById('playerNameInput').value || '玩家');
+        }
+
+        const p = new Player(i, name, '未發牌');
+        p.isOccupied = isOccupied;
         roomState.players.push(p);
-        gameState.players.push(p); // 同步至法官核心引擎
+        gameState.players.push(p);
       }
+
+      if (roomState.isSpectator) {
+        roomState.currentPerspective = 1;
+      } else if (roomState.mySeatId) {
+        roomState.currentPerspective = roomState.mySeatId;
+      }
+
+      renderTable();
+      updatePerspectiveSelect();
+      updateControlPanel();
+    }
+
+    // 切換至觀眾席
+    function moveToSpectator() {
+      if (roomState.currentPhase !== 'LOBBY') {
+        alert("遊戲已開始，無法變更位子！");
+        return;
+      }
+      if (roomState.mySeatId) {
+        const p = roomState.players.find(x => x.id === roomState.mySeatId);
+        if (p) {
+          p.name = `${p.id}號 空位`;
+          p.isOccupied = false;
+        }
+      }
+      roomState.isSpectator = true;
+      roomState.mySeatId = null;
+      renderTable();
+      updateControlPanel();
+    }
+
+    // 從觀眾席入座遊戲
+    function moveToSeat() {
+      if (roomState.currentPhase !== 'LOBBY') {
+        alert("遊戲已開始，無法變更位子！");
+        return;
+      }
+      const emptySeat = roomState.players.find(x => !x.isOccupied);
+      if (!emptySeat) {
+        alert("目前座位已滿，無法入座！");
+        return;
+      }
+      emptySeat.name = (document.getElementById('playerNameInput').value || '玩家');
+      emptySeat.isOccupied = true;
+      roomState.isSpectator = false;
+      roomState.mySeatId = emptySeat.id;
+      roomState.currentPerspective = emptySeat.id;
+
       renderTable();
       updatePerspectiveSelect();
       updateControlPanel();
@@ -801,16 +850,16 @@
       roomState.players.forEach(p => {
         const isCurrentSpeaker = (p.id === roomState.activeSpeakerId);
         const card = document.createElement('div');
-        card.className = `seat-card ${!p.isAlive ? 'dead' : ''} ${isCurrentSpeaker ? 'active-speaker' : ''}`;
+        card.className = `seat-card ${!p.isOccupied ? 'empty' : ''} ${!p.isAlive ? 'dead' : ''} ${isCurrentSpeaker ? 'active-speaker' : ''}`;
         card.id = `seat-${p.id}`;
         
         card.innerHTML = `
           ${p.isSheriff ? '<div class="badge-sheriff">👑</div>' : ''}
           <div class="avatar-video-container" id="video-container-${p.id}">
-            ${p.camOn && p.stream ? '' : '<span class="avatar-placeholder">📷 鏡頭關閉</span>'}
+            ${p.camOn && p.stream ? '' : '<span class="avatar-placeholder">' + (p.isOccupied ? '📷 鏡頭關閉' : '🪑 待入座') + '</span>'}
           </div>
           <div class="seat-info">
-            <span>${p.id}. ${p.name} ${roomState.isSpectator && p.id === roomState.currentPerspective ? '(觀戰中)' : ''}</span>
+            <span>${p.id}. ${p.name}</span>
           </div>
         `;
         table.appendChild(card);
@@ -846,12 +895,15 @@
       renderTable();
     }
 
+    // 動態更新控制面板 (支援入座 / 觀眾席按鈕)
     function updateControlPanel() {
       const p = roomState.players.find(x => x.id === roomState.currentPerspective);
       if (!p) return;
 
+      const mySeat = roomState.players.find(x => x.id === roomState.mySeatId);
+
       document.getElementById('roleIdentityInfo').innerHTML = `
-        當前身分：<b>${p.id}號 ${p.name}</b> ${roomState.isSpectator ? '<span style="color:var(--gold-primary);">[觀眾席]</span>' : ''}<br>
+        當前檢視：<b>${p.id}號 ${p.name}</b> ${roomState.isSpectator ? '<span style="color:var(--gold-primary);">[觀眾席]</span>' : ''}<br>
         身分牌：<b style="color:var(--gold-primary);">${p.role}</b> (${p.isAlive ? '存活' : '已出局'})
       `;
 
@@ -859,9 +911,19 @@
       controls.innerHTML = '';
 
       if (roomState.currentPhase === 'LOBBY') {
-        controls.innerHTML = roomState.isHost 
-          ? `<button class="btn-gothic btn-crimson" style="width:100%;" onclick="startGameFlow()">▶ 開始遊戲流程</button>` 
-          : `<p style="font-size:0.8rem; color:#aaa;">等待房主開啟遊戲...</p>`;
+        let actionButtons = '';
+        if (roomState.isSpectator) {
+          actionButtons += `<button class="btn-gothic" style="width:100%; margin-bottom:10px;" onclick="moveToSeat()">🎮 入座遊戲</button>`;
+        } else {
+          actionButtons += `<button class="btn-gothic" style="width:100%; margin-bottom:10px;" onclick="moveToSpectator()">🪑 移至觀眾席</button>`;
+        }
+
+        if (roomState.isHost) {
+          actionButtons += `<button class="btn-gothic btn-crimson" style="width:100%;" onclick="startGameFlow()">▶ 開始遊戲流程 (抽卡發牌)</button>`;
+        } else {
+          actionButtons += `<p style="font-size:0.8rem; color:#aaa; text-align:center;">等待房主開始遊戲...</p>`;
+        }
+        controls.innerHTML = actionButtons;
       } 
       else if (roomState.currentPhase === 'NIGHT') {
         renderNightPanel(p, controls);
@@ -915,7 +977,7 @@
                 <input type="checkbox" id="sheriffSummaryCheck" onchange="toggleSheriffSummary(this.checked)"> ☑ 進行歸票發言
               </label>
               <div id="sheriffTargetBox" style="display:none; margin-top:6px;">
-                <select id="sheriffTargetSelect" class="btn-gothic" style="width:100%;">
+                <select id="sheriffTargetSelect" style="width:100%;">
                   ${roomState.players.filter(x=>x.isAlive).map(x=>`<option value="${x.id}">${x.id}號玩家</option>`).join('')}
                 </select>
               </div>
@@ -1035,17 +1097,23 @@
       alert(currentVoteTarget === 0 ? "已確認棄票！" : `已確認投票處決 ${currentVoteTarget} 號！`);
     }
 
+    // 開始遊戲流程 (此時才隨機洗牌並分配角色身分)
     function startGameFlow() {
+      const preset = PRESETS[roomState.playerCount] || PRESETS[12];
+      const shuffledRoles = [...preset.pool].sort(() => Math.random() - 0.5);
+
+      roomState.players.forEach((p, idx) => {
+        p.role = shuffledRoles[idx % shuffledRoles.length];
+      });
+
       roomState.currentPhase = 'NIGHT';
-      updateBanner("【夜間行動】", "🌙 天黑請閉眼，請守衛 ➔ 狼人 ➔ 女巫 ➔ 預言家 依序執行技能...", "請各神職私密操作，絕不洩漏戰報");
-      speakGod("天黑請閉眼，請守衛、狼人、女巫、預言家依序睜眼執行技能。");
+      updateBanner("【夜間行動】", "🌙 天黑請閉眼，請守衛 ➔ 狼人 ➔ 女巫 ➔ 預言家 依序執行技能...", "角色身分已發放，請各神職私密操作");
+      speakGod("身分牌已發放，天黑請閉眼，請守衛、狼人、女巫、預言家依序睜眼執行技能。");
       updateControlPanel();
 
       setTimeout(() => {
-        // 執行法官裁判引擎夜間結算測試
         let deads = settleNightActions(roomState.nightVictim, roomState.witchElixirUsed, null, roomState.guardLastTarget);
         
-        // 檢查勝負
         let winner = checkWinCondition();
         if (winner) {
           speakGod(winner === "WEREWOLF_WIN" ? "遊戲結束，狼人陣營獲勝！" : "遊戲結束，好人陣營獲勝！");
@@ -1280,7 +1348,6 @@
     function endLastWords() {
       clearInterval(roomState.timerInterval);
       
-      // 檢查勝負
       let winner = checkWinCondition();
       if (winner) {
         speakGod(winner === "WEREWOLF_WIN" ? "遊戲結束，狼人陣營獲勝！" : "遊戲結束，好人陣營獲勝！");

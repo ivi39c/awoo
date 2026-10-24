@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gothic Crimson & Gold - 哥德暗黑狼人殺視訊平台</title>
+  <title>Awoo 狼人殺 - 暗黑哥德視訊平台</title>
   <style>
     :root {
       --bg-color: #0b080d;
@@ -349,13 +349,20 @@
 </head>
 <body>
 
-  <!-- Google 雲端音訊 BGM 播放器 (自動循環) -->
-  <audio id="googleDriveBgm" src="https://docs.google.com/uc?export=download&id=1aDdHj3EYn5uO0mvPLfVisNN59qaEg3PW" loop style="display:none;"></audio>
+  <!-- Google 雲端音訊播放器 -->
+  <iframe 
+    id="googleDriveBgm"
+    src="https://google.com" 
+    width="100%" 
+    height="150" 
+    frameborder="0" 
+    allow="autoplay">
+  </iframe>
 
   <!-- 大廳畫面 -->
   <div id="lobbyScreen" class="screen-overlay">
     <div class="lobby-card">
-      <div class="lobby-title">哥德暗黑狼人殺</div>
+      <div class="lobby-title">Awoo 狼人殺</div>
       <div class="lobby-subtitle">6 - 16 人動態配置與視訊平台</div>
       <input type="text" id="playerNameInput" class="input-gothic" placeholder="請輸入您的玩家暱稱..." value="冒險者">
       <div style="display: flex; flex-direction: column; gap: 10px;">
@@ -515,7 +522,7 @@
   <!-- 頂部導覽列 -->
   <header>
     <div class="brand-title">
-      哥德狼人殺 
+      Awoo 狼人殺 
       <span id="roomCodeDisplay" style="font-size: 0.80rem; color: var(--gold-light); cursor:pointer;" onclick="copyInviteLink()" title="點擊複製邀請連結">複製邀請</span>
     </div>
     <div class="top-actions">
@@ -532,7 +539,7 @@
   <!-- 頂部 3 行動態流程資訊欄 -->
   <div class="system-banner-box">
     <div class="banner-line-1" id="bannerPhase">【當前階段：大廳準備中】</div>
-    <div class="banner-line-2" id="bannerAnnouncement">歡迎來到哥德狼人殺，請等待所有玩家入座後由房主點擊『開始遊戲流程』...</div>
+    <div class="banner-line-2" id="bannerAnnouncement">歡迎來到 Awoo 狼人殺，請等待所有玩家入座後由房主點擊『開始遊戲流程』...</div>
     <div class="banner-line-3" id="bannerTimer">局勢細節：等待滿席與連線到位</div>
   </div>
 
@@ -706,7 +713,7 @@
     }
 
     let roomState = {
-      roomId: 'GOTHIC-' + Math.floor(1000 + Math.random() * 9000),
+      roomId: 'AWOO-' + Math.floor(1000 + Math.random() * 9000),
       isHost: true,
       playerCount: 12,
       isSpectator: false,
@@ -856,7 +863,7 @@
 
       initBgmAudio();
       initPlayers(count);
-      speakGod("歡迎來到哥德狼人殺房間，等待所有玩家滿席後由房主開始遊戲。");
+      speakGod("歡迎來到 Awoo 狼人殺房間，等待所有玩家滿席後由房主開始遊戲。");
     }
 
     function confirmJoinRoom() {

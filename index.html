@@ -59,18 +59,6 @@
       flex-wrap: wrap;
     }
 
-    .volume-control-box {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(0,0,0,0.5);
-      border: var(--border-gold);
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 0.8rem;
-      color: var(--gold-light);
-    }
-
     /* 按鈕樣式 */
     .btn-gothic {
       background: linear-gradient(135deg, #1f1427, #0f0a14);
@@ -163,7 +151,7 @@
       position: relative;
     }
 
-    /* 視訊牌桌區 */
+    /* 視訊牌桌區 (無底部按鈕，純淨樣式) */
     .table-container {
       flex: 1;
       display: grid;
@@ -244,41 +232,6 @@
       justify-content: space-between;
       width: 100%;
     }
-
-    .media-controls {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      width: 100%;
-      margin-top: 5px;
-    }
-
-    .btn-row { display: flex; gap: 4px; width: 100%; }
-
-    .media-btn {
-      flex: 1;
-      background: rgba(0, 0, 0, 0.5);
-      border: 1px solid #444;
-      color: #ccc;
-      padding: 3px 0;
-      border-radius: 3px;
-      font-size: 0.7rem;
-      cursor: pointer;
-      text-align: center;
-    }
-
-    .media-btn.active { color: var(--gold-primary); border-color: var(--gold-primary); }
-    .media-btn.muted-locked { color: #666; border-color: #333; cursor: not-allowed; }
-
-    .mic-slider-box {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 0.65rem;
-      color: #aaa;
-    }
-
-    .mic-slider-box input[type="range"] { flex: 1; height: 3px; }
 
     /* 可收合懸浮面板 */
     .floating-panel {
@@ -374,6 +327,21 @@
     .compendium-name { font-weight: bold; color: var(--gold-light); margin-bottom: 4px; }
     .compendium-desc { font-size: 0.85rem; color: #ccc; }
 
+    .control-group {
+      margin-bottom: 15px;
+    }
+
+    .control-group label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--gold-light);
+      margin-bottom: 6px;
+    }
+
+    .control-group input[type="range"] {
+      width: 100%;
+    }
+
     @media (max-width: 600px) {
       .table-container { grid-template-columns: repeat(3, 1fr); }
       .floating-panel { right: 10px; bottom: 10px; left: 10px; width: auto; }
@@ -381,6 +349,12 @@
   </style>
 </head>
 <body>
+
+  <!-- 隱藏的 YouTube 音樂播放器 (BGM) -->
+  <iframe id="youtubeBgmPlayer" style="display:none;" width="1" height="1"
+    src="https://www.youtube.com/embed/JznO2UvE_uU?enablejsapi=1&autoplay=1&loop=1&playlist=JznO2UvE_uU" 
+    allow="autoplay">
+  </iframe>
 
   <!-- 大廳登入畫面 -->
   <div id="lobbyScreen" class="screen-overlay">
@@ -400,12 +374,7 @@
   <header>
     <div class="brand-title">🐺 哥德狼人殺 <span id="roomCodeDisplay" style="font-size: 0.8rem; color: #888;"></span></div>
     <div class="top-actions">
-      <!-- 頂部 BGM 音量調控拉桿 -->
-      <div class="volume-control-box">
-        <span>🎵 BGM</span>
-        <input type="range" id="bgmVolumeSlider" min="0" max="100" value="40" oninput="adjustBgmVolume(this.value)">
-        <button class="media-btn" id="bgmMuteBtn" onclick="toggleBgmMute()">🔊</button>
-      </div>
+      <button class="btn-gothic" onclick="openMediaModal()">🎥 影音</button>
       <select id="perspectiveSelect" class="btn-gothic" onchange="switchPerspective(this.value)">
         <option value="1">🎯 視角: 1號 (您)</option>
       </select>
@@ -438,6 +407,37 @@
       </div>
       <div id="actionControls">
         <p style="font-size: 0.8rem; color: #aaa;">請等待遊戲開始或進行視角切換...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: 影音整合控制面板 -->
+  <div id="mediaModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🎥 影音與裝置控制面板</h3>
+        <span style="cursor:pointer;" onclick="closeModal('mediaModal')">✖</span>
+      </div>
+      <div class="modal-body">
+        <div class="control-group">
+          <label>🎵 BGM 背景音樂音量 (Werewolves of Millers Hollow):</label>
+          <input type="range" id="bgmSlider" min="0" max="100" value="50" oninput="setBgmVolume(this.value)">
+        </div>
+        <div class="control-group">
+          <label>🎙️ 本機麥克風音量與狀態:</label>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <input type="range" id="micSlider" min="0" max="100" value="80">
+            <button class="btn-gothic" id="micToggleBtn" onclick="toggleSelfMic()">🎤 麥克風: 關</button>
+          </div>
+        </div>
+        <div class="control-group">
+          <label>🔊 其他玩家主音量:</label>
+          <input type="range" id="masterVolumeSlider" min="0" max="100" value="100">
+        </div>
+        <div class="control-group">
+          <label>📹 本機視訊鏡頭:</label>
+          <button class="btn-gothic" id="camToggleBtn" onclick="toggleSelfCam()">📷 鏡頭: 關</button>
+        </div>
       </div>
     </div>
   </div>
@@ -489,45 +489,7 @@
   </div>
 
   <script>
-    // --- 聲音引擎 (Web Speech API + Web Audio API) ---
-    let audioCtx = null;
-    let bgmGainNode = null;
-    let isBgmMuted = false;
-
-    function initAudioEngine() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        bgmGainNode = audioCtx.createGain();
-        bgmGainNode.gain.value = 0.4;
-        bgmGainNode.connect(audioCtx.destination);
-        playGothicAmbientBgm();
-      }
-    }
-
-    function playGothicAmbientBgm() {
-      if (!audioCtx) return;
-      const osc = audioCtx.createOscillator();
-      const oscGain = audioCtx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(55, audioCtx.currentTime); // Low A note
-      oscGain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-      osc.connect(oscGain);
-      oscGain.connect(bgmGainNode);
-      osc.start();
-    }
-
-    function adjustBgmVolume(val) {
-      if (bgmGainNode) {
-        bgmGainNode.gain.value = (val / 100) * (isBgmMuted ? 0 : 1);
-      }
-    }
-
-    function toggleBgmMute() {
-      isBgmMuted = !isBgmMuted;
-      document.getElementById('bgmMuteBtn').innerText = isBgmMuted ? '🔇' : '🔊';
-      adjustBgmVolume(document.getElementById('bgmVolumeSlider').value);
-    }
-
+    // 語音廣報 (Web Speech API)
     function speakGod(text) {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -538,13 +500,14 @@
       }
     }
 
-    // --- 遊戲狀態 ---
+    // 遊戲狀態
     let roomState = {
       roomId: 'GOTHIC-' + Math.floor(1000 + Math.random() * 9000),
       isHost: true,
       playerCount: 12,
       sheriffMode: 'enabled',
-      currentPhase: 'LOBBY', // LOBBY, NIGHT, SHERIFF_ELECTION, DAY_DEATH, DAY_SPEECH, VOTING
+      hasSheriffInGame: false,
+      currentPhase: 'LOBBY',
       currentPerspective: 1,
       players: [],
       activeSpeakerId: null,
@@ -558,8 +521,8 @@
       nightVictim: null,
       witchElixirUsed: false,
       witchPoisonUsed: false,
-      isPkRound: false,
-      pkCandidates: []
+      speechQueue: [],
+      currentQueueIndex: 0
     };
 
     const ROLES = [
@@ -579,14 +542,12 @@
     };
 
     function createRoom() {
-      initAudioEngine();
       roomState.isHost = true;
       document.getElementById('lobbyScreen').style.display = 'none';
       initPlayers(12);
     }
 
     function joinRoom() {
-      initAudioEngine();
       const code = prompt("請輸入 4 位數房間代碼:", "8888");
       if (code) {
         roomState.isHost = false;
@@ -611,7 +572,6 @@
           isSheriff: false,
           micOn: false,
           camOn: false,
-          micVolume: 80,
           stream: null
         });
       }
@@ -642,7 +602,7 @@
       `;
     }
 
-    // 渲染桌面 (時鐘順序排列)
+    // 渲染極簡桌面 (無底部微型按鈕)
     function renderTable() {
       const table = document.getElementById('seatTable');
       table.innerHTML = '';
@@ -660,19 +620,6 @@
           <div class="seat-info">
             <span>${p.id}. ${p.name}</span>
           </div>
-          <div class="media-controls">
-            <div class="btn-row">
-              <button class="media-btn ${p.micOn ? 'active' : ''} ${!isCurrentSpeaker && roomState.currentPhase==='DAY_SPEECH' ? 'muted-locked' : ''}" 
-                      onclick="toggleMedia(${p.id}, 'mic')">
-                ${!isCurrentSpeaker && roomState.currentPhase==='DAY_SPEECH' ? '🔇 發言未到' : (p.micOn ? '🎤 麥克風開' : '🎙️ 靜音')}
-              </button>
-              <button class="media-btn ${p.camOn ? 'active' : ''}" onclick="toggleMedia(${p.id}, 'cam')">📹 視訊</button>
-            </div>
-            <div class="mic-slider-box">
-              <span>🎙️</span>
-              <input type="range" min="0" max="100" value="${p.micVolume}" oninput="adjustPlayerMicVol(${p.id}, this.value)">
-            </div>
-          </div>
         `;
         table.appendChild(card);
 
@@ -687,53 +634,6 @@
           container.appendChild(video);
         }
       });
-    }
-
-    // 調整單一玩家麥克風音量
-    function adjustPlayerMicVol(id, val) {
-      const p = roomState.players.find(x => x.id === id);
-      if (p) p.micVolume = val;
-    }
-
-    // 真實媒體授權 & 發言階段麥克風禁言鎖定機制
-    async function toggleMedia(id, type) {
-      // 檢查發言鎖定
-      if (type === 'mic' && roomState.currentPhase === 'DAY_SPEECH' && id !== roomState.activeSpeakerId) {
-        alert("【發言階段禁言機制】目前未輪到您的發言回合，麥克風已被系統強制靜音。");
-        return;
-      }
-
-      const p = roomState.players.find(x => x.id === id);
-      if (!p) return;
-
-      if (id === roomState.currentPerspective) {
-        try {
-          if (type === 'cam') {
-            if (!p.camOn) {
-              const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: p.micOn });
-              p.camOn = true; p.stream = stream;
-            } else {
-              if (p.stream) p.stream.getVideoTracks().forEach(t => t.stop());
-              p.camOn = false;
-            }
-          } else if (type === 'mic') {
-            if (!p.micOn) {
-              const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: p.camOn });
-              p.micOn = true; p.stream = stream;
-            } else {
-              if (p.stream) p.stream.getAudioTracks().forEach(t => t.stop());
-              p.micOn = false;
-            }
-          }
-        } catch (err) {
-          alert("無法取得本機裝置授權！");
-          return;
-        }
-      } else {
-        if (type === 'mic') p.micOn = !p.micOn;
-        if (type === 'cam') p.camOn = !p.camOn;
-      }
-      renderTable();
     }
 
     function updatePerspectiveSelect() {
@@ -802,6 +702,8 @@
       }
       else if (roomState.currentPhase === 'DAY_SPEECH') {
         const isMyTurn = (p.id === roomState.activeSpeakerId);
+        const isLastSpeaker = (roomState.currentQueueIndex === roomState.speechQueue.length - 1);
+
         controls.innerHTML = `
           <div style="text-align:center; margin-bottom:10px;">
             <span style="font-size:1rem; color:var(--gold-light);">當前發言玩家：<b style="color:var(--gold-primary);">${roomState.activeSpeakerId} 號</b></span><br>
@@ -812,12 +714,12 @@
               <button class="btn-gothic" style="flex:1;" onclick="addSpeechTime()">+60s 加時</button>
               <button class="btn-gothic btn-crimson" style="flex:1;" onclick="endSpeech()">結束發言</button>
             </div>
-          ` : `<p style="font-size:0.75rem; color:#888; text-align:center;">您的麥克風已被靜音，請等待輪到您的回合。</p>`}
+          ` : `<p style="font-size:0.75rem; color:#888; text-align:center;">目前為 ${roomState.activeSpeakerId} 號發言時間。</p>`}
 
-          ${p.isSheriff && isMyTurn ? `
+          ${(p.isSheriff || (!roomState.hasSheriffInGame && isLastSpeaker)) && isMyTurn ? `
             <div style="border-top:1px solid #444; padding-top:8px; margin-top:8px;">
               <label style="font-size:0.8rem; color:var(--gold-primary);">
-                <input type="checkbox" id="sheriffSummaryCheck" onchange="toggleSheriffSummary(this.checked)"> ☑ 進行警長歸票
+                <input type="checkbox" id="sheriffSummaryCheck" onchange="toggleSheriffSummary(this.checked)"> ☑ 進行歸票發言
               </label>
               <div id="sheriffTargetBox" style="display:none; margin-top:6px;">
                 <select id="sheriffTargetSelect" class="btn-gothic" style="width:100%;">
@@ -894,7 +796,6 @@
     function guardProtect(targetId) { roomState.guardLastTarget = targetId; alert(`今晚守護 ${targetId} 號`); updateControlPanel(); }
     function wolfKillTarget(targetId) { roomState.nightVictim = targetId; alert(`狼隊指定襲擊 ${targetId} 號`); }
 
-    // 公投與 PK 投票面板
     function renderVotingPanel(p, container) {
       if (!p.isAlive) {
         container.innerHTML = `<p style="color:#888; font-size:0.8rem;">您已出局，無投票權。</p>`;
@@ -902,19 +803,13 @@
       }
 
       let html = `<p style="font-size:0.8rem; color:var(--gold-light);">⚖️ 請選擇公投處決目標 (倒數 ${roomState.votingTimer}s)：</p><div class="target-grid">`;
-      const pool = roomState.isPkRound ? roomState.pkCandidates : roomState.players.filter(x=>x.isAlive).map(x=>x.id);
-
       roomState.players.forEach(t => {
-        const canVoteFor = pool.includes(t.id);
-        html += `<button class="target-btn" id="voteBtn-${t.id}" ${!canVoteFor || !t.isAlive ? 'disabled' : ''} onclick="selectVoteTarget(${t.id})">${t.id}號</button>`;
+        html += `<button class="target-btn" id="voteBtn-${t.id}" ${!t.isAlive ? 'disabled' : ''} onclick="selectVoteTarget(${t.id})">${t.id}號</button>`;
       });
-      html += `</div>`;
-
-      if (!roomState.isPkRound) {
-        html += `<button class="target-btn" style="width:100%; margin-top:8px;" onclick="selectVoteTarget(0)">棄票 (不投票)</button>`;
-      }
-
-      html += `<button class="btn-gothic btn-crimson" style="width:100%; margin-top:10px;" onclick="confirmVote()">✅ 確認投票</button>`;
+      html += `</div>
+        <button class="target-btn" style="width:100%; margin-top:8px;" onclick="selectVoteTarget(0)">棄票 (不投票)</button>
+        <button class="btn-gothic btn-crimson" style="width:100%; margin-top:10px;" onclick="confirmVote()">✅ 確認投票</button>
+      `;
       container.innerHTML = html;
     }
 
@@ -933,7 +828,7 @@
       alert(currentVoteTarget === 0 ? "已確認棄票！" : `已確認投票處決 ${currentVoteTarget} 號！`);
     }
 
-    // --- 完整遊戲自動狀態機 ---
+    // 遊戲狀態機
     function startGameFlow() {
       roomState.currentPhase = 'NIGHT';
       updateBanner("【夜間行動】", "🌙 天黑請閉眼，請守衛 ➔ 狼人 ➔ 女巫 ➔ 預言家 依序執行技能...", "請各神職私密操作，絕不洩漏戰報");
@@ -941,8 +836,13 @@
       updateControlPanel();
 
       setTimeout(() => {
-        roomState.currentPhase = 'SHERIFF_ELECTION';
-        startSheriffCountdown();
+        if (roomState.sheriffMode === 'enabled') {
+          roomState.currentPhase = 'SHERIFF_ELECTION';
+          startSheriffCountdown();
+        } else {
+          roomState.hasSheriffInGame = false;
+          announceDayDeath();
+        }
       }, 10000);
     }
 
@@ -973,39 +873,41 @@
 
     function processSheriffCandidates() {
       if (roomState.sheriffCandidates.length === 0) {
-        speakGod("本局無人競選警長，直接進入白天死訊公布。");
-        announceDayDeath();
-      } else if (roomState.sheriffCandidates.length === 1) {
-        const winner = roomState.sheriffCandidates[0];
-        roomState.sheriffId = winner;
-        roomState.players.find(x => x.id === winner).isSheriff = true;
-        renderTable();
-        speakGod(`只有 ${winner} 號玩家競選，自動當選警長！`);
+        roomState.hasSheriffInGame = false;
+        speakGod("本局無人競選警長，本局無警長！進入白天發言。");
         announceDayDeath();
       } else {
-        speakGod(`競選結束，共有 ${roomState.sheriffCandidates.join(', ')} 號競選，進入政見發表與投票。`);
-        // 簡化模擬：直接由第一位候選人當選
+        roomState.hasSheriffInGame = true;
         const winner = roomState.sheriffCandidates[0];
         roomState.sheriffId = winner;
         roomState.players.find(x => x.id === winner).isSheriff = true;
         renderTable();
+        speakGod(`${winner} 號玩家當選警長！`);
         announceDayDeath();
       }
     }
 
     function announceDayDeath() {
-      roomState.currentPhase = 'DAY_DEATH';
       const text = roomState.nightVictim ? `昨夜 ${roomState.nightVictim} 號玩家慘遭襲擊倒下！` : "昨夜是平安夜，無人倒下！";
-      updateBanner("【天亮死訊】", `☀️ 天亮了！${text}`, "請警長指定白天發言方向");
-      speakGod(`天亮了。${text} 請警長選擇發言順序。`);
-      updateControlPanel();
+      
+      if (roomState.hasSheriffInGame) {
+        roomState.currentPhase = 'DAY_DEATH';
+        updateBanner("【天亮死訊】", `☀️ 天亮了！${text}`, "請警長指定白天發言方向");
+        speakGod(`天亮了。${text} 請警長選擇發言順序。`);
+        updateControlPanel();
+      } else {
+        // 無警長模式：隨機挑選存活玩家發言
+        const alivePlayers = roomState.players.filter(p => p.isAlive).map(p => p.id);
+        const randomStart = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+        speakGod(`天亮了。${text} 本局無警長，隨機由 ${randomStart} 號玩家開始發言。`);
+        startNoSheriffSpeech(randomStart);
+      }
     }
 
     function chooseSpeechDirection(dir) {
-      updateBanner("【白天輪流發言】", `👑 警長指定發言順序：【${dir}】`, "發言階段麥克風實施嚴格禁言控制");
+      updateBanner("【白天輪流發言】", `👑 警長指定發言順序：【${dir}】`, "每人發言 60s");
       speakGod(`警長指定發言順序為 ${dir}。`);
       
-      // 計算發言起始玩家
       let startId = 1;
       if (roomState.nightVictim) {
         startId = dir.includes('左') ? (roomState.nightVictim - 1 || roomState.playerCount) : (roomState.nightVictim % roomState.playerCount + 1);
@@ -1013,8 +915,38 @@
         startId = dir.includes('左') ? (roomState.sheriffId - 1 || roomState.playerCount) : (roomState.sheriffId % roomState.playerCount + 1);
       }
 
+      buildSpeechQueue(startId, dir.includes('右'));
+      startNextSpeaker();
+    }
+
+    function startNoSheriffSpeech(startId) {
+      updateBanner("【白天輪流發言】", `📢 無警長模式：由 ${startId} 號玩家開始順時針發言`, "末位發言者進行歸票");
+      buildSpeechQueue(startId, true);
+      startNextSpeaker();
+    }
+
+    function buildSpeechQueue(startId, isClockwise) {
+      roomState.speechQueue = [];
+      let current = startId;
+      for (let i = 0; i < roomState.playerCount; i++) {
+        const p = roomState.players.find(x => x.id === current);
+        if (p && p.isAlive) {
+          roomState.speechQueue.push(current);
+        }
+        current = isClockwise ? (current % roomState.playerCount + 1) : (current - 1 || roomState.playerCount);
+      }
+      roomState.currentQueueIndex = -1;
+    }
+
+    function startNextSpeaker() {
+      roomState.currentQueueIndex++;
+      if (roomState.currentQueueIndex >= roomState.speechQueue.length) {
+        enterVotingPhase();
+        return;
+      }
+
       roomState.currentPhase = 'DAY_SPEECH';
-      roomState.activeSpeakerId = startId;
+      roomState.activeSpeakerId = roomState.speechQueue[roomState.currentQueueIndex];
       renderTable();
       startSpeechTimer();
       updateControlPanel();
@@ -1041,21 +973,7 @@
 
     function endSpeech() {
       clearInterval(roomState.timerInterval);
-      // 換下一位發言
-      let nextId = (roomState.activeSpeakerId % roomState.playerCount) + 1;
-      while (!roomState.players.find(x => x.id === nextId).isAlive && nextId !== roomState.activeSpeakerId) {
-        nextId = (nextId % roomState.playerCount) + 1;
-      }
-
-      if (nextId === roomState.sheriffId || nextId === roomState.activeSpeakerId) {
-        // 發言結束，進入公投
-        enterVotingPhase();
-      } else {
-        roomState.activeSpeakerId = nextId;
-        renderTable();
-        startSpeechTimer();
-        updateControlPanel();
-      }
+      startNextSpeaker();
     }
 
     function toggleSheriffSummary(checked) {
@@ -1076,8 +994,8 @@
         updateBanner("【公投處決階段】", "⚖️ 請所有人於 15 秒內選擇處決目標並點擊『確認投票』...", `公投倒數：${roomState.votingTimer}s`);
         if (roomState.votingTimer <= 0) {
           clearInterval(roomState.timerInterval);
-          speakGod("公投結束，系統正在統計票數並公告處決對象！");
-          alert("公投結束，公告處決玩家！");
+          speakGod("公投結束，公告處決結果！");
+          alert("公投時間到，公告處決結果！");
         }
       }, 1000);
     }
@@ -1094,13 +1012,47 @@
       document.getElementById('panelToggleIcon').innerText = panel.classList.contains('collapsed') ? '▲' : '▼';
     }
 
+    // Modal 與影音功能
+    function openMediaModal() { document.getElementById('mediaModal').style.display = 'flex'; }
     function openSettings() {
       if (!roomState.isHost) { alert("只有房主可以更改規則！"); return; }
       document.getElementById('settingsModal').style.display = 'flex';
     }
-
     function openCompendium() { document.getElementById('compendiumModal').style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function setBgmVolume(val) {
+      const iframe = document.getElementById('youtubeBgmPlayer');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage(`{"event":"command","func":"setVolume","args":[${val}]}`, '*');
+      }
+    }
+
+    async function toggleSelfMic() {
+      const p = roomState.players.find(x => x.id === roomState.currentPerspective);
+      if (!p) return;
+      p.micOn = !p.micOn;
+      document.getElementById('micToggleBtn').innerText = p.micOn ? '🎤 麥克風: 開' : '🎤 麥克風: 關';
+      renderTable();
+    }
+
+    async function toggleSelfCam() {
+      const p = roomState.players.find(x => x.id === roomState.currentPerspective);
+      if (!p) return;
+      
+      if (!p.camOn) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          p.camOn = true;
+          p.stream = stream;
+        } catch (e) { alert("無法取得相機授權"); }
+      } else {
+        if (p.stream) p.stream.getVideoTracks().forEach(t => t.stop());
+        p.camOn = false;
+      }
+      document.getElementById('camToggleBtn').innerText = p.camOn ? '📹 鏡頭: 開' : '📷 鏡頭: 關';
+      renderTable();
+    }
 
     function buildCompendium() {
       const list = document.getElementById('compendiumList');

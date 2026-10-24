@@ -331,7 +331,7 @@
 </head>
 <body>
 
-  <!-- 動態載入的 BGM 容器 (創建房間後才注入) -->
+  <!-- BGM 容器（創建房間後才注入播放） -->
   <div id="bgmContainer" style="display:none;"></div>
 
   <!-- 大廳登入與身分選擇畫面 -->
@@ -357,7 +357,7 @@
       </div>
       <div class="modal-body">
         <label style="display:block; margin-bottom: 15px;">
-          <b>選擇遊戲總人數 (6 - 20 人)：</b>
+          <b>選擇遊戲總人數與板型：</b>
           <select id="setupPlayerCount" class="btn-gothic" style="margin-left: 10px;" onchange="updatePresetPreview()">
             <option value="6">6 人 孤狼極速局</option>
             <option value="7">7 人 新手熱身局</option>
@@ -527,7 +527,107 @@
   </div>
 
   <script>
-    // 優先使用 Google / 中文語音引擎
+    // --- 1. 玩家資料結構與全局遊戲狀態引擎 (Player Model & Game State) ---
+    class Player {
+      constructor(id, name, role) {
+        this.id = id;
+        this.name = name;
+        this.role = role; // "VILLAGER", "WEREWOLF", "SEER", "WITCH", "HUNTER", "GUARD", etc.
+        this.isAlive = true;
+        this.deathReason = null; // null, "KILLED_BY_WOLF", "POISONED_BY_WITCH", "SHOT_BY_HUNTER", "VOTED_OUT"
+        this.isProtected = false; 
+        this.isAntidoteUsed = false; 
+        this.canShoot = true; 
+        this.isSheriff = false;
+        this.micOn = false;
+        this.camOn = false;
+        this.stream = null;
+      }
+    }
+
+    let gameState = {
+      currentDay: 1,
+      currentPhase: 'NIGHT_START',
+      witchAntidote: true,
+      witchPoison: true,
+      lastGuardedId: null,
+      sheriffId: null,
+      players: []
+    };
+
+    // --- 3. 核心結算演算法 (Night Settlement Algorithm) ---
+    function settleNightActions(wolfTargetId, witchSaved, witchPoisonTargetId, guardTargetId) {
+      let deadList = [];
+      let targetedSeat = null;
+
+      gameState.players.forEach(p => {
+        p.isProtected = (p.id === guardTargetId);
+      });
+
+      if (wolfTargetId !== null) {
+        let isGuarded = (wolfTargetId === guardTargetId);
+        let isHealed = witchSaved;
+
+        if (isGuarded && isHealed) {
+          // 1. 同守同救（奶穿邏輯）：判定死亡
+          targetedSeat = wolfTargetId;
+          deadList.push({ id: targetedSeat, reason: "KILLED_BY_WOLF" });
+        } else if (isGuarded && !isHealed) {
+          // 2. 單獨守護：存活
+        } else if (!isGuarded && isHealed) {
+          // 2. 單獨解救：存活
+        } else {
+          // 3. 沒守沒救：死亡
+          targetedSeat = wolfTargetId;
+          deadList.push({ id: targetedSeat, reason: "KILLED_BY_WOLF" });
+        }
+      }
+
+      // 4. 女巫毒藥：無視守衛保護
+      if (witchPoisonTargetId !== null) {
+        if (!deadList.some(d => d.id === witchPoisonTargetId)) {
+          deadList.push({ id: witchPoisonTargetId, reason: "POISONED_BY_WITCH" });
+        }
+        
+        // 5. 獵人技能剝奪
+        let poisonedPlayer = gameState.players.find(p => p.id === witchPoisonTargetId);
+        if (poisonedPlayer && (poisonedPlayer.role === 'HUNTER' || poisonedPlayer.role === '獵人')) {
+          poisonedPlayer.canShoot = false;
+        }
+      }
+
+      deadList.forEach(item => {
+        let p = gameState.players.find(x => x.id === item.id);
+        if (p) {
+          p.isAlive = false;
+          p.deathReason = item.reason;
+        }
+      });
+
+      gameState.lastGuardedId = guardTargetId;
+      return deadList;
+    }
+
+    // --- 4. 勝負判斷邏輯 (Win Condition - 屠邊規則) ---
+    function checkWinCondition() {
+      const wolves = gameState.players.filter(p => p.role.includes('狼') || p.role === 'WEREWOLF');
+      const gods = gameState.players.filter(p => ['SEER', 'WITCH', 'HUNTER', 'GUARD', '預言家', '女巫', '獵人', '守衛'].includes(p.role));
+      const villagers = gameState.players.filter(p => p.role === 'VILLAGER' || p.role === '平民');
+
+      const areAllWolvesDead = wolves.every(p => !p.isAlive);
+      const areAllGodsDead = gods.every(p => !p.isAlive);
+      const areAllVillagersDead = villagers.every(p => !p.isAlive);
+
+      if (areAllGodsDead || areAllVillagersDead) {
+        return "WEREWOLF_WIN"; 
+      }
+      if (areAllWolvesDead) {
+        return "GOOD_WIN"; 
+      }
+      return null; 
+    }
+
+    // --- Google 語音播報優化 ( zh-TW 優先) ---
     function speakGod(text) {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -568,7 +668,7 @@
       userVotes: {}
     };
 
-    // 完整的板型矩陣設定對應表
+    // 6 - 20 人常用經典板型矩陣
     const PRESETS = {
       6: { name: "孤狼極速局", pool: ["小狼", "小狼", "預言家", "女巫", "平民", "平民"], desc: "女巫首夜不可自救，節奏明快。" },
       7: { name: "新手熱身局", pool: ["小狼", "小狼", "預言家", "女巫", "獵人", "平民", "平民"], desc: "標準新手入門配置。" },
@@ -589,15 +689,10 @@
       { name: "小狼", camp: "狼人", desc: "狼人陣營基礎角色，夜間可與狼隊共同討論並參與襲擊。" },
       { name: "狼王", camp: "狼人", desc: "出局時可發動開槍技能帶走一名玩家（自爆或被毒死除外）。" },
       { name: "白狼王", camp: "狼人", desc: "白天發言階段可選擇自爆，並強制帶走現場一名玩家。" },
-      { name: "惡靈騎士", camp: "狼人", desc: "夜間不可被神職殺害，具備一次性反傷反殺技能。" },
       { name: "預言家", camp: "好人神職", desc: "每晚可查驗一名玩家陣營（顯示金水好人或查殺狼人）。" },
       { name: "女巫", camp: "好人神職", desc: "擁有解藥（救人）與毒藥（毒人），整局各限用一次。" },
       { name: "守衛", camp: "好人神職", desc: "每晚可守護一名玩家免受夜刀，嚴格禁止連續兩晚守護同一人。" },
       { name: "獵人", camp: "好人神職", desc: "出局時可開槍帶走一名玩家（被毒死除外）。" },
-      { name: "白痴", camp: "好人神職", desc: "公投出局時可翻牌免疫死亡，保留發言權但失去投票權。" },
-      { name: "騎士", camp: "好人神職", desc: "白天投票前可決鬥指定目標，若為狼人則狼出局。" },
-      { name: "邱比特", camp: "第三方", desc: "首夜連情侶，若異陣營則結為獨立第三陣營。" },
-      { name: "盜賊", camp: "特殊", desc: "首夜從兩張底牌中選擇一張作為本局身分。" },
       { name: "平民", camp: "好人陣營", desc: "無夜間技能，憑藉白天發言與邏輯公投幫助好人陣營獲勝。" }
     ];
 
@@ -607,7 +702,6 @@
       document.getElementById('roomCodeDisplay').innerText = `[房號: ${roomState.roomId}] 🔗 複製邀請`;
     };
 
-    // 處理創建房間按鈕 -> 打開板型選擇視窗
     function openRoleSelection(isHost) {
       roomState.isHost = isHost;
       document.getElementById('createRoomModal').style.display = 'flex';
@@ -629,7 +723,7 @@
       }
     }
 
-    // 確認創建房間 (此時才開始播放 BGM)
+    // 需求 1：創建房間後才開始載入與播放 BGM
     function confirmCreateRoom() {
       const count = parseInt(document.getElementById('setupPlayerCount').value);
       const entryType = document.getElementById('entryRoleType').value;
@@ -638,7 +732,6 @@
       closeModal('createRoomModal');
       document.getElementById('lobbyScreen').style.display = 'none';
 
-      // 需求 1：創建房間後才注入並開始播放 BGM
       initBgmAudio();
       initPlayers(count);
       speakGod("歡迎來到哥德狼人殺房間，遊戲準備就緒。");
@@ -667,7 +760,6 @@
       initPlayers(12);
     }
 
-    // 初始化 BGM 串流
     function initBgmAudio() {
       const container = document.getElementById('bgmContainer');
       container.innerHTML = `
@@ -678,7 +770,7 @@
       `;
     }
 
-    // 複製邀請連結 (需求 2)
+    // 需求 2：房間邀請碼與連結複製
     function copyInviteLink() {
       const dummyUrl = window.location.href.split('?')[0] + `?room=${roomState.roomId}`;
       navigator.clipboard.writeText(dummyUrl).then(() => {
@@ -689,19 +781,14 @@
     function initPlayers(count) {
       roomState.playerCount = count;
       roomState.players = [];
+      gameState.players = [];
       const preset = PRESETS[count] || PRESETS[12];
       
       for (let i = 1; i <= count; i++) {
-        roomState.players.push({
-          id: i,
-          name: i === 1 ? (document.getElementById('playerNameInput').value || '1號玩家') : `${i}號 Bot`,
-          role: preset.pool[(i - 1) % preset.pool.length],
-          isAlive: true,
-          isSheriff: false,
-          micOn: false,
-          camOn: false,
-          stream: null
-        });
+        const roleName = preset.pool[(i - 1) % preset.pool.length];
+        const p = new Player(i, i === 1 ? (document.getElementById('playerNameInput').value || '1號玩家') : `${i}號 Bot`, roleName);
+        roomState.players.push(p);
+        gameState.players.push(p); // 同步至法官核心引擎
       }
       renderTable();
       updatePerspectiveSelect();
@@ -824,7 +911,7 @@
 
           ${(p.isSheriff || (!roomState.hasSheriffInGame && isLastSpeaker)) && isMyTurn ? `
             <div style="border-top:1px solid #444; padding-top:8px; margin-top:8px;">
-              <label style="font-size:0.8rem; color:var(--gold-primary);">
+              <label style="font-size:0.80rem; color:var(--gold-primary);">
                 <input type="checkbox" id="sheriffSummaryCheck" onchange="toggleSheriffSummary(this.checked)"> ☑ 進行歸票發言
               </label>
               <div id="sheriffTargetBox" style="display:none; margin-top:6px;">
@@ -862,7 +949,7 @@
         return;
       }
 
-      if (p.role === '預言家') {
+      if (p.role === '預言家' || p.role === 'SEER') {
         let html = `<p style="font-size:0.8rem; color:var(--gold-light);">🔮 選擇今晚查驗目標：</p><div class="target-grid">`;
         roomState.players.forEach(t => {
           if (t.isAlive && t.id !== p.id) html += `<button class="target-btn" onclick="seerCheck(${t.id})">${t.id}號</button>`;
@@ -870,7 +957,7 @@
         html += `</div><div id="seerResult" style="margin-top:10px; font-weight:bold;"></div>`;
         container.innerHTML = html;
       }
-      else if (p.role === '女巫') {
+      else if (p.role === '女巫' || p.role === 'WITCH') {
         container.innerHTML = `
           <p style="font-size:0.8rem;">🧪 昨晚倒下的是：<b style="color:var(--crimson-bright);">${roomState.nightVictim ? roomState.nightVictim + '號' : '無人死亡'}</b></p>
           <div style="display:flex; gap:8px; margin-top:8px;">
@@ -879,7 +966,7 @@
           </div>
         `;
       }
-      else if (p.role === '守衛') {
+      else if (p.role === '守衛' || p.role === 'GUARD') {
         let html = `<p style="font-size:0.8rem;">🛡️ 選擇守護目標 (不可連守)：</p><div class="target-grid">`;
         roomState.players.forEach(t => {
           if (t.isAlive) {
@@ -890,7 +977,7 @@
         html += `</div>`;
         container.innerHTML = html;
       }
-      else if (p.role.includes('狼')) {
+      else if (p.role.includes('狼') || p.role === 'WEREWOLF') {
         let html = `<p style="font-size:0.8rem; color:var(--crimson-bright);">🐺 狼隊討論夜刀標靶：</p><div class="target-grid">`;
         roomState.players.forEach(t => {
           if (t.isAlive) html += `<button class="target-btn" onclick="wolfKillTarget(${t.id})">${t.id}號</button>`;
@@ -905,7 +992,7 @@
 
     function seerCheck(targetId) {
       const target = roomState.players.find(x => x.id === targetId);
-      const isWolf = target.role.includes('狼');
+      const isWolf = target.role.includes('狼') || target.role === 'WEREWOLF';
       document.getElementById('seerResult').innerHTML = `查驗結果：${targetId}號 是 <span style="color:${isWolf ? 'var(--crimson-bright)' : 'var(--gold-primary)'};">${isWolf ? '🐺 狼人陣營 (查殺)' : '💧 好人陣營 (金水)'}</span>`;
     }
 
@@ -955,6 +1042,16 @@
       updateControlPanel();
 
       setTimeout(() => {
+        // 執行法官裁判引擎夜間結算測試
+        let deads = settleNightActions(roomState.nightVictim, roomState.witchElixirUsed, null, roomState.guardLastTarget);
+        
+        // 檢查勝負
+        let winner = checkWinCondition();
+        if (winner) {
+          speakGod(winner === "WEREWOLF_WIN" ? "遊戲結束，狼人陣營獲勝！" : "遊戲結束，好人陣營獲勝！");
+          return;
+        }
+
         if (roomState.sheriffMode === 'enabled') {
           roomState.currentPhase = 'SHERIFF_ELECTION';
           startSheriffCountdown();
@@ -999,6 +1096,7 @@
         roomState.hasSheriffInGame = true;
         const winner = roomState.sheriffCandidates[0];
         roomState.sheriffId = winner;
+        gameState.sheriffId = winner;
         roomState.players.find(x => x.id === winner).isSheriff = true;
         renderTable();
         speakGod(`${winner} 號玩家當選警長！`);
@@ -1181,6 +1279,14 @@
 
     function endLastWords() {
       clearInterval(roomState.timerInterval);
+      
+      // 檢查勝負
+      let winner = checkWinCondition();
+      if (winner) {
+        speakGod(winner === "WEREWOLF_WIN" ? "遊戲結束，狼人陣營獲勝！" : "遊戲結束，好人陣營獲勝！");
+        return;
+      }
+
       speakGod("遺言發表結束，天黑請閉眼。");
       updateBanner("【夜間準備】", "🌙 遺言結束，進入下一夜...", "準備中...");
       setTimeout(startGameFlow, 3000);

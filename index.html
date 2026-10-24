@@ -135,13 +135,13 @@
 
     .input-gothic {
       width: 100%;
-      padding: 12px;
+      padding: 10px;
       background: rgba(0, 0, 0, 0.6);
       border: var(--border-gold);
       color: #fff;
       border-radius: 4px;
-      margin-bottom: 15px;
-      font-size: 1rem;
+      margin-bottom: 12px;
+      font-size: 0.95rem;
     }
 
     .main-layout {
@@ -172,16 +172,8 @@
       transition: all 0.3s ease;
     }
 
-    .seat-card.empty {
-      border: 1px dashed rgba(212, 175, 55, 0.2);
-      opacity: 0.6;
-    }
-
-    .seat-card.highlight {
-      border-color: var(--gold-primary);
-      box-shadow: 0 0 15px var(--gold-primary);
-    }
-
+    .seat-card.empty { border: 1px dashed rgba(212, 175, 55, 0.2); opacity: 0.6; }
+    .seat-card.highlight { border-color: var(--gold-primary); box-shadow: 0 0 15px var(--gold-primary); }
     .seat-card.active-speaker {
       border-color: var(--crimson-bright);
       box-shadow: 0 0 20px var(--crimson-bright);
@@ -267,13 +259,7 @@
     .panel-title { font-size: 0.95rem; color: var(--gold-primary); font-weight: bold; }
     .panel-body { padding: 15px; max-height: 420px; overflow-y: auto; }
 
-    .target-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      margin-top: 10px;
-    }
-
+    .target-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
     .target-btn {
       background: rgba(0, 0, 0, 0.6);
       border: 1px solid rgba(212, 175, 55, 0.4);
@@ -284,11 +270,7 @@
       cursor: pointer;
     }
 
-    .target-btn:hover:not(:disabled) {
-      border-color: var(--gold-primary);
-      background: rgba(212, 175, 55, 0.2);
-    }
-
+    .target-btn:hover:not(:disabled) { border-color: var(--gold-primary); background: rgba(212, 175, 55, 0.2); }
     .target-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: #333; }
     .target-btn.selected { border-color: var(--crimson-bright); background: rgba(230, 0, 0, 0.3); }
 
@@ -308,8 +290,8 @@
       border: 2px solid var(--gold-primary);
       border-radius: 8px;
       width: 100%;
-      max-width: 550px;
-      max-height: 85vh;
+      max-width: 580px;
+      max-height: 88vh;
       display: flex;
       flex-direction: column;
       box-shadow: var(--shadow-gothic);
@@ -326,6 +308,30 @@
 
     .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
 
+    .role-checkbox-group {
+      background: rgba(0,0,0,0.4);
+      border: var(--border-gold);
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    .role-checkbox-title {
+      font-size: 0.85rem;
+      color: var(--gold-primary);
+      font-weight: bold;
+      margin-bottom: 6px;
+      border-bottom: 1px dashed rgba(212, 175, 55, 0.3);
+      padding-bottom: 4px;
+    }
+
+    .role-checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      font-size: 0.8rem;
+    }
+
     .compendium-item { border-bottom: 1px solid rgba(212, 175, 55, 0.2); padding: 10px 0; }
     .compendium-name { font-weight: bold; color: var(--gold-light); margin-bottom: 4px; }
     .compendium-desc { font-size: 0.85rem; color: #ccc; }
@@ -337,15 +343,16 @@
     @media (max-width: 600px) {
       .table-container { grid-template-columns: repeat(3, 1fr); }
       .floating-panel { right: 10px; bottom: 10px; left: 10px; width: auto; }
+      .role-checkbox-grid { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
 <body>
 
-  <!-- BGM 容器（創建房間後才注入播放） -->
+  <!-- BGM 容器 -->
   <div id="bgmContainer" style="display:none;"></div>
 
-  <!-- 大廳登入與身分選擇畫面 -->
+  <!-- 大廳畫面 -->
   <div id="lobbyScreen" class="screen-overlay">
     <div class="lobby-card">
       <div class="lobby-title">🏰 哥德暗黑狼人殺</div>
@@ -359,17 +366,17 @@
     </div>
   </div>
 
-  <!-- Modal: 創建房間設定與板型選擇 (6-20人) -->
+  <!-- Modal: 創建房間 (含自由配置與警長模式選項) -->
   <div id="createRoomModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>🏰 創建房間與動態板型選擇</h3>
+        <h3>🏰 創建房間與板型配置</h3>
         <span style="cursor:pointer;" onclick="closeModal('createRoomModal')">✖</span>
       </div>
       <div class="modal-body">
-        <label style="display:block; margin-bottom: 15px;">
-          <b>選擇遊戲總人數與板型：</b>
-          <select id="setupPlayerCount" style="margin-left: 10px;" onchange="updatePresetPreview()">
+        <label style="display:block; margin-bottom: 12px;">
+          <b>選擇遊戲板型：</b>
+          <select id="setupPlayerCount" style="margin-left: 10px;" onchange="handlePresetChange()">
             <option value="6">6 人 孤狼極速局</option>
             <option value="7">7 人 新手熱身局</option>
             <option value="8">8 人 預女獵白局</option>
@@ -383,22 +390,103 @@
             <option value="16">16 人 雙功能狼極限局</option>
             <option value="18">18 人 盜賊盲牌局</option>
             <option value="20">20 人 終極神魔大亂鬥</option>
+            <option value="custom">🛠️ 自由配置 (自訂人數與陣營)</option>
           </select>
         </label>
 
-        <div id="presetDetailBox" style="background: rgba(0,0,0,0.5); border: var(--border-gold); padding: 12px; border-radius: 4px; margin-bottom: 15px; font-size: 0.85rem; line-height: 1.5;"></div>
+        <!-- 板型預覽簡介 -->
+        <div id="presetDetailBox" style="background: rgba(0,0,0,0.5); border: var(--border-gold); padding: 10px; border-radius: 4px; margin-bottom: 12px; font-size: 0.85rem; line-height: 1.4;"></div>
+
+        <!-- 自由配置專用設定區 -->
+        <div id="customConfigSection" style="display:none; margin-bottom: 15px;">
+          <div style="display:flex; gap:10px; margin-bottom:10px;">
+            <label style="flex:1; font-size:0.85rem;">總人數:
+              <input type="number" id="customTotalCount" class="input-gothic" value="12" min="6" max="20" style="margin-top:4px;" onchange="handleCustomCountChange()">
+            </label>
+            <label style="flex:1; font-size:0.85rem;">🐺 狼人:
+              <input type="number" id="customWolfCount" class="input-gothic" value="4" min="1" style="margin-top:4px;">
+            </label>
+            <label style="flex:1; font-size:0.85rem;">🔮 神職:
+              <input type="number" id="customGodCount" class="input-gothic" value="4" min="1" style="margin-top:4px;">
+            </label>
+            <label style="flex:1; font-size:0.85rem;">💧 村民:
+              <input type="number" id="customVillagerCount" class="input-gothic" value="4" min="1" style="margin-top:4px;">
+            </label>
+          </div>
+
+          <!-- 三大陣營角色選擇清單 -->
+          <div class="role-checkbox-group">
+            <div class="role-checkbox-title">🐺 狼人陣營角色勾選：</div>
+            <div class="role-checkbox-grid">
+              <label><input type="checkbox" name="customRole" value="小狼" checked> 小狼</label>
+              <label><input type="checkbox" name="customRole" value="狼王" checked> 狼王</label>
+              <label><input type="checkbox" name="customRole" value="白狼王"> 白狼王</label>
+              <label><input type="checkbox" name="customRole" value="狼美人"> 狼美人</label>
+              <label><input type="checkbox" name="customRole" value="噩夢之影"> 噩夢之影</label>
+              <label><input type="checkbox" name="customRole" value="惡靈騎士"> 惡靈騎士</label>
+            </div>
+          </div>
+
+          <div class="role-checkbox-group">
+            <div class="role-checkbox-title">🔮 好人神職角色勾選：</div>
+            <div class="role-checkbox-grid">
+              <label><input type="checkbox" name="customRole" value="預言家" checked> 預言家</label>
+              <label><input type="checkbox" name="customRole" value="女巫" checked> 女巫</label>
+              <label><input type="checkbox" name="customRole" value="獵人" checked> 獵人</label>
+              <label><input type="checkbox" name="customRole" value="守衛" checked> 守衛</label>
+              <label><input type="checkbox" name="customRole" value="白痴"> 白痴</label>
+              <label><input type="checkbox" name="customRole" value="騎士"> 騎士</label>
+              <label><input type="checkbox" name="customRole" value="攝夢人"> 攝夢人</label>
+              <label><input type="checkbox" name="customRole" value="魔術師"> 魔術師</label>
+            </div>
+          </div>
+
+          <div class="role-checkbox-group">
+            <div class="role-checkbox-title">💧 好人平民與特殊陣營：</div>
+            <div class="role-checkbox-grid">
+              <label><input type="checkbox" name="customRole" value="平民" checked> 平民</label>
+              <label><input type="checkbox" name="customRole" value="暗戀者"> 暗戀者</label>
+              <label><input type="checkbox" name="customRole" value="邱比特"> 邱比特</label>
+              <label><input type="checkbox" name="customRole" value="盜賊"> 盜賊</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 警長模式設定 (12人限制) -->
+        <div style="background: rgba(0,0,0,0.4); border: var(--border-gold); padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="enableSheriffMode" checked onchange="toggleSheriffCheckbox(this)">
+            <b style="color:var(--gold-primary);">👑 啟用警長競選模式</b>
+          </label>
+          <div id="sheriffModeNotice" style="font-size:0.75rem; color:#aaa; margin-top:4px;">
+            12人（含）以上板型可啟用警長競選；12人以下自動關閉。
+          </div>
+        </div>
 
         <label style="display:block; margin-bottom: 15px;">
           <b>進場身分選擇：</b>
           <select id="entryRoleType" style="margin-left: 10px;">
-            <option value="seat">入座玩家 (參與視訊與遊戲)</option>
+            <option value="seat">入座玩家 (參與遊戲)</option>
             <option value="spectator">進入觀眾席 (僅觀戰旁聽)</option>
           </select>
         </label>
 
-        <div style="margin-top: 20px; text-align: right;">
+        <div style="text-align: right;">
           <button class="btn-gothic btn-crimson" onclick="confirmCreateRoom()">🚀 確認建立房間</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: 觀眾席清單 -->
+  <div id="spectatorListModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>👀 觀眾席玩家列表</h3>
+        <span style="cursor:pointer;" onclick="closeModal('spectatorListModal')">✖</span>
+      </div>
+      <div class="modal-body" id="spectatorListBody">
+        <p style="color:#aaa; font-size:0.85rem;">目前觀眾席無人...</p>
       </div>
     </div>
   </div>
@@ -426,13 +514,14 @@
     </div>
   </div>
 
-  <!-- 頂部導覽列 -->
+  <!-- 頂部導覽列 (新增觀眾席按鈕) -->
   <header>
     <div class="brand-title">
       🐺 哥德狼人殺 
       <span id="roomCodeDisplay" style="font-size: 0.80rem; color: var(--gold-light); cursor:pointer;" onclick="copyInviteLink()" title="點擊複製邀請連結">🔗 複製邀請</span>
     </div>
     <div class="top-actions">
+      <button class="btn-gothic" id="spectatorCountBtn" onclick="openSpectatorModal()">👀 觀眾席 (0)</button>
       <button class="btn-gothic" onclick="openMediaModal()">🎥 影音</button>
       <select id="perspectiveSelect" onchange="switchPerspective(this.value)">
         <option value="1">🎯 視角: 1號 (您)</option>
@@ -501,30 +590,16 @@
     </div>
   </div>
 
-  <!-- Modal: 房間設定 -->
-  <div id="settingsModal" class="modal">
+  <!-- Modal: 角色圖鑑 -->
+  <div id="compendiumModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>⚙️ 房間規則與配置設定 (房主專屬)</h3>
-        <span style="cursor:pointer;" onclick="closeModal('settingsModal')">✖</span>
+        <h3>📖 角色圖鑑 (官方與熱門角色)</h3>
+        <span style="cursor:pointer;" onclick="closeModal('compendiumModal')">✖</span>
       </div>
-      <div class="modal-body">
-        <label style="display:block; margin-bottom: 15px;">
-          <b>遊戲總人數：</b>
-          <select id="playerCountSelect" style="margin-left: 10px;">
-            <option value="6">6 人局</option>
-            <option value="9">9 人局</option>
-            <option value="12" selected>12 人標準局</option>
-            <option value="16">16 人極限局</option>
-            <option value="20">20 人大亂鬥</option>
-          </select>
-        </label>
-        <div style="margin-top: 20px; text-align: right;">
-          <button class="btn-gothic btn-crimson" onclick="applySettingsAndStart()">▶ 套用設定並重新開始</button>
-        </div>
-      </div>
+      <div class="modal-body" id="compendiumList"></div>
     </div>
-  </script>
+  </div>
 
   <script>
     class Player {
@@ -541,7 +616,7 @@
         this.micOn = false;
         this.camOn = false;
         this.stream = null;
-        this.isOccupied = false; // 座位是否有人
+        this.isOccupied = false;
       }
     }
 
@@ -637,12 +712,13 @@
       isHost: true,
       playerCount: 12,
       isSpectator: false,
-      mySeatId: 1, // 當前使用的座位號 (觀眾席為 null)
+      mySeatId: 1,
       sheriffMode: 'enabled',
       hasSheriffInGame: false,
       currentPhase: 'LOBBY',
       currentPerspective: 1,
       players: [],
+      spectators: [], // 觀眾席清單
       activeSpeakerId: null,
       speechTimer: 60,
       sheriffTimer: 30,
@@ -657,7 +733,8 @@
       witchPoisonUsed: false,
       speechQueue: [],
       currentQueueIndex: 0,
-      userVotes: {}
+      userVotes: {},
+      customRolePool: [] // 自由配置角色池
     };
 
     const PRESETS = {
@@ -689,7 +766,7 @@
 
     window.onload = () => {
       buildCompendium();
-      updatePresetPreview();
+      handlePresetChange();
       document.getElementById('roomCodeDisplay').innerText = `[房號: ${roomState.roomId}] 🔗 複製邀請`;
     };
 
@@ -702,23 +779,72 @@
       document.getElementById('joinModal').style.display = 'flex';
     }
 
-    function updatePresetPreview() {
+    // 切換預設板型與自由配置處理
+    function handlePresetChange() {
       const val = document.getElementById('setupPlayerCount').value;
-      const preset = PRESETS[val];
-      if (preset) {
-        document.getElementById('presetDetailBox').innerHTML = `
-          <b style="color:var(--gold-primary);">📋 板型：${preset.name} (${val} 人局)</b><br>
-          • <b>陣營配置：</b> ${preset.pool.join(', ')}<br>
-          • <b>規則備註：</b> ${preset.desc}
-        `;
+      const customSection = document.getElementById('customConfigSection');
+      const presetBox = document.getElementById('presetDetailBox');
+
+      if (val === 'custom') {
+        customSection.style.display = 'block';
+        presetBox.innerHTML = `<b style="color:var(--gold-primary);">🛠️ 自由配置模式：</b>請自訂人數比例並勾選參與角色。`;
+        handleCustomCountChange();
+      } else {
+        customSection.style.display = 'none';
+        const preset = PRESETS[val];
+        if (preset) {
+          presetBox.innerHTML = `
+            <b style="color:var(--gold-primary);">📋 板型：${preset.name} (${val} 人局)</b><br>
+            • <b>陣營配置：</b> ${preset.pool.join(', ')}<br>
+            • <b>規則備註：</b> ${preset.desc}
+          `;
+        }
+        checkSheriffEligibility(parseInt(val));
+      }
+    }
+
+    function handleCustomCountChange() {
+      const count = parseInt(document.getElementById('customTotalCount').value) || 12;
+      checkSheriffEligibility(count);
+    }
+
+    // 檢查 12 人警長模式資格
+    function checkSheriffEligibility(count) {
+      const sheriffCheck = document.getElementById('enableSheriffMode');
+      const notice = document.getElementById('sheriffModeNotice');
+      if (count < 12) {
+        sheriffCheck.checked = false;
+        sheriffCheck.disabled = true;
+        notice.style.color = 'var(--crimson-bright)';
+        notice.innerText = `⚠️ 當前總人數 (${count}人) 低於 12 人，強制關閉警長競選模式。`;
+      } else {
+        sheriffCheck.disabled = false;
+        notice.style.color = '#aaa';
+        notice.innerText = `12人（含）以上板型可啟用警長競選。`;
       }
     }
 
     function confirmCreateRoom() {
-      const count = parseInt(document.getElementById('setupPlayerCount').value);
+      const val = document.getElementById('setupPlayerCount').value;
+      let count = 12;
+
+      if (val === 'custom') {
+        count = parseInt(document.getElementById('customTotalCount').value) || 12;
+        // 收集自由配置勾選的角色
+        const checkedBoxes = document.querySelectorAll('input[name="customRole"]:checked');
+        roomState.customRolePool = Array.from(checkedBoxes).map(cb => cb.value);
+        if (roomState.customRolePool.length === 0) {
+          alert("請至少勾選一個自由配置角色！");
+          return;
+        }
+      } else {
+        count = parseInt(val);
+      }
+
       const entryType = document.getElementById('entryRoleType').value;
       roomState.isSpectator = (entryType === 'spectator');
       roomState.mySeatId = roomState.isSpectator ? null : 1;
+      roomState.sheriffMode = document.getElementById('enableSheriffMode').checked ? 'enabled' : 'disabled';
 
       closeModal('createRoomModal');
       document.getElementById('lobbyScreen').style.display = 'none';
@@ -770,12 +896,16 @@
       });
     }
 
-    // 初始化玩家（大廳階段暫不發角色牌）
     function initPlayers(count) {
       roomState.playerCount = count;
       roomState.players = [];
       gameState.players = [];
-      
+      roomState.spectators = [];
+
+      if (roomState.isSpectator) {
+        roomState.spectators.push({ id: 'sp-1', name: (document.getElementById('playerNameInput').value || '觀戰者1') });
+      }
+
       for (let i = 1; i <= count; i++) {
         let name = `${i}號 Bot`;
         let isOccupied = true;
@@ -798,17 +928,37 @@
         roomState.currentPerspective = roomState.mySeatId;
       }
 
+      updateSpectatorUI();
       renderTable();
       updatePerspectiveSelect();
       updateControlPanel();
     }
 
-    // 切換至觀眾席
+    function updateSpectatorUI() {
+      document.getElementById('spectatorCountBtn').innerText = `👀 觀眾席 (${roomState.spectators.length})`;
+    }
+
+    function openSpectatorModal() {
+      const body = document.getElementById('spectatorListBody');
+      if (roomState.spectators.length === 0) {
+        body.innerHTML = `<p style="color:#aaa; font-size:0.85rem;">目前觀眾席無人觀戰...</p>`;
+      } else {
+        let html = `<ul style="list-style:none;">`;
+        roomState.spectators.forEach((sp, idx) => {
+          html += `<li style="padding:8px; border-bottom:1px solid rgba(212,175,55,0.2); font-size:0.9rem;">👀 ${idx + 1}. <b>${sp.name}</b> (旁聽觀戰中)</li>`;
+        });
+        html += `</ul>`;
+        body.innerHTML = html;
+      }
+      document.getElementById('spectatorListModal').style.display = 'flex';
+    }
+
     function moveToSpectator() {
       if (roomState.currentPhase !== 'LOBBY') {
         alert("遊戲已開始，無法變更位子！");
         return;
       }
+      const myName = (document.getElementById('playerNameInput').value || '觀戰者');
       if (roomState.mySeatId) {
         const p = roomState.players.find(x => x.id === roomState.mySeatId);
         if (p) {
@@ -818,11 +968,13 @@
       }
       roomState.isSpectator = true;
       roomState.mySeatId = null;
+      roomState.spectators.push({ id: 'sp-' + Date.now(), name: myName });
+
+      updateSpectatorUI();
       renderTable();
       updateControlPanel();
     }
 
-    // 從觀眾席入座遊戲
     function moveToSeat() {
       if (roomState.currentPhase !== 'LOBBY') {
         alert("遊戲已開始，無法變更位子！");
@@ -833,12 +985,16 @@
         alert("目前座位已滿，無法入座！");
         return;
       }
-      emptySeat.name = (document.getElementById('playerNameInput').value || '玩家');
+      const myName = (document.getElementById('playerNameInput').value || '玩家');
+      emptySeat.name = myName;
       emptySeat.isOccupied = true;
       roomState.isSpectator = false;
       roomState.mySeatId = emptySeat.id;
       roomState.currentPerspective = emptySeat.id;
 
+      roomState.spectators = roomState.spectators.filter(s => s.name !== myName);
+
+      updateSpectatorUI();
       renderTable();
       updatePerspectiveSelect();
       updateControlPanel();
@@ -895,12 +1051,9 @@
       renderTable();
     }
 
-    // 動態更新控制面板 (支援入座 / 觀眾席按鈕)
     function updateControlPanel() {
       const p = roomState.players.find(x => x.id === roomState.currentPerspective);
       if (!p) return;
-
-      const mySeat = roomState.players.find(x => x.id === roomState.mySeatId);
 
       document.getElementById('roleIdentityInfo').innerHTML = `
         當前檢視：<b>${p.id}號 ${p.name}</b> ${roomState.isSpectator ? '<span style="color:var(--gold-primary);">[觀眾席]</span>' : ''}<br>
@@ -1097,10 +1250,22 @@
       alert(currentVoteTarget === 0 ? "已確認棄票！" : `已確認投票處決 ${currentVoteTarget} 號！`);
     }
 
-    // 開始遊戲流程 (此時才隨機洗牌並分配角色身分)
+    // 開始遊戲流程 (抽卡發牌)
     function startGameFlow() {
-      const preset = PRESETS[roomState.playerCount] || PRESETS[12];
-      const shuffledRoles = [...preset.pool].sort(() => Math.random() - 0.5);
+      let rolePool = [];
+      const val = document.getElementById('setupPlayerCount').value;
+
+      if (val === 'custom') {
+        rolePool = [...roomState.customRolePool];
+        while (rolePool.length < roomState.playerCount) {
+          rolePool.push('平民');
+        }
+      } else {
+        const preset = PRESETS[roomState.playerCount] || PRESETS[12];
+        rolePool = [...preset.pool];
+      }
+
+      const shuffledRoles = [...rolePool].sort(() => Math.random() - 0.5);
 
       roomState.players.forEach((p, idx) => {
         p.role = shuffledRoles[idx % shuffledRoles.length];
@@ -1372,10 +1537,6 @@
     }
 
     function openMediaModal() { document.getElementById('mediaModal').style.display = 'flex'; }
-    function openSettings() {
-      if (!roomState.isHost) { alert("只有房主可以更改規則！"); return; }
-      document.getElementById('settingsModal').style.display = 'flex';
-    }
     function openCompendium() { document.getElementById('compendiumModal').style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
@@ -1433,13 +1594,6 @@
           </div>
         `;
       });
-    }
-
-    function applySettingsAndStart() {
-      const count = parseInt(document.getElementById('playerCountSelect').value);
-      closeModal('settingsModal');
-      initPlayers(count);
-      alert(`已將房間設置為 ${count} 人局！`);
     }
   </script>
 </body>

@@ -349,14 +349,14 @@
 </head>
 <body>
 
-  <!-- BGM 容器 -->
+  <!-- BGM 容器 (更新為指定的 YouTube 連結) -->
   <div id="bgmContainer" style="display:none;"></div>
 
   <!-- 大廳畫面 -->
   <div id="lobbyScreen" class="screen-overlay">
     <div class="lobby-card">
       <div class="lobby-title">🏰 哥德暗黑狼人殺</div>
-      <div class="lobby-subtitle">6 - 20 人動態配置與視訊平台</div>
+      <div class="lobby-subtitle">6 - 16 人動態配置與視訊平台</div>
       <input type="text" id="playerNameInput" class="input-gothic" placeholder="請輸入您的玩家暱稱..." value="冒險者">
       <div style="display: flex; flex-direction: column; gap: 10px;">
         <button class="btn-gothic btn-crimson" onclick="openRoleSelection(true)">🏰 創建房間 (成為房主)</button>
@@ -366,7 +366,7 @@
     </div>
   </div>
 
-  <!-- Modal: 創建房間 (含自由配置與警長模式選項) -->
+  <!-- Modal: 創建房間 (含自由配置與智慧比例) -->
   <div id="createRoomModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -377,20 +377,18 @@
         <label style="display:block; margin-bottom: 12px;">
           <b>選擇遊戲板型：</b>
           <select id="setupPlayerCount" style="margin-left: 10px;" onchange="handlePresetChange()">
-            <option value="6">6 人 孤狼極速局</option>
-            <option value="7">7 人 新手熱身局</option>
-            <option value="8">8 人 預女獵白局</option>
-            <option value="9">9 人 經典標準局</option>
-            <option value="10">10 人 速驚擋刀局</option>
-            <option value="11">11 人 狼王預女獵白</option>
-            <option value="12" selected>12 人 預女獵白 (標準444)</option>
-            <option value="13">13 人 暗戀者局</option>
-            <option value="14">14 人 噩夢之影局</option>
-            <option value="15">15 人 經典邱比特局</option>
-            <option value="16">16 人 雙功能狼極限局</option>
-            <option value="18">18 人 盜賊盲牌局</option>
-            <option value="20">20 人 終極神魔大亂鬥</option>
-            <option value="custom">🛠️ 自由配置 (自訂人數與陣營)</option>
+            <option value="6">6 人局 (2狼 3神 2民)</option>
+            <option value="7">7 人局 (2狼 3神 2民)</option>
+            <option value="8">8 人局 (2狼 3神 3民)</option>
+            <option value="9">9 人局 (3狼 3神 3民)</option>
+            <option value="10">10 人局 (3狼 4神 3民)</option>
+            <option value="11">11 人局 (3狼 4神 4民)</option>
+            <option value="12" selected>12 人標準局 (3狼 4神 4民+1)</option>
+            <option value="13">13 人局 (4狼 5神 4民)</option>
+            <option value="14">14 人局 (4狼 5神 5民)</option>
+            <option value="15">15 人局 (5狼 5神 5民)</option>
+            <option value="16">16 人極限局 (5狼 6神 5民)</option>
+            <option value="custom">🛠️ 自由配置 (自訂人數與陣營比例)</option>
           </select>
         </label>
 
@@ -401,16 +399,16 @@
         <div id="customConfigSection" style="display:none; margin-bottom: 15px;">
           <div style="display:flex; gap:10px; margin-bottom:10px;">
             <label style="flex:1; font-size:0.85rem;">總人數:
-              <input type="number" id="customTotalCount" class="input-gothic" value="12" min="6" max="20" style="margin-top:4px;" onchange="handleCustomCountChange()">
+              <input type="number" id="customTotalCount" class="input-gothic" value="12" min="6" max="16" style="margin-top:4px;" onchange="handleCustomCountChange()">
             </label>
             <label style="flex:1; font-size:0.85rem;">🐺 狼人:
-              <input type="number" id="customWolfCount" class="input-gothic" value="4" min="1" style="margin-top:4px;">
+              <input type="number" id="customWolfCount" class="input-gothic" value="3" min="1" style="margin-top:4px;" readonly>
             </label>
             <label style="flex:1; font-size:0.85rem;">🔮 神職:
-              <input type="number" id="customGodCount" class="input-gothic" value="4" min="1" style="margin-top:4px;">
+              <input type="number" id="customGodCount" class="input-gothic" value="4" min="1" style="margin-top:4px;" readonly>
             </label>
             <label style="flex:1; font-size:0.85rem;">💧 村民:
-              <input type="number" id="customVillagerCount" class="input-gothic" value="4" min="1" style="margin-top:4px;">
+              <input type="number" id="customVillagerCount" class="input-gothic" value="5" min="1" style="margin-top:4px;" readonly>
             </label>
           </div>
 
@@ -419,7 +417,7 @@
             <div class="role-checkbox-title">🐺 狼人陣營角色勾選：</div>
             <div class="role-checkbox-grid">
               <label><input type="checkbox" name="customRole" value="小狼" checked> 小狼</label>
-              <label><input type="checkbox" name="customRole" value="狼王" checked> 狼王</label>
+              <label><input type="checkbox" name="customRole" value="狼王"> 狼王</label>
               <label><input type="checkbox" name="customRole" value="白狼王"> 白狼王</label>
               <label><input type="checkbox" name="customRole" value="狼美人"> 狼美人</label>
               <label><input type="checkbox" name="customRole" value="噩夢之影"> 噩夢之影</label>
@@ -514,7 +512,7 @@
     </div>
   </div>
 
-  <!-- 頂部導覽列 (新增觀眾席按鈕) -->
+  <!-- 頂部導覽列 -->
   <header>
     <div class="brand-title">
       🐺 哥德狼人殺 
@@ -534,8 +532,8 @@
   <!-- 頂部 3 行動態流程資訊欄 -->
   <div class="system-banner-box">
     <div class="banner-line-1" id="bannerPhase">【當前階段：大廳準備中】</div>
-    <div class="banner-line-2" id="bannerAnnouncement">🏰 歡迎來到哥德狼人殺，請由房主點擊『開始遊戲流程』...</div>
-    <div class="banner-line-3" id="bannerTimer">局勢細節：等待所有玩家連線到位</div>
+    <div class="banner-line-2" id="bannerAnnouncement">🏰 歡迎來到哥德狼人殺，請等待所有玩家入座後由房主點擊『開始遊戲流程』...</div>
+    <div class="banner-line-3" id="bannerTimer">局勢細節：等待滿席與連線到位</div>
   </div>
 
   <!-- 主要版面 -->
@@ -616,7 +614,7 @@
         this.micOn = false;
         this.camOn = false;
         this.stream = null;
-        this.isOccupied = false;
+        this.isOccupied = true;
       }
     }
 
@@ -718,7 +716,7 @@
       currentPhase: 'LOBBY',
       currentPerspective: 1,
       players: [],
-      spectators: [], // 觀眾席清單
+      spectators: [],
       activeSpeakerId: null,
       speechTimer: 60,
       sheriffTimer: 30,
@@ -734,23 +732,22 @@
       speechQueue: [],
       currentQueueIndex: 0,
       userVotes: {},
-      customRolePool: [] // 自由配置角色池
+      customRolePool: []
     };
 
-    const PRESETS = {
-      6: { name: "孤狼極速局", pool: ["小狼", "小狼", "預言家", "女巫", "平民", "平民"], desc: "女巫首夜不可自救，節奏明快。" },
-      7: { name: "新手熱身局", pool: ["小狼", "小狼", "預言家", "女巫", "獵人", "平民", "平民"], desc: "標準新手入門配置。" },
-      8: { name: "預女獵白局", pool: ["小狼", "小狼", "預言家", "女巫", "獵人", "白痴", "平民", "平民", "平民"], desc: "無防守神職，考驗狼刀準度。" },
-      9: { name: "經典標準局", pool: ["小狼", "小狼", "小狼", "預言家", "女巫", "獵人", "平民", "平民", "平民"], desc: "網殺最熱門人數，容錯率適中。" },
-      10: { name: "速驚擋刀局", pool: ["小狼", "小狼", "小狼", "預言家", "女巫", "獵人", "平民", "平民", "平民", "平民"], desc: "多一張民幫神職擋刀。" },
-      11: { name: "狼王預女獵白", pool: ["狼王", "小狼", "小狼", "預言家", "女巫", "獵人", "白痴", "平民", "平民", "平民", "平民"], desc: "狼王死後可開槍帶人。" },
-      12: { name: "預女獵白 (標準444)", pool: ["小狼", "小狼", "小狼", "狼王", "預言家", "女巫", "守衛", "獵人", "平民", "平民", "平民", "平民"], desc: "標準競技比賽板型。" },
-      13: { name: "暗戀者局", pool: ["小狼", "小狼", "小狼", "狼王", "預言家", "女巫", "獵人", "白痴", "平民", "平民", "平民", "平民", "暗戀者"], desc: "暗戀者首夜表白，勝利條件同目標。" },
-      14: { name: "噩夢之影局", pool: ["噩夢之影", "小狼", "小狼", "小狼", "預言家", "女巫", "獵人", "白痴", "攝夢人", "平民", "平民", "平民", "平民", "平民"], desc: "噩夢之影每晚可恐懼一人失效。" },
-      15: { name: "經典邱比特局", pool: ["小狼", "小狼", "小狼", "小狼", "小狼", "預言家", "女巫", "獵人", "守衛", "邱比特", "平民", "平民", "平民", "平民", "平民"], desc: "邱比特連情侶，可能產生第三方陣營。" },
-      16: { name: "雙功能狼極限局", pool: ["白狼王", "狼王", "小狼", "小狼", "小狼", "預言家", "女巫", "守衛", "獵人", "白痴", "騎士", "平民", "平民", "平民", "平民", "平民"], desc: "高輸出、快節奏大亂鬥。" },
-      18: { name: "盜賊盲牌局", pool: ["盜賊", "白狼王", "狼王", "小狼", "小狼", "小狼", "預言家", "女巫", "守衛", "獵人", "白痴", "魔術師", "平民", "平民", "平民", "平民", "平民", "平民"], desc: "盜賊首夜觀看兩張底牌擇一身份。" },
-      20: { name: "終極神魔大亂鬥", pool: ["盜賊", "邱比特", "惡靈騎士", "狼美人", "小狼", "小狼", "小狼", "預言家", "女巫", "守衛", "獵人", "白痴", "騎士", "平民", "平民", "平民", "平民", "平民", "平民", "平民"], desc: "集結盜賊、邱比特與雙功能狼的終極大亂鬥。" }
+    // 智能對應配置規則表
+    const STANDARD_CONFIGS = {
+      6:  { wolf: 2, god: 3, villager: 2, pool: ["小狼", "小狼", "預言家", "女巫", "獵人", "平民", "平民"] },
+      7:  { wolf: 2, god: 3, villager: 2, pool: ["小狼", "小狼", "預言家", "女巫", "獵人", "平民", "平民"] },
+      8:  { wolf: 2, god: 3, villager: 3, pool: ["小狼", "小狼", "預言家", "女巫", "獵人", "平民", "平民", "平民"] },
+      9:  { wolf: 3, god: 3, villager: 3, pool: ["小狼", "小狼", "小狼", "預言家", "女巫", "獵人", "平民", "平民", "平民"] },
+      10: { wolf: 3, god: 4, villager: 3, pool: ["小狼", "小狼", "小狼", "預言家", "女巫", "守衛", "獵人", "平民", "平民", "平民"] },
+      11: { wolf: 3, god: 4, villager: 4, pool: ["小狼", "小狼", "小狼", "預言家", "女巫", "守衛", "獵人", "平民", "平民", "平民", "平民"] },
+      12: { wolf: 3, god: 4, villager: 5, pool: ["小狼", "小狼", "狼王", "預言家", "女巫", "守衛", "獵人", "平民", "平民", "平民", "平民", "平民"] },
+      13: { wolf: 4, god: 5, villager: 4, pool: ["小狼", "小狼", "小狼", "狼王", "預言家", "女巫", "守衛", "獵人", "白痴", "平民", "平民", "平民", "平民"] },
+      14: { wolf: 4, god: 5, villager: 5, pool: ["小狼", "小狼", "小狼", "狼王", "預言家", "女巫", "守衛", "獵人", "白痴", "平民", "平民", "平民", "平民", "平民"] },
+      15: { wolf: 5, god: 5, villager: 5, pool: ["小狼", "小狼", "小狼", "小狼", "狼王", "預言家", "女巫", "守衛", "獵人", "白痴", "平民", "平民", "平民", "平民", "平民"] },
+      16: { wolf: 5, god: 6, villager: 5, pool: ["白狼王", "狼王", "小狼", "小狼", "小狼", "預言家", "女巫", "守衛", "獵人", "白痴", "騎士", "平民", "平民", "平民", "平民", "平民"] }
     };
 
     const ROLES = [
@@ -779,7 +776,7 @@
       document.getElementById('joinModal').style.display = 'flex';
     }
 
-    // 切換預設板型與自由配置處理
+    // 當選擇板型時自動更新自由配置欄位與預覽
     function handlePresetChange() {
       const val = document.getElementById('setupPlayerCount').value;
       const customSection = document.getElementById('customConfigSection');
@@ -787,24 +784,36 @@
 
       if (val === 'custom') {
         customSection.style.display = 'block';
-        presetBox.innerHTML = `<b style="color:var(--gold-primary);">🛠️ 自由配置模式：</b>請自訂人數比例並勾選參與角色。`;
+        presetBox.innerHTML = `<b style="color:var(--gold-primary);">🛠️ 自由配置模式：</b>請調整總人數，下方將自動套用對應狼、神、民數量比例。`;
         handleCustomCountChange();
       } else {
         customSection.style.display = 'none';
-        const preset = PRESETS[val];
-        if (preset) {
+        const count = parseInt(val);
+        const config = STANDARD_CONFIGS[count];
+        if (config) {
           presetBox.innerHTML = `
-            <b style="color:var(--gold-primary);">📋 板型：${preset.name} (${val} 人局)</b><br>
-            • <b>陣營配置：</b> ${preset.pool.join(', ')}<br>
-            • <b>規則備註：</b> ${preset.desc}
+            <b style="color:var(--gold-primary);">📋 ${count} 人標準局配置：</b><br>
+            • <b>陣營比例：</b> ${config.wolf} 狼、${config.god} 神、${config.villager} 民<br>
+            • <b>具體角色：</b> ${config.pool.join(', ')}
           `;
         }
-        checkSheriffEligibility(parseInt(val));
+        checkSheriffEligibility(count);
       }
     }
 
+    // 自由配置人數連動計算狼、神、民數量
     function handleCustomCountChange() {
-      const count = parseInt(document.getElementById('customTotalCount').value) || 12;
+      const countInput = document.getElementById('customTotalCount');
+      let count = parseInt(countInput.value) || 12;
+      if (count < 6) count = 6;
+      if (count > 16) count = 16;
+      countInput.value = count;
+
+      const config = STANDARD_CONFIGS[count] || STANDARD_CONFIGS[12];
+      document.getElementById('customWolfCount').value = config.wolf;
+      document.getElementById('customGodCount').value = config.god;
+      document.getElementById('customVillagerCount').value = config.villager;
+
       checkSheriffEligibility(count);
     }
 
@@ -830,7 +839,6 @@
 
       if (val === 'custom') {
         count = parseInt(document.getElementById('customTotalCount').value) || 12;
-        // 收集自由配置勾選的角色
         const checkedBoxes = document.querySelectorAll('input[name="customRole"]:checked');
         roomState.customRolePool = Array.from(checkedBoxes).map(cb => cb.value);
         if (roomState.customRolePool.length === 0) {
@@ -851,7 +859,7 @@
 
       initBgmAudio();
       initPlayers(count);
-      speakGod("歡迎來到哥德狼人殺房間，等待所有玩家連線到位。");
+      speakGod("歡迎來到哥德狼人殺房間，等待所有玩家滿席後由房主開始遊戲。");
     }
 
     function confirmJoinRoom() {
@@ -879,11 +887,12 @@
       initPlayers(12);
     }
 
+    // 換成使用者指定的 YouTube BGM 串流連結
     function initBgmAudio() {
       const container = document.getElementById('bgmContainer');
       container.innerHTML = `
-        <iframe id="BgmPlayer" width="1" height="1"
-          src="【网易狼人杀 无眠夜篇章音乐全收录【狼人杀bgm/音乐原声】】 https://www.bilibili.com/zh-Hans/video/BV11A411q73L/?p=3&share_source=copy_web" 
+        <iframe id="youtubeBgmPlayer" width="1" height="1"
+          src="https://www.youtube.com/embed/JznO2UvE_uU?enablejsapi=1&autoplay=1&loop=1&playlist=JznO2UvE_uU" 
           allow="autoplay">
         </iframe>
       `;
@@ -1250,8 +1259,15 @@
       alert(currentVoteTarget === 0 ? "已確認棄票！" : `已確認投票處決 ${currentVoteTarget} 號！`);
     }
 
-    // 開始遊戲流程 (抽卡發牌)
+    // 開始遊戲流程 (檢查是否滿席，滿席後抽卡發牌)
     function startGameFlow() {
+      // 檢查是否所有座位皆有玩家入座（不允許空位開始）
+      const hasEmptySeat = roomState.players.some(p => !p.isOccupied);
+      if (hasEmptySeat) {
+        alert("⚠️ 房間尚未滿席！必須等待所有座位皆有玩家入座，才可開始遊戲。");
+        return;
+      }
+
       let rolePool = [];
       const val = document.getElementById('setupPlayerCount').value;
 
@@ -1261,8 +1277,8 @@
           rolePool.push('平民');
         }
       } else {
-        const preset = PRESETS[roomState.playerCount] || PRESETS[12];
-        rolePool = [...preset.pool];
+        const config = STANDARD_CONFIGS[roomState.playerCount] || STANDARD_CONFIGS[12];
+        rolePool = [...config.pool];
       }
 
       const shuffledRoles = [...rolePool].sort(() => Math.random() - 0.5);

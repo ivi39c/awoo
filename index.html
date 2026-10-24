@@ -28,7 +28,6 @@
       flex-direction: column;
     }
 
-    /* 頂部導覽列 */
     header {
       background: rgba(11, 8, 13, 0.95);
       border-bottom: 2px solid var(--gold-primary);
@@ -59,7 +58,6 @@
       flex-wrap: wrap;
     }
 
-    /* 按鈕樣式 */
     .btn-gothic {
       background: linear-gradient(135deg, #1f1427, #0f0a14);
       color: var(--gold-light);
@@ -92,7 +90,6 @@
       box-shadow: 0 0 15px rgba(230, 0, 0, 0.6);
     }
 
-    /* 頂部 3 行獨立流程資訊欄 */
     .system-banner-box {
       background: linear-gradient(90deg, rgba(20,10,30,0.95), rgba(139,0,0,0.5), rgba(20,10,30,0.95));
       border-bottom: 1px solid var(--gold-primary);
@@ -105,7 +102,6 @@
     .banner-line-2 { font-size: 1.05rem; color: #fff; margin: 2px 0; text-shadow: 0 0 8px rgba(255,255,255,0.4); }
     .banner-line-3 { font-size: 0.8rem; color: var(--gold-light); }
 
-    /* 大廳登入畫面 */
     .screen-overlay {
       position: fixed;
       inset: 0;
@@ -142,7 +138,6 @@
       font-size: 1rem;
     }
 
-    /* 主要版面 Layout */
     .main-layout {
       display: flex;
       flex: 1;
@@ -151,7 +146,6 @@
       position: relative;
     }
 
-    /* 視訊牌桌區 (無底部按鈕，純淨樣式) */
     .table-container {
       flex: 1;
       display: grid;
@@ -233,7 +227,6 @@
       width: 100%;
     }
 
-    /* 可收合懸浮面板 */
     .floating-panel {
       position: fixed;
       bottom: 20px;
@@ -288,7 +281,6 @@
     .target-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: #333; }
     .target-btn.selected { border-color: var(--crimson-bright); background: rgba(230, 0, 0, 0.3); }
 
-    /* Modal 彈窗 */
     .modal {
       position: fixed;
       inset: 0;
@@ -327,20 +319,9 @@
     .compendium-name { font-weight: bold; color: var(--gold-light); margin-bottom: 4px; }
     .compendium-desc { font-size: 0.85rem; color: #ccc; }
 
-    .control-group {
-      margin-bottom: 15px;
-    }
-
-    .control-group label {
-      display: block;
-      font-size: 0.85rem;
-      color: var(--gold-light);
-      margin-bottom: 6px;
-    }
-
-    .control-group input[type="range"] {
-      width: 100%;
-    }
+    .control-group { margin-bottom: 15px; }
+    .control-group label { display: block; font-size: 0.85rem; color: var(--gold-light); margin-bottom: 6px; }
+    .control-group input[type="range"] { width: 100%; }
 
     @media (max-width: 600px) {
       .table-container { grid-template-columns: repeat(3, 1fr); }
@@ -350,7 +331,7 @@
 </head>
 <body>
 
-  <!-- 隱藏的 YouTube 音樂播放器 (BGM) -->
+  <!-- BGM YouTube 音訊串流 -->
   <iframe id="youtubeBgmPlayer" style="display:none;" width="1" height="1"
     src="https://www.youtube.com/embed/JznO2UvE_uU?enablejsapi=1&autoplay=1&loop=1&playlist=JznO2UvE_uU" 
     allow="autoplay">
@@ -383,7 +364,7 @@
     </div>
   </header>
 
-  <!-- 畫面最上方 3 行獨立流程資訊欄 -->
+  <!-- 頂部 3 行動態流程資訊欄 -->
   <div class="system-banner-box">
     <div class="banner-line-1" id="bannerPhase">【當前階段：大廳準備中】</div>
     <div class="banner-line-2" id="bannerAnnouncement">🏰 歡迎來到哥德狼人殺，請由房主點擊『開始遊戲流程』...</div>
@@ -411,7 +392,7 @@
     </div>
   </div>
 
-  <!-- Modal: 影音整合控制面板 -->
+  <!-- Modal: 影音控制面板 -->
   <div id="mediaModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -420,11 +401,11 @@
       </div>
       <div class="modal-body">
         <div class="control-group">
-          <label>🎵 BGM 背景音樂音量 (Werewolves of Millers Hollow):</label>
+          <label>🎵 BGM 背景音樂音量:</label>
           <input type="range" id="bgmSlider" min="0" max="100" value="50" oninput="setBgmVolume(this.value)">
         </div>
         <div class="control-group">
-          <label>🎙️ 本機麥克風音量與狀態:</label>
+          <label>🎙️ 本機麥克風授權與狀態:</label>
           <div style="display:flex; gap:10px; align-items:center;">
             <input type="range" id="micSlider" min="0" max="100" value="80">
             <button class="btn-gothic" id="micToggleBtn" onclick="toggleSelfMic()">🎤 麥克風: 關</button>
@@ -489,7 +470,6 @@
   </div>
 
   <script>
-    // 語音廣報 (Web Speech API)
     function speakGod(text) {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -500,7 +480,6 @@
       }
     }
 
-    // 遊戲狀態
     let roomState = {
       roomId: 'GOTHIC-' + Math.floor(1000 + Math.random() * 9000),
       isHost: true,
@@ -519,10 +498,12 @@
       sheriffId: null,
       guardLastTarget: null,
       nightVictim: null,
+      executedVictim: null,
       witchElixirUsed: false,
       witchPoisonUsed: false,
       speechQueue: [],
-      currentQueueIndex: 0
+      currentQueueIndex: 0,
+      userVotes: {}
     };
 
     const ROLES = [
@@ -602,7 +583,6 @@
       `;
     }
 
-    // 渲染極簡桌面 (無底部微型按鈕)
     function renderTable() {
       const table = document.getElementById('seatTable');
       table.innerHTML = '';
@@ -733,6 +713,21 @@
       else if (roomState.currentPhase === 'VOTING') {
         renderVotingPanel(p, controls);
       }
+      else if (roomState.currentPhase === 'LAST_WORDS') {
+        const isMyTurn = (p.id === roomState.executedVictim);
+        controls.innerHTML = `
+          <div style="text-align:center; margin-bottom:10px;">
+            <span style="font-size:1rem; color:var(--gold-light);">💀 發表遺言玩家：<b style="color:var(--crimson-bright);">${roomState.executedVictim} 號</b></span><br>
+            <span style="font-size:1.1rem; color:var(--crimson-bright); font-weight:bold;">⏳ 倒數：<span id="timerSec">${roomState.speechTimer}</span>s</span>
+          </div>
+          ${isMyTurn ? `
+            <div style="display:flex; gap:8px;">
+              <button class="btn-gothic" style="flex:1;" onclick="addSpeechTime()">+60s 加時</button>
+              <button class="btn-gothic btn-crimson" style="flex:1;" onclick="endLastWords()">結束遺言</button>
+            </div>
+          ` : `<p style="font-size:0.75rem; color:#888; text-align:center;">目前為 ${roomState.executedVictim} 號發表遺言時間。</p>`}
+        `;
+      }
     }
 
     function renderNightPanel(p, container) {
@@ -796,6 +791,7 @@
     function guardProtect(targetId) { roomState.guardLastTarget = targetId; alert(`今晚守護 ${targetId} 號`); updateControlPanel(); }
     function wolfKillTarget(targetId) { roomState.nightVictim = targetId; alert(`狼隊指定襲擊 ${targetId} 號`); }
 
+    // 公投選擇面板（支援棄票高亮與點擊送出）
     function renderVotingPanel(p, container) {
       if (!p.isAlive) {
         container.innerHTML = `<p style="color:#888; font-size:0.8rem;">您已出局，無投票權。</p>`;
@@ -807,7 +803,7 @@
         html += `<button class="target-btn" id="voteBtn-${t.id}" ${!t.isAlive ? 'disabled' : ''} onclick="selectVoteTarget(${t.id})">${t.id}號</button>`;
       });
       html += `</div>
-        <button class="target-btn" style="width:100%; margin-top:8px;" onclick="selectVoteTarget(0)">棄票 (不投票)</button>
+        <button class="target-btn" id="voteBtn-0" style="width:100%; margin-top:8px;" onclick="selectVoteTarget(0)">棄票 (不投票)</button>
         <button class="btn-gothic btn-crimson" style="width:100%; margin-top:10px;" onclick="confirmVote()">✅ 確認投票</button>
       `;
       container.innerHTML = html;
@@ -817,18 +813,17 @@
     function selectVoteTarget(id) {
       currentVoteTarget = id;
       document.querySelectorAll('.target-btn').forEach(b => b.classList.remove('selected'));
-      if (id !== 0) {
-        const btn = document.getElementById(`voteBtn-${id}`);
-        if (btn) btn.classList.add('selected');
-      }
+      const btn = document.getElementById(`voteBtn-${id}`);
+      if (btn) btn.classList.add('selected');
     }
 
     function confirmVote() {
-      if (currentVoteTarget === null) { alert("請先點擊選定目標再點擊確認！"); return; }
+      if (currentVoteTarget === null) { alert("請先點擊選定處決號碼或棄票！"); return; }
+      roomState.userVotes[roomState.currentPerspective] = currentVoteTarget;
       alert(currentVoteTarget === 0 ? "已確認棄票！" : `已確認投票處決 ${currentVoteTarget} 號！`);
     }
 
-    // 遊戲狀態機
+    // 遊戲流程控制與狀態機
     function startGameFlow() {
       roomState.currentPhase = 'NIGHT';
       updateBanner("【夜間行動】", "🌙 天黑請閉眼，請守衛 ➔ 狼人 ➔ 女巫 ➔ 預言家 依序執行技能...", "請各神職私密操作，絕不洩漏戰報");
@@ -890,13 +885,18 @@
     function announceDayDeath() {
       const text = roomState.nightVictim ? `昨夜 ${roomState.nightVictim} 號玩家慘遭襲擊倒下！` : "昨夜是平安夜，無人倒下！";
       
+      if (roomState.nightVictim) {
+        const p = roomState.players.find(x => x.id === roomState.nightVictim);
+        if (p) p.isAlive = false;
+        renderTable();
+      }
+
       if (roomState.hasSheriffInGame) {
         roomState.currentPhase = 'DAY_DEATH';
         updateBanner("【天亮死訊】", `☀️ 天亮了！${text}`, "請警長指定白天發言方向");
         speakGod(`天亮了。${text} 請警長選擇發言順序。`);
         updateControlPanel();
       } else {
-        // 無警長模式：隨機挑選存活玩家發言
         const alivePlayers = roomState.players.filter(p => p.isAlive).map(p => p.id);
         const randomStart = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
         speakGod(`天亮了。${text} 本局無警長，隨機由 ${randomStart} 號玩家開始發言。`);
@@ -905,7 +905,7 @@
     }
 
     function chooseSpeechDirection(dir) {
-      updateBanner("【白天輪流發言】", `👑 警長指定發言順序：【${dir}】`, "每人發言 60s");
+      updateBanner("【白天輪流發言】", `👑 警長指定發言順序：【${dir}】`, "每人發言 60s，自動跳過出局玩家");
       speakGod(`警長指定發言順序為 ${dir}。`);
       
       let startId = 1;
@@ -925,6 +925,7 @@
       startNextSpeaker();
     }
 
+    // 建立發言隊列 (精準過濾掉 isAlive: false 玩家)
     function buildSpeechQueue(startId, isClockwise) {
       roomState.speechQueue = [];
       let current = startId;
@@ -983,7 +984,10 @@
     function enterVotingPhase() {
       roomState.currentPhase = 'VOTING';
       roomState.votingTimer = 15;
-      updateBanner("【公投處決階段】", "⚖️ 請所有人於 15 秒內選擇處決目標並點擊『確認投票』...", "棄票或選擇目標皆須確認");
+      currentVoteTarget = null;
+      roomState.userVotes = {};
+
+      updateBanner("【公投處決階段】", "⚖️ 請所有人於 15 秒內選擇處決目標並點擊『確認投票』...", "未投票者自動判定為棄票");
       speakGod("發言結束，進入公投處決階段。請全體玩家於十五秒內選擇目標並點擊確認投票。");
       renderTable();
       updateControlPanel();
@@ -994,10 +998,70 @@
         updateBanner("【公投處決階段】", "⚖️ 請所有人於 15 秒內選擇處決目標並點擊『確認投票』...", `公投倒數：${roomState.votingTimer}s`);
         if (roomState.votingTimer <= 0) {
           clearInterval(roomState.timerInterval);
-          speakGod("公投結束，公告處決結果！");
-          alert("公投時間到，公告處決結果！");
+          finalizePublicVote();
         }
       }, 1000);
+    }
+
+    // 結算公投並進入遺言階段
+    function finalizePublicVote() {
+      const alivePlayers = roomState.players.filter(p => p.isAlive);
+      const voteCounts = {};
+      
+      alivePlayers.forEach(p => {
+        const target = roomState.userVotes[p.id] !== undefined ? roomState.userVotes[p.id] : 0;
+        if (target !== 0) {
+          voteCounts[target] = (voteCounts[target] || 0) + (p.isSheriff ? 1.5 : 1);
+        }
+      });
+
+      let highestVoteTarget = null;
+      let maxVotes = 0;
+      for (const [target, votes] of Object.entries(voteCounts)) {
+        if (votes > maxVotes) {
+          maxVotes = votes;
+          highestVoteTarget = parseInt(target);
+        }
+      }
+
+      if (highestVoteTarget) {
+        roomState.executedVictim = highestVoteTarget;
+        const victim = roomState.players.find(x => x.id === highestVoteTarget);
+        if (victim) victim.isAlive = false;
+        renderTable();
+
+        speakGod(`公投結算結束，最高票數者為 ${highestVoteTarget} 號玩家！此玩家處決出局，請發表遺言。`);
+        startLastWordsPhase(highestVoteTarget);
+      } else {
+        speakGod("公投結算結束，全員棄票，今日為平安日！天黑請閉眼。");
+        setTimeout(startGameFlow, 4000);
+      }
+    }
+
+    function startLastWordsPhase(victimId) {
+      roomState.currentPhase = 'LAST_WORDS';
+      roomState.activeSpeakerId = victimId;
+      roomState.speechTimer = 60;
+      renderTable();
+      updateControlPanel();
+
+      updateBanner("【發表遺言階段】", `💀 由處決出局的 ${victimId} 號玩家發表遺言`, `遺言剩餘時間：${roomState.speechTimer}s`);
+
+      clearInterval(roomState.timerInterval);
+      roomState.timerInterval = setInterval(() => {
+        roomState.speechTimer--;
+        updateBanner("【發表遺言階段】", `💀 由處決出局的 ${victimId} 號玩家發表遺言`, `遺言剩餘時間：${roomState.speechTimer}s`);
+        if (roomState.speechTimer <= 0) {
+          endLastWords();
+        }
+      }, 1000);
+    }
+
+    function endLastWords() {
+      clearInterval(roomState.timerInterval);
+      speakGod("遺言發表結束，天黑請閉眼。");
+      updateBanner("【夜間準備】", "🌙 遺言結束，進入下一夜...", "準備中...");
+      setTimeout(startGameFlow, 3000);
     }
 
     function updateBanner(line1, line2, line3) {
@@ -1012,7 +1076,6 @@
       document.getElementById('panelToggleIcon').innerText = panel.classList.contains('collapsed') ? '▲' : '▼';
     }
 
-    // Modal 與影音功能
     function openMediaModal() { document.getElementById('mediaModal').style.display = 'flex'; }
     function openSettings() {
       if (!roomState.isHost) { alert("只有房主可以更改規則！"); return; }
@@ -1031,7 +1094,17 @@
     async function toggleSelfMic() {
       const p = roomState.players.find(x => x.id === roomState.currentPerspective);
       if (!p) return;
-      p.micOn = !p.micOn;
+
+      if (!p.micOn) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: p.camOn });
+          p.micOn = true;
+          p.stream = stream;
+        } catch (e) { alert("無法取得麥克風授權！"); return; }
+      } else {
+        if (p.stream) p.stream.getAudioTracks().forEach(t => t.stop());
+        p.micOn = false;
+      }
       document.getElementById('micToggleBtn').innerText = p.micOn ? '🎤 麥克風: 開' : '🎤 麥克風: 關';
       renderTable();
     }
@@ -1042,10 +1115,10 @@
       
       if (!p.camOn) {
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: p.micOn });
           p.camOn = true;
           p.stream = stream;
-        } catch (e) { alert("無法取得相機授權"); }
+        } catch (e) { alert("無法取得攝影機授權！"); return; }
       } else {
         if (p.stream) p.stream.getVideoTracks().forEach(t => t.stop());
         p.camOn = false;

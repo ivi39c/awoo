@@ -349,15 +349,18 @@
 </head>
 <body>
 
-  <!-- Google 雲端音訊播放器 -->
-  <iframe 
-    id="googleDriveBgm"
-    src="https://google.com" 
-    width="100%" 
-    height="150" 
-    frameborder="0" 
-    allow="autoplay">
-  </iframe>
+  <!-- Awoo 背景音樂播放器 -->
+<audio
+  id="googleDriveBgm"
+  loop
+  preload="none"
+  playsinline
+>
+  <source
+    src="https://drive.google.com/uc?export=download&id=1aDdHj3EYn5uO0mvPLfVisNN59qaEg3PW"
+  >
+  您的瀏覽器不支援 HTML 音訊播放。
+</audio>
 
   <!-- 大廳畫面 -->
   <div id="lobbyScreen" class="screen-overlay">
@@ -892,12 +895,47 @@
     }
 
     function initBgmAudio() {
+  const bgm = document.getElementById('googleDriveBgm');
+  if (!bgm) return;
+
+  bgm.volume = 0.5;
+  bgm.loop = true;
+
+  bgm.play().catch(error => {
+    console.warn('BGM 自動播放失敗：', error);
+    showBgmPlayButton();
+  });
+}
+
+function showBgmPlayButton() {
+  let btn = document.getElementById('bgmPlayFallback');
+
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'bgmPlayFallback';
+    btn.className = 'btn-gothic btn-crimson';
+    btn.textContent = '♫ 點擊啟動背景音樂';
+
+    btn.style.position = 'fixed';
+    btn.style.top = '90px';
+    btn.style.right = '15px';
+    btn.style.zIndex = '1500';
+
+    btn.addEventListener('click', async () => {
       const bgm = document.getElementById('googleDriveBgm');
-      if (bgm) {
-        bgm.volume = 0.5;
-        bgm.play().catch(e => console.log("BGM 自動播放需使用者互動解鎖:", e));
+
+      try {
+        await bgm.play();
+        btn.remove();
+      } catch (error) {
+        alert('音樂無法播放，請確認檔案分享權限或音訊網址。');
+        console.error(error);
       }
-    }
+    });
+
+    document.body.appendChild(btn);
+  }
+}
 
     function copyInviteLink() {
       const dummyUrl = window.location.href.split('?')[0] + `?room=${roomState.roomId}`;

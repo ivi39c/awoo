@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gothic Crimson & Gold - 狼人殺視訊平台</title>
+  <title>Gothic Crimson & Gold - 哥德暗黑狼人殺視訊平台</title>
   <style>
     :root {
       --bg-color: #0b080d;
-      --panel-bg: rgba(22, 16, 28, 0.92);
+      --panel-bg: rgba(22, 16, 28, 0.95);
       --gold-primary: #d4af37;
       --gold-light: #f3e5ab;
       --crimson-red: #8b0000;
@@ -41,7 +41,7 @@
     }
 
     .brand-title {
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       font-weight: bold;
       color: var(--gold-primary);
       text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
@@ -52,7 +52,7 @@
 
     .top-actions {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       align-items: center;
     }
 
@@ -95,17 +95,17 @@
       border-bottom: 1px solid var(--gold-primary);
       padding: 10px 15px;
       text-align: center;
-      font-size: 1rem;
+      font-size: 0.95rem;
       color: var(--gold-light);
       text-shadow: 0 1px 3px #000;
       letter-spacing: 1px;
     }
 
-    /* 大廳登入畫面 (Lobby Screen) */
+    /* 大廳登入畫面 */
     .screen-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(8, 5, 10, 0.95);
+      background: rgba(8, 5, 10, 0.96);
       z-index: 1000;
       display: flex;
       justify-content: center;
@@ -147,7 +147,7 @@
       font-size: 1rem;
     }
 
-    /* 遊戲主要版面 Layout */
+    /* 主要版面 Layout */
     .main-layout {
       display: flex;
       flex: 1;
@@ -160,7 +160,7 @@
     .table-container {
       flex: 1;
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
       gap: 12px;
       align-content: start;
     }
@@ -202,15 +202,31 @@
       align-items: center;
       font-size: 0.75rem;
       box-shadow: 0 0 8px var(--gold-primary);
+      z-index: 10;
+    }
+
+    .avatar-video-container {
+      width: 100%;
+      height: 95px;
+      background: #000;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 6px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     .avatar-video {
       width: 100%;
-      height: 90px;
-      background: #000;
-      border-radius: 4px;
+      height: 100%;
       object-fit: cover;
-      margin-bottom: 6px;
+    }
+
+    .avatar-placeholder {
+      font-size: 0.75rem;
+      color: #666;
     }
 
     .seat-info {
@@ -239,7 +255,7 @@
 
     .media-btn.active { color: var(--gold-primary); border-color: var(--gold-primary); }
 
-    /* 可收合懸浮卡片 (Floating Action Panel for Mobile & Desktop) */
+    /* 可收合懸浮面板 */
     .floating-panel {
       position: fixed;
       bottom: 20px;
@@ -313,7 +329,7 @@
       background: rgba(230, 0, 0, 0.3);
     }
 
-    /* Modal 彈窗 (圖鑑與設定) */
+    /* Modal 彈窗 */
     .modal {
       position: fixed;
       inset: 0;
@@ -330,8 +346,8 @@
       border: 2px solid var(--gold-primary);
       border-radius: 8px;
       width: 100%;
-      max-width: 600px;
-      max-height: 80vh;
+      max-width: 550px;
+      max-height: 85vh;
       display: flex;
       flex-direction: column;
       box-shadow: var(--shadow-gothic);
@@ -397,8 +413,8 @@
       <select id="perspectiveSelect" class="btn-gothic" onchange="switchPerspective(this.value)">
         <option value="1">🎯 視角: 1號 (您)</option>
       </select>
-      <button class="btn-gothic" onclick="openCompendium()">📖 角色圖鑑</button>
-      <button class="btn-gothic" onclick="openSettings()">⚙️ 房間設定</button>
+      <button class="btn-gothic" onclick="openCompendium()">📖 圖鑑</button>
+      <button class="btn-gothic" onclick="openSettings()">⚙️ 設定</button>
     </div>
   </header>
 
@@ -409,12 +425,10 @@
 
   <!-- 主要版面 -->
   <div class="main-layout">
-    <div class="table-container" id="seatTable">
-      <!-- 視訊座位將由 JS 自動生成 -->
-    </div>
+    <div class="table-container" id="seatTable"></div>
   </div>
 
-  <!-- 手機/桌面可收合懸浮面板 -->
+  <!-- 可收合懸浮面板 -->
   <div id="floatingPanel" class="floating-panel">
     <div class="panel-header" onclick="toggleFloatingPanel()">
       <span class="panel-title" id="panelTitle">🎮 第一人稱控制台</span>
@@ -430,24 +444,37 @@
     </div>
   </div>
 
-  <!-- Modal: 房間設定 -->
+  <!-- Modal: 房間設定 (含即時陣營人數顯示) -->
   <div id="settingsModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>⚙️ 房間規則設定 (房主專屬)</h3>
+        <h3>⚙️ 房間規則與配置設定 (房主專屬)</h3>
         <span style="cursor:pointer;" onclick="closeModal('settingsModal')">✖</span>
       </div>
       <div class="modal-body">
-        <label style="display:block; margin-bottom: 10px;">
-          玩家人數:
-          <select id="playerCountSelect" class="btn-gothic" style="margin-left: 10px;">
+        <label style="display:block; margin-bottom: 15px;">
+          <b>遊戲總人數：</b>
+          <select id="playerCountSelect" class="btn-gothic" style="margin-left: 10px;" onchange="updateRolePreview()">
             <option value="6">6 人局</option>
             <option value="9">9 人局</option>
             <option value="12" selected>12 人標準局</option>
             <option value="18">18 人大局</option>
           </select>
         </label>
-        <div style="margin-top: 15px;">
+        
+        <div id="rolePreviewBox" style="background: rgba(0,0,0,0.5); border: var(--border-gold); padding: 12px; border-radius: 4px; margin-bottom: 15px; font-size: 0.85rem; line-height: 1.5;">
+          <!-- 動態顯示人數結構 -->
+        </div>
+
+        <label style="display:block; margin-bottom: 15px;">
+          <b>上警模式：</b>
+          <select id="sheriffModeSelect" class="btn-gothic" style="margin-left: 10px;">
+            <option value="enabled">標準上警 (選出警長，1.5票權重)</option>
+            <option value="disabled">無警長模式</option>
+          </select>
+        </label>
+
+        <div style="margin-top: 20px; text-align: right;">
           <button class="btn-gothic btn-crimson" onclick="applySettingsAndStart()">▶ 套用設定並重新開始</button>
         </div>
       </div>
@@ -458,58 +485,48 @@
   <div id="compendiumModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>📖 角色圖鑑 (29種官方與熱門角色)</h3>
+        <h3>📖 角色圖鑑 (官方與熱門角色)</h3>
         <span style="cursor:pointer;" onclick="closeModal('compendiumModal')">✖</span>
       </div>
-      <div class="modal-body" id="compendiumList">
-        <!-- 圖鑑動態載入 -->
-      </div>
+      <div class="modal-body" id="compendiumList"></div>
     </div>
   </div>
 
   <script>
-    // --- 遊戲狀態 ---
     let roomState = {
-      roomId: 'GOTHIC-8888',
+      roomId: 'GOTHIC-' + Math.floor(1000 + Math.random() * 9000),
       isHost: true,
       playerCount: 12,
-      currentPhase: 'LOBBY', // LOBBY, NIGHT, SHERIFF_ELECTION, DAY_DEATH, DAY_SPEECH, VOTING
+      sheriffMode: 'enabled',
+      currentPhase: 'LOBBY',
       currentPerspective: 1,
       players: [],
-      sheriffId: null,
       speechTimer: 60,
+      sheriffTimer: 30,
       timerInterval: null,
       witchElixirUsed: false,
       witchPoisonUsed: false,
       guardLastTarget: null,
-      nightVictim: null,
-      checkedPlayers: {} // 預言家查驗紀錄
+      nightVictim: null
     };
 
-    // 29 角色圖鑑清單 (含小狼修正)
     const ROLES = [
       { name: "小狼", camp: "狼人", desc: "狼人陣營基礎角色，夜間可與狼隊共同討論並參與襲擊。" },
       { name: "狼王", camp: "狼人", desc: "出局時可發動開槍技能帶走一名玩家（自爆或被毒死除外）。" },
       { name: "白狼王", camp: "狼人", desc: "白天發言階段可選擇自爆，並強制帶走現場一名玩家。" },
-      { name: "狼美人", camp: "狼人", desc: "夜間可魅惑一名玩家，若狼美人出局，被魅惑者隨之殉情。" },
-      { name: "惡靈騎士", camp: "狼人", desc: "夜間不可被神職殺害，具備一次性反傷反殺技能。" },
-      { name: "石像鬼", camp: "狼人", desc: "每晚可單獨查驗一名玩家的具體身分。" },
       { name: "預言家", camp: "好人神職", desc: "每晚可查驗一名玩家陣營（顯示金水好人或查殺狼人）。" },
       { name: "女巫", camp: "好人神職", desc: "擁有解藥（救人）與毒藥（毒人），整局各限用一次。" },
       { name: "守衛", camp: "好人神職", desc: "每晚可守護一名玩家免受夜刀，嚴格禁止連續兩晚守護同一人。" },
       { name: "獵人", camp: "好人神職", desc: "出局時可開槍帶走一名玩家（被毒死除外）。" },
-      { name: "痴漢/白痴", camp: "好人神職", desc: "公投出局時可翻牌免疫死亡，保留發言權但失去投票權。" },
-      { name: "騎士", camp: "好人神職", desc: "白天投票前可決鬥指定目標，若為狼人則狼出局，若為好人騎士以死謝罪。" },
-      { name: "攝夢人", camp: "好人神職", desc: "每晚夢遊一名玩家，目標免疫夜刀，連續兩晚夢遊同一人則目標死亡。" },
       { name: "平民", camp: "好人陣營", desc: "無夜間技能，憑藉白天發言與邏輯公投幫助好人陣營獲勝。" }
     ];
 
-    // 初始化
     window.onload = () => {
       buildCompendium();
+      updateRolePreview();
+      document.getElementById('roomCodeDisplay').innerText = `[房間 ID: ${roomState.roomId}]`;
     };
 
-    // 大廳動作
     function createRoom() {
       roomState.isHost = true;
       document.getElementById('lobbyScreen').style.display = 'none';
@@ -529,11 +546,10 @@
       createRoom();
     }
 
-    // 初始化玩家資料
     function initPlayers(count) {
       roomState.playerCount = count;
       roomState.players = [];
-      const rolesPool = ["小狼", "狼王", "預言家", "女巫", "守衛", "獵人", "平民", "平民", "平民", "小狼", "平民", "騎士"];
+      const rolesPool = getRolePoolForCount(count);
       
       for (let i = 1; i <= count; i++) {
         roomState.players.push({
@@ -542,8 +558,9 @@
           role: rolesPool[(i - 1) % rolesPool.length],
           isAlive: true,
           isSheriff: false,
-          micOn: true,
-          camOn: true
+          micOn: false,
+          camOn: false,
+          stream: null
         });
       }
       renderTable();
@@ -551,7 +568,28 @@
       updateControlPanel();
     }
 
-    // 渲染桌面
+    function getRolePoolForCount(count) {
+      if (count === 6) return ["小狼", "小狼", "預言家", "女巫", "平民", "平民"];
+      if (count === 9) return ["小狼", "小狼", "狼王", "預言家", "女巫", "獵人", "平民", "平民", "平民"];
+      if (count === 12) return ["小狼", "小狼", "小狼", "狼王", "預言家", "女巫", "守衛", "獵人", "平民", "平民", "平民", "平民"];
+      return ["小狼", "小狼", "小狼", "小狼", "狼王", "狼美人", "預言家", "女巫", "守衛", "獵人", "白痴", "平民", "平民", "平民", "平民", "平民", "平民", "平民"];
+    }
+
+    function updateRolePreview() {
+      const count = parseInt(document.getElementById('playerCountSelect').value);
+      const pool = getRolePoolForCount(count);
+      const wolves = pool.filter(r => r.includes('狼')).length;
+      const gods = pool.filter(r => !r.includes('狼') && r !== '平民').length;
+      const civs = pool.filter(r => r === '平民').length;
+      
+      document.getElementById('rolePreviewBox').innerHTML = `
+        <b style="color:var(--gold-primary);">📊 ${count} 人局配置預覽：</b><br>
+        • 🐺 <b>狼人陣營：</b> ${wolves} 人 (${pool.filter(r=>r.includes('狼')).join(', ')})<br>
+        • 🛡️ <b>神職陣營：</b> ${gods} 人 (${pool.filter(r=>!r.includes('狼')&&r!=='平民').join(', ')})<br>
+        • 🌾 <b>平民陣營：</b> ${civs} 人 (平民)
+      `;
+    }
+
     function renderTable() {
       const table = document.getElementById('seatTable');
       table.innerHTML = '';
@@ -562,8 +600,8 @@
         
         card.innerHTML = `
           ${p.isSheriff ? '<div class="badge-sheriff">👑</div>' : ''}
-          <div class="avatar-video" style="background: ${p.camOn ? '#2a1a3a' : '#111'}; display:flex; justify-content:center; align-items:center;">
-            ${p.camOn ? '📹 視訊' : '📷 鏡頭關閉'}
+          <div class="avatar-video-container" id="video-container-${p.id}">
+            ${p.camOn && p.stream ? '' : '<span class="avatar-placeholder">📷 鏡頭關閉</span>'}
           </div>
           <div class="seat-info">
             <span>${p.id}. ${p.name}</span>
@@ -574,10 +612,60 @@
           </div>
         `;
         table.appendChild(card);
+
+        // 如果有視訊串流，動態掛載 video 元素
+        if (p.camOn && p.stream) {
+          const container = document.getElementById(`video-container-${p.id}`);
+          const video = document.createElement('video');
+          video.className = 'avatar-video';
+          video.autoplay = true;
+          video.playsInline = true;
+          video.muted = (p.id === roomState.currentPerspective);
+          video.srcObject = p.stream;
+          container.appendChild(video);
+        }
       });
     }
 
-    // 更新視角下拉選單
+    // 真實裝置麥克風與攝影機授權 (getUserMedia)
+    async function toggleMedia(id, type) {
+      const p = roomState.players.find(x => x.id === id);
+      if (!p) return;
+
+      if (id === roomState.currentPerspective) {
+        try {
+          if (type === 'cam') {
+            if (!p.camOn) {
+              const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: p.micOn });
+              p.camOn = true;
+              p.stream = stream;
+            } else {
+              if (p.stream) p.stream.getVideoTracks().forEach(t => t.stop());
+              p.camOn = false;
+            }
+          } else if (type === 'mic') {
+            if (!p.micOn) {
+              const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: p.camOn });
+              p.micOn = true;
+              p.stream = stream;
+            } else {
+              if (p.stream) p.stream.getAudioTracks().forEach(t => t.stop());
+              p.micOn = false;
+            }
+          }
+        } catch (err) {
+          alert("無法取得本機裝置授權 (麥克風/攝影機遭拒絕或未連接)");
+          console.error(err);
+          return;
+        }
+      } else {
+        // Bot 切換模擬
+        if (type === 'mic') p.micOn = !p.micOn;
+        if (type === 'cam') p.camOn = !p.camOn;
+      }
+      renderTable();
+    }
+
     function updatePerspectiveSelect() {
       const select = document.getElementById('perspectiveSelect');
       select.innerHTML = '';
@@ -595,7 +683,6 @@
       updateControlPanel();
     }
 
-    // 更新第一人稱控制面板 (隱私隔離)
     function updateControlPanel() {
       const p = roomState.players.find(x => x.id === roomState.currentPerspective);
       if (!p) return;
@@ -618,8 +705,11 @@
       }
       else if (roomState.currentPhase === 'SHERIFF_ELECTION') {
         controls.innerHTML = `
+          <div style="text-align:center; margin-bottom:8px;">
+            <span style="color:var(--gold-light); font-size:0.9rem;">👑 競選倒數：<b style="color:var(--crimson-bright); font-size:1.1rem;"><span id="sheriffTimerSec">${roomState.sheriffTimer}</span>s</b></span>
+          </div>
           <button class="btn-gothic" style="width:100%; margin-bottom:8px;" onclick="candidateSheriff(${p.id})">🙋 舉手競選警長</button>
-          <p style="font-size:0.75rem; color:#888;">點擊競選後，視訊卡片將亮金框提示。</p>
+          <p style="font-size:0.75rem; color:#888;">點擊後卡片將高亮金色金框。</p>
         `;
       }
       else if (roomState.currentPhase === 'DAY_SPEECH') {
@@ -627,14 +717,14 @@
           controls.innerHTML += `
             <div style="margin-bottom:10px; border-bottom:1px solid #444; padding-bottom:8px;">
               <span style="font-size:0.8rem; color:var(--gold-primary);">👑 警長發言順序指示：</span><br>
-              <button class="btn-gothic" style="margin-top:5px;" onclick="setSpeechOrder('死左/警左')">死左 / 警左 (順時針)</button>
-              <button class="btn-gothic" style="margin-top:5px;" onclick="setSpeechOrder('死右/警右')">死右 / 警右 (逆時針)</button>
+              <button class="btn-gothic" style="margin-top:5px;" onclick="setSpeechOrder('死左 / 警左')">死左 / 警左</button>
+              <button class="btn-gothic" style="margin-top:5px;" onclick="setSpeechOrder('死右 / 警右')">死右 / 警右</button>
             </div>
           `;
         }
         controls.innerHTML += `
           <div style="text-align:center; margin-bottom:10px;">
-            <span style="font-size:1.2rem; color:var(--crimson-bright); font-weight:bold;">⏳ 發言倒數：<span id="timerSec">${roomState.speechTimer}</span>s</span>
+            <span style="font-size:1.1rem; color:var(--crimson-bright); font-weight:bold;">⏳ 發言倒數：<span id="timerSec">${roomState.speechTimer}</span>s</span>
           </div>
           <div style="display:flex; gap:8px;">
             <button class="btn-gothic" style="flex:1;" onclick="addSpeechTime()">+60s 加時</button>
@@ -647,7 +737,6 @@
       }
     }
 
-    // 夜間技能面板 (嚴格隱私隔離)
     function renderNightPanel(p, container) {
       if (!p.isAlive) {
         container.innerHTML = `<p style="color:#888; font-size:0.8rem;">您已出局，請靜觀局勢...</p>`;
@@ -665,16 +754,11 @@
         container.innerHTML = html;
       }
       else if (p.role === '女巫') {
-        let victimText = roomState.witchElixirUsed ? "首夜後已不提示刀口" : (roomState.nightVictim ? `${roomState.nightVictim}號` : "無人死亡");
         container.innerHTML = `
-          <p style="font-size:0.8rem;">🧪 昨晚倒下的是：<b style="color:var(--crimson-bright);">${victimText}</b></p>
+          <p style="font-size:0.8rem;">🧪 昨晚倒下的是：<b style="color:var(--crimson-bright);">${roomState.nightVictim ? roomState.nightVictim + '號' : '無人死亡'}</b></p>
           <div style="display:flex; gap:8px; margin-top:8px;">
-            <button class="btn-gothic" ${roomState.witchElixirUsed ? 'disabled' : ''} onclick="useWitchElixir()">
-              ${roomState.witchElixirUsed ? '解藥(已使用)' : '救人 (解藥)'}
-            </button>
-            <button class="btn-gothic btn-crimson" ${roomState.witchPoisonUsed ? 'disabled' : ''} onclick="useWitchPoison()">
-              ${roomState.witchPoisonUsed ? '毒藥(已使用)' : '毒人 (毒藥)'}
-            </button>
+            <button class="btn-gothic" ${roomState.witchElixirUsed ? 'disabled' : ''} onclick="useWitchElixir()">${roomState.witchElixirUsed ? '解藥(已用)' : '解藥救人'}</button>
+            <button class="btn-gothic btn-crimson" ${roomState.witchPoisonUsed ? 'disabled' : ''} onclick="useWitchPoison()">${roomState.witchPoisonUsed ? '毒藥(已用)' : '毒藥毒人'}</button>
           </div>
         `;
       }
@@ -683,9 +767,7 @@
         roomState.players.forEach(t => {
           if (t.isAlive) {
             const isDisabled = t.id === roomState.guardLastTarget;
-            html += `<button class="target-btn" ${isDisabled ? 'disabled' : ''} onclick="guardProtect(${t.id})">
-              ${t.id}號${isDisabled ? '<br>(連守封印)' : ''}
-            </button>`;
+            html += `<button class="target-btn" ${isDisabled ? 'disabled' : ''} onclick="guardProtect(${t.id})">${t.id}號${isDisabled?'<br>(昨守)':''}</button>`;
           }
         });
         html += `</div>`;
@@ -706,7 +788,6 @@
       }
     }
 
-    // 技能動作
     function seerCheck(targetId) {
       const target = roomState.players.find(x => x.id === targetId);
       const isWolf = target.role.includes('狼');
@@ -717,7 +798,7 @@
 
     function useWitchElixir() {
       roomState.witchElixirUsed = true;
-      alert("已使用解藥救人");
+      alert("已使用解藥");
       updateControlPanel();
     }
 
@@ -725,14 +806,14 @@
       const t = prompt("請輸入要毒殺的玩家號碼:");
       if (t) {
         roomState.witchPoisonUsed = true;
-        alert(`已使用毒藥毒殺 ${t} 號玩家`);
+        alert(`已使用毒藥毒殺 ${t} 號`);
         updateControlPanel();
       }
     }
 
     function guardProtect(targetId) {
       roomState.guardLastTarget = targetId;
-      alert(`今晚護衛 ${targetId} 號玩家`);
+      alert(`今晚護衛 ${targetId} 號`);
       updateControlPanel();
     }
 
@@ -741,22 +822,20 @@
       alert(`狼隊選擇襲擊 ${targetId} 號`);
     }
 
-    // 投票面板與確認機制
     function renderVotingPanel(p, container) {
       if (!p.isAlive) {
         container.innerHTML = `<p style="color:#888; font-size:0.8rem;">您已出局，無投票權。</p>`;
         return;
       }
 
-      let selectedTarget = null;
-      let html = `<p style="font-size:0.8rem;">⚖️ 請點擊選擇要公投出局的號碼：</p><div class="target-grid">`;
+      let html = `<p style="font-size:0.8rem;">⚖️ 選擇公投處決目標：</p><div class="target-grid">`;
       roomState.players.forEach(t => {
         if (t.isAlive) {
           html += `<button class="target-btn" id="voteBtn-${t.id}" onclick="selectVoteTarget(${t.id})">${t.id}號</button>`;
         }
       });
       html += `</div>
-        <button class="target-btn" style="width:100%; margin-top:8px;" onclick="selectVoteTarget(0)">棄票 (不投票)</button>
+        <button class="target-btn" style="width:100%; margin-top:8px;" onclick="selectVoteTarget(0)">棄票</button>
         <button class="btn-gothic btn-crimson" style="width:100%; margin-top:10px;" onclick="confirmVote()">✅ 確認投票</button>
       `;
       container.innerHTML = html;
@@ -773,14 +852,11 @@
     }
 
     function confirmVote() {
-      if (currentVoteTarget === null) {
-        alert("請先選擇要處決的號碼或棄票！");
-        return;
-      }
+      if (currentVoteTarget === null) { alert("請先選擇目標！"); return; }
       alert(currentVoteTarget === 0 ? "已確認棄票" : `已確認投票處決 ${currentVoteTarget} 號`);
     }
 
-    // 遊戲主流程推演 (自動狀態機)
+    // 遊戲流程與 30 秒警長倒數
     function startGameFlow() {
       roomState.currentPhase = 'NIGHT';
       updateBanner("🌙 天黑請閉眼，請各神職與狼人進行夜間技能操作...");
@@ -788,34 +864,58 @@
       
       setTimeout(() => {
         roomState.currentPhase = 'SHERIFF_ELECTION';
-        updateBanner("🌅 天將破曉，請競選警長者點擊『競選警長』舉手...");
+        startSheriffCountdown();
         updateControlPanel();
-      }, 10000);
+      }, 8000);
+    }
+
+    function startSheriffCountdown() {
+      roomState.sheriffTimer = 30;
+      updateBanner(`🌅 警長競選中 (倒數 ${roomState.sheriffTimer}s)，請點擊『競選警長』舉手...`);
+      clearInterval(roomState.timerInterval);
+      
+      roomState.timerInterval = setInterval(() => {
+        roomState.sheriffTimer--;
+        const el = document.getElementById('sheriffTimerSec');
+        if (el) el.innerText = roomState.sheriffTimer;
+        
+        if (roomState.sheriffTimer <= 0) {
+          clearInterval(roomState.timerInterval);
+          advanceFromSheriffElection();
+        }
+      }, 1000);
     }
 
     function candidateSheriff(id) {
       const card = document.getElementById(`seat-${id}`);
       if (card) card.classList.add('highlight');
-      alert(`${id}號玩家已舉手參與警長競選！`);
+      roomState.players.find(x => x.id === id).isSheriff = true;
+      alert(`${id}號玩家已參與警長競選！`);
+    }
+
+    function advanceFromSheriffElection() {
+      alert("警長競選時間到！已自動選出警長，進入白天發言階段。");
+      renderTable();
+      roomState.currentPhase = 'DAY_SPEECH';
+      updateBanner("☀️ 天亮了，請警長指定發言順序，或直接開始發言倒數...");
+      startSpeechTimer();
+      updateControlPanel();
     }
 
     function setSpeechOrder(dir) {
       updateBanner(`👑 警長指定發言順序：【${dir}】。進入 60 秒計時發言...`);
-      roomState.currentPhase = 'DAY_SPEECH';
-      startTimer();
-      updateControlPanel();
     }
 
-    function startTimer() {
-      clearInterval(roomState.timerInterval);
+    function startSpeechTimer() {
       roomState.speechTimer = 60;
+      clearInterval(roomState.timerInterval);
       roomState.timerInterval = setInterval(() => {
         roomState.speechTimer--;
         const el = document.getElementById('timerSec');
         if (el) el.innerText = roomState.speechTimer;
         if (roomState.speechTimer <= 0) {
           clearInterval(roomState.timerInterval);
-          alert("發言時間到，切換至下一位發言！");
+          alert("發言時間到！");
         }
       }, 1000);
     }
@@ -828,9 +928,8 @@
 
     function endSpeech() {
       clearInterval(roomState.timerInterval);
-      alert("手動結束發言！");
       roomState.currentPhase = 'VOTING';
-      updateBanner("⚖️ 進入公投處決階段，請全體玩家選擇目標並點擊『確認投票』...");
+      updateBanner("⚖️ 進入公投處決階段，請選擇目標並點擊『確認投票』...");
       updateControlPanel();
     }
 
@@ -844,21 +943,8 @@
       document.getElementById('panelToggleIcon').innerText = panel.classList.contains('collapsed') ? '▲' : '▼';
     }
 
-    function toggleMedia(id, type) {
-      const p = roomState.players.find(x => x.id === id);
-      if (p) {
-        if (type === 'mic') p.micOn = !p.micOn;
-        if (type === 'cam') p.camOn = !p.camOn;
-        renderTable();
-      }
-    }
-
-    // Modal 選單
     function openSettings() {
-      if (!roomState.isHost) {
-        alert("只有創建房間的房主可以更改規則設定！");
-        return;
-      }
+      if (!roomState.isHost) { alert("只有房主可以更改規則！"); return; }
       document.getElementById('settingsModal').style.display = 'flex';
     }
 
@@ -885,6 +971,7 @@
 
     function applySettingsAndStart() {
       const count = parseInt(document.getElementById('playerCountSelect').value);
+      roomState.sheriffMode = document.getElementById('sheriffModeSelect').value;
       closeModal('settingsModal');
       initPlayers(count);
       alert(`已將房間設置為 ${count} 人局！`);

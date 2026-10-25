@@ -359,3 +359,121 @@ test('測試模式跳過口白只跳過語音，不可略過尚未完成的角�
     '狼人完成合法行動後才可進入下一句口白');
   assert.equal(vm.runInContext('roomState.moderatorStepIndex', context), 1);
 });
+
+
+test('狼人控制台會列出所有其他狼人隊友並標示已出局狀態', () => {
+  const { context } = makeContext();
+  vm.runInContext(`
+    roomState.isTestMode = true;
+    roomState.gameStarted = true;
+    roomState.gameOver = false;
+    roomState.currentPhase = 'NIGHT';
+    roomState.currentPerspective = 1;
+    roomState.ruleset = window.AwooRuleset.resolveRuleset({ winMode: 'edge' });
+    roomState.players = [
+      new Player(1, 'Wolf A', '小狼'),
+      new Player(2, 'Wolf B', '小狼'),
+      new Player(3, 'Wolf C', '狼王'),
+      new Player(4, 'Civilian', '平民')
+    ];
+    roomState.players[2].isAlive = false;
+    gameState.players = roomState.players;
+    roomState.rolesInGame = ['小狼', '狼王', '平民'];
+    roomState.moderatorScript = [{
+      role: '狼人陣營', text: '狼人現身，請睜眼。', speechText: '狼人現身，請睜眼。', actionKey: 'wolfAttack'
+    }];
+    roomState.moderatorStepIndex = 0;
+    roomState.moderatorSpeechDone = true;
+    roomState.nightVictim = null;
+    roomState.wolfActionDecided = false;
+  `, context);
+
+  const controls = context.document.getElementById('actionControls');
+  context.renderNightPanel(vm.runInContext('roomState.players[0]', context), controls);
+  assert.match(controls.innerHTML, /狼隊隊友：<b>2號、3號（已出局）<\/b>/,
+    '應顯示其他狼人隊友座位，並將已出局隊友明確標示');
+  assert.doesNotMatch(controls.innerHTML, /1號（已出局）/,
+    '不應把當前視角玩家當成自己的隊友列出');
+});
+
+test('共用目標格會禁用預言家自驗、已出局目標與守衛連守目標', () => {
+  const { context } = makeContext();
+  vm.runInContext(`
+    roomState.isTestMode = true;
+    roomState.gameStarted = true;
+    roomState.gameOver = false;
+    roomState.currentPhase = 'NIGHT';
+    roomState.currentPerspective = 1;
+    roomState.ruleset = window.AwooRuleset.resolveRuleset({ winMode: 'edge' });
+    roomState.players = [
+      new Player(1, 'Seer/Guard', '預言家'),
+      new Player(2, 'Living', '平民'),
+      new Player(3, 'Dead', '平民'),
+      new Player(4, 'Living 2', '小狼')
+    ];
+    roomState.players[2].isAlive = false;
+    gameState.players = roomState.players;
+    roomState.moderatorScript = [{
+      role: '預言家', text: '今天晚上你要驗誰？', speechText: '今天晚上你要驗誰？', actionKey: 'seerCheck'
+    }];
+    roomState.moderatorStepIndex = 0;
+    roomState.moderatorSpeechDone = true;
+    roomState.seerTargetId = null;
+    roomState.guardTargetId = null;
+    roomState.guardLastTarget = 2;
+  `, context);
+
+  const controls = context.document.getElementById('actionControls');
+  context.renderNightPanel(vm.runInContext('roomState.players[0]', context), controls);
+  assert.match(controls.innerHTML, /class="target-btn"\s+disabled onclick="seerCheck\(1\)"/,
+    '預言家自驗必須禁用');
+  assert.match(controls.innerHTML, /class="target-btn"\s+onclick="seerCheck\(2\)"/,
+    '存活且合法的預言家目標必須可選');
+  assert.match(controls.innerHTML, /class="target-btn is-dead"\s+disabled onclick="seerCheck\(3\)"/,
+    '已出局目標必須反灰並禁用');
+
+  vm.runInContext(`
+    roomState.players[0].role = '守衛';
+    roomState.moderatorScript = [{
+      role: '守衛', text: '守衛請選擇守護目標。', speechText: '守衛請選擇守護目標。', actionKey: 'guardProtect'
+    }];
+    roomState.moderatorStepIndex = 0;
+    roomState.guardTargetId = null;
+  `, context);
+  context.renderNightPanel(vm.runInContext('roomState.players[0]', context), controls);
+  assert.match(controls.innerHTML, /class="target-btn"\s+disabled onclick="guardProtect\(2\)"/,
+    '守衛上一晚守過的目標必須禁用');
+  assert.match(controls.innerHTML, /class="target-btn is-dead"\s+disabled onclick="guardProtect\(3\)"/,
+    '守衛不能選擇已出局的目標');
+  assert.match(controls.innerHTML, /class="target-btn"\s+onclick="guardProtect\(4\)"/,
+    '守衛仍可選擇其他合法存活目標');
+});
+
+test('全局行動紀錄預設收合，點擊後可展開並再次收合', () => {
+  const { context } = makeContext();
+  const panel = context.document.getElementById('gameHistoryPanel');
+  const details = context.document.getElementById('gameHistoryLog');
+  const button = context.document.getElementById('gameHistoryToggle');
+  const label = { textContent: '查看紀錄' };
+  let expanded = false;
+
+  panel.classList.toggle = () => {
+    expanded = !expanded;
+    return expanded;
+  };
+  details.hidden = true;
+  button.attributes = {};
+  button.setAttribute = (name, value) => { button.attributes[name] = String(value); };
+  button.querySelector = () => label;
+
+  assert.equal(details.hidden, true);
+  assert.equal(context.toggleGameHistory(), true);
+  assert.equal(details.hidden, false);
+  assert.equal(button.attributes['aria-expanded'], 'true');
+  assert.equal(label.textContent, '收起紀錄');
+
+  assert.equal(context.toggleGameHistory(), true);
+  assert.equal(details.hidden, true);
+  assert.equal(button.attributes['aria-expanded'], 'false');
+  assert.equal(label.textContent, '查看紀錄');
+});

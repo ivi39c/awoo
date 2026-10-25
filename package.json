@@ -1,0 +1,11 @@
+{
+  "name": "awoo-werewolf-refactor",
+  "version": "0.9.3",
+  "private": true,
+  "description": "Awoo 狼人殺手機優先 UI、角色資料庫、系統自動上帝主持與角色行動鎖定",
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "check:syntax": "node --check js/role-database.js && node --check js/ruleset.js && node --check js/game-engine.js && node --check js/game-flow.js && node --check js/moderator-script.js && node --check js/compendium.js && node --check js/ui.js && node --check js/app.js",
+    "check": "npm run check:syntax && npm test"
+  }
+}

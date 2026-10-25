@@ -32,7 +32,7 @@ node --test tests/*.test.cjs
 
 也可以執行 `npm test`（不需要安裝第三方套件），或用 `npm run check` 一次執行語法檢查與自動化測試。
 
-目前 Step 9.3 的 `npm run check` 通過 75 項 Node.js 自動化測試與 JavaScript 語法檢查。測試涵蓋女巫毒藥結算、系統上帝自動推進、角色操作鎖定、狼王首夜口白與測試模式手動控制；這仍不等於完整真實瀏覽器或手機實機端到端測試。
+截至 2026-10-25，最新 GitHub Actions `Awoo checks` 通過 104/104 項 Node.js 自動化測試與 8 個 JavaScript 模組語法檢查（[CI 紀錄](https://github.com/ivi39c/awoo/actions/runs/40174160926)）。測試涵蓋角色視角與隊友顯示、夜間目標隱私、主持口白／行動鎖定、女巫藥劑結算、死亡公告、共用選人介面及可收合行動紀錄；這仍不等於完整真實瀏覽器或手機實機端到端測試。
 
 
 ## Step 8：手機優先 UI

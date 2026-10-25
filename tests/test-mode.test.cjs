@@ -96,8 +96,9 @@ test('正式模式禁止切換視角，測試模式允許切換有效座位', ()
 test('測試模式可把當前座位替換為圖鑑任一角色並追蹤已巡檢角色', () => {
   const { context, elements } = createContext();
   context.startQuickBotTest();
-  vm.runInContext(`roomState.gameStarted=true; roomState.currentPhase='NIGHT'; roomState.currentPerspective=1; gameState.players=roomState.players;`, context);
+  vm.runInContext(`roomState.gameStarted=true; roomState.currentPhase='NIGHT'; roomState.currentPerspective=1; gameState.players=roomState.players; roomState.players[0].deathSkillUsed=true;`, context);
   assert.equal(context.assignTestRole(1, '妖狐'), true);
+  assert.equal(vm.runInContext('roomState.players[0].deathSkillUsed', context), false, '替換測試角色時必須清除前一角色的死亡技能使用狀態');
   assert.equal(vm.runInContext("roomState.players[0].role", context), '妖狐');
   assert.equal(vm.runInContext("roomState.players[0].isAlive", context), true);
   assert.equal(vm.runInContext("roomState.testedRoles.has('妖狐')", context), true);

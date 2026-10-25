@@ -84,7 +84,7 @@ test('測試模式的立即結算按鈕只在夜晚階段顯示', () => {
 });
 
 test('正式模式禁止切換視角，測試模式允許切換有效座位', () => {
-  const { context } = createContext();
+  const { context, elements } = createContext();
   vm.runInContext(`roomState.players = [{id:1,name:'A',role:'小狼',isAlive:true},{id:2,name:'B',role:'平民',isAlive:true}]; roomState.mySeatId=1; roomState.currentPerspective=1;`, context);
   assert.equal(context.switchPerspective(2), false);
   assert.equal(vm.runInContext('roomState.currentPerspective', context), 1);

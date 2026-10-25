@@ -288,3 +288,55 @@ test('狼人確認夜刀後，全局通知與行動紀錄不會提前洩漏目�
   assert.doesNotMatch(elements.get('gameHistoryLog').innerHTML, /狼人夜刀指定|2\s*號/,
     '全局可展開紀錄不得顯示狼人私密夜刀目標');
 });
+
+
+test('狼刀號碼只在女巫救人提示已播完後顯示於女巫控制台', () => {
+  const { context, elements } = makeContext();
+  vm.runInContext(`
+    roomState.isTestMode = true;
+    roomState.gameStarted = true;
+    roomState.gameOver = false;
+    roomState.currentPhase = 'NIGHT';
+    roomState.currentPerspective = 3;
+    roomState.players = [
+      new Player(1, 'Wolf', '小狼'),
+      new Player(2, 'Target', '平民'),
+      new Player(3, 'Witch', '女巫')
+    ];
+    gameState.players = roomState.players;
+    roomState.nightVictim = 2;
+    roomState.witchElixirUsed = false;
+    roomState.witchSaveDecisionMade = false;
+    roomState.witchPoisonUsed = false;
+    roomState.witchPoisonDecisionMade = false;
+    roomState.moderatorScript = [{
+      role: '狼人陣營', text: '狼人請閉眼。', speechText: '狼人請閉眼。', actionKey: null
+    }];
+    roomState.moderatorStepIndex = 0;
+    roomState.moderatorSpeechDone = true;
+  `, context);
+
+  const controls = elements.get('actionControls');
+  const witch = vm.runInContext('roomState.players[2]', context);
+  context.renderNightPanel(witch, controls);
+  assert.doesNotMatch(controls.innerHTML, /今晚狼刀目標/,
+    '狼人完成選擇後、尚未進入女巫救人提示時，不可顯示狼刀號碼');
+
+  vm.runInContext(`
+    roomState.moderatorScript = [{
+      role: '女巫', text: '今天晚上這位玩家死了，你要救他嗎？',
+      speechText: '今天晚上這位玩家死了，你要救他嗎？',
+      actionKey: 'witchSaveDecision', condition: 'antidote-available'
+    }];
+    roomState.moderatorStepIndex = 0;
+    roomState.moderatorSpeechDone = false;
+  `, context);
+  context.renderNightPanel(witch, controls);
+  assert.doesNotMatch(controls.innerHTML, /今晚狼刀目標/,
+    '女巫救人提示尚未播完時仍不可顯示狼刀號碼');
+
+  vm.runInContext('roomState.moderatorSpeechDone = true', context);
+  context.renderNightPanel(witch, controls);
+  assert.match(controls.innerHTML, /今晚狼刀目標：[\s\S]*?2號/,
+    '女巫救人提示播完後，女巫控制台才顯示狼刀號碼');
+});

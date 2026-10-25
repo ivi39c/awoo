@@ -33,6 +33,15 @@ test('首夜角色只在第一夜叫醒；第二夜不再出现盜賊或邱比�
   assert.doesNotMatch(nightTwo, /邱比特請睜眼/);
 });
 
+test('標準房規未指定順序時預設守衛先行，之後才是狼人、女巫與預言家', () => {
+  const result = Moderator.buildNightScript(['小狼', '女巫', '預言家', '守衛'], 2);
+  const texts = result.steps.map(step => step.text);
+  const indexOf = (phrase) => texts.findIndex(text => text.includes(phrase));
+  assert.ok(indexOf('守衛請睜眼') < indexOf('狼人現身，請睜眼'));
+  assert.ok(indexOf('狼人現身，請睜眼') < indexOf('女巫請睜眼'));
+  assert.ok(indexOf('女巫請睜眼') < indexOf('預言家請睜眼'));
+});
+
 test('classic 房規可把守衛放在狼人之前；特別角色會有專屬或明確標示的佔位口白', () => {
   const classic = Moderator.buildNightScript(['小狼', '女巫', '預言家', '守衛'], 2, {
     moderatorNightOrderPreset: 'classic',

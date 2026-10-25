@@ -139,3 +139,11 @@
 
 - Pending CI: perspective selector refresh after dealing/night initialization, shared numbered target controls, and consistent cause-aware night-death summaries including the immediate-victory path.
 - Browser/mobile acceptance remains pending.
+
+
+## PR #27 CI repair — perspective selector regression test (2026-10-25)
+
+- Root cause of the failing GitHub Actions run: `tests/test-mode.test.cjs` destructured only `context` from `createContext()`, then asserted against `elements`; this raised `ReferenceError: elements is not defined` at the perspective-switch test.
+- Fixed the test setup to capture both `context` and `elements`. No game runtime code was changed for this CI-only failure.
+- GitHub Actions `Awoo checks` passed for commit `487d7609709c051a1141b73c53a0167451d6eeb1`.
+- This confirms syntax checks and the automated Node test suite passed in CI. It does not replace browser/mobile acceptance for the ten reported UI/game-flow issues.

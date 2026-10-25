@@ -1256,6 +1256,7 @@ function showBgmPlayButton() {
         p.role = dealtRoles[idx];
         p.isAlive = true;
         p.deathReason = null;
+        p.deathSkillUsed = false;
         p.isProtected = false;
         p.canShoot = true;
         p.isSheriff = false;

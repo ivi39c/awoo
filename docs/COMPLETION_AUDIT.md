@@ -99,3 +99,11 @@
 - Repeated activation attempts are rejected even if a different living target is submitted; invalid attempts do not consume the skill.
 - Regression coverage was added to `tests/game-engine.test.cjs`.
 - Automated validation is pending the GitHub Actions run for this change. Browser-level chain-resolution acceptance remains pending.
+
+
+## Step 10 follow-up — reset death skill state on fresh deal (2026-10-25)
+
+- Fresh role dealing now resets `deathSkillUsed` alongside death reason, alive state, Hunter eligibility, and sheriff status.
+- Added a regression assertion that the formal deal reset block clears stale death-skill state.
+- This prevents a reused player object from carrying a prior round's one-use skill lock into a new game.
+- CI and browser acceptance are pending for this change; no browser-level claim is made.

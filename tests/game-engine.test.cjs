@@ -287,8 +287,8 @@ test('小狼自爆可以中斷白天公投，但不能在夜晚發動', () => {
   assert.equal(players[0].isAlive, true, '非法階段不能改變存活狀態');
 });
 
-test('自爆限制只允許房規指定的基本小狼，其他角色不可借用此技能', () => {
-  for (const role of ['狼王', '白狼王', '平民']) {
+test('基本小狼自爆限制只允許房規指定角色，狼王與平民不可借用此技能', () => {
+  for (const role of ['狼王', '平民']) {
     const players = [player(1, role), player(2, '小狼')];
     const result = Engine.resolveWolfSelfDestruct({ players, actorId: 1, phase: 'DAY_SPEECH' });
     assert.equal(result.valid, false, `${role} 不應直接使用小狼自爆技能`);

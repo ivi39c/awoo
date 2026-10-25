@@ -143,8 +143,9 @@ class Player {
         console.error(`[Awoo] 非法階段轉換：${result.from} -> ${result.to}（${result.reason}）`);
         return false;
       }
-      // Keep the moderator panel in sync with phase changes (especially after dawn/game over).
+      // Keep the moderator panel and test-mode quick actions in sync with phase changes.
       if (typeof renderGodFlowPanel === 'function') renderGodFlowPanel();
+      if (typeof updateTestModeUI === 'function') updateTestModeUI();
       return true;
     }
 

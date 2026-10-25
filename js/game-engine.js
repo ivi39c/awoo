@@ -246,6 +246,38 @@
     };
   }
 
+  function getDeathSkill(player, deathReason = player && player.deathReason) {
+    if (!player || !player.role) return null;
+    const role = normalizeRoleName(player.role);
+    const reason = String(deathReason || '');
+    if (role === '獵人') {
+      const poisonDeath = reason.includes('POISON') || reason === 'POISONED_BY_WITCH';
+      const eligibleCause = reason === 'KILLED_BY_WOLF' || reason === 'EXECUTED_BY_VOTE';
+      if (player.canShoot !== false && eligibleCause && !poisonDeath) {
+        return { type: 'hunter-shot', role: '獵人', actorId: Number(player.id) };
+      }
+      return null;
+    }
+    if (role === '狼王' && reason === 'EXECUTED_BY_VOTE') {
+      return { type: 'wolf-king-shot', role: '狼王', actorId: Number(player.id) };
+    }
+    return null;
+  }
+
+  function resolveDeathSkill({ players, actorId, targetId, deathReason } = {}) {
+    if (!Array.isArray(players)) throw new TypeError('resolveDeathSkill() 需要 players 陣列。');
+    const actor = findPlayer(players, actorId);
+    if (!actor || actor.isAlive) return { valid: false, reason: '死亡技能只能由已出局且仍有技能資格的角色發動。' };
+    const skill = getDeathSkill(actor, deathReason || actor.deathReason);
+    if (!skill) return { valid: false, reason: '此角色因目前的死亡原因不能發動死亡技能。' };
+    const target = isAlivePlayer(players, targetId);
+    if (!target) return { valid: false, reason: '請選擇仍存活的目標。' };
+    if (Number(target.id) === Number(actor.id)) return { valid: false, reason: '不能選擇自己作為死亡技能目標。' };
+    target.isAlive = false;
+    target.deathReason = skill.type === 'hunter-shot' ? 'HUNTER_SHOT' : 'WOLF_KING_SHOT';
+    return { valid: true, skill, actor, target, death: { id: Number(target.id), reason: target.deathReason } };
+  }
+
   function checkWinCondition(players, rules = {}) {
     if (!Array.isArray(players) || players.length === 0) return null;
     const definitions = players.map(player => ({ player, definition: getRoleDefinition(player.role) }));
@@ -349,6 +381,8 @@
     validateWolfSelfDestruct,
     resolveWolfSelfDestruct,
     resolveNight,
+    getDeathSkill,
+    resolveDeathSkill,
     checkWinCondition,
     validateVoteSelection,
     resolveVotes,

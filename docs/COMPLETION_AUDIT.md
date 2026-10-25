@@ -11,8 +11,8 @@
 
 | 階段 | 狀態 | 已完成／有測試的部分 | 未完成或未驗收部分 |
 |---|---|---|---|
-| 1. 核心回合與結算 | 部分完成 | 發牌洗牌、角色池驗證、基礎夜晚結算、守衛／解藥互動、女巫毒藥結算、投票平票／棄票／警長權重、勝負判定、自爆、階段轉換及發言順序有 Node.js 單元測試。 | `app.js` 仍持有大量階段、計時器與狀態編排。尚未完成真實瀏覽器從建局到多日終局的端到端測試。警長候選結束後目前選取第一位有效候選人當選，不是完整競選投票。獵人出局開槍、狼王／白狼王觸發、遺言與技能死亡連鎖尚未完整。 |
-| 2. 統一角色系統 | 部分完成 | 138 個角色的基本資料、別名、分類、技能摘要、關係、版本差異集中於 `role-database.js`；別名、欄位、陣營及關係引用有測試。 | 角色 metadata 不是可自動執行的技能規格。實際引擎只涵蓋少數通用操作：小狼夜刀／自爆、預言家查驗、女巫藥劑目標、守衛守護、投票與基礎勝負判定等。`獵人`、`狼王`、`白狼王`、狼美人、騎士、白痴及多數第三方技能尚未完成。需要建立結構化技能註冊／觸發系統。 |
+| 1. 核心回合與結算 | 部分完成 | 發牌洗牌、角色池驗證、基礎夜晚結算、守衛／解藥互動、女巫毒藥結算、投票平票／棄票／警長權重、勝負判定、自爆、階段轉換及發言順序有 Node.js 單元測試。 | `app.js` 仍持有大量階段、計時器與狀態編排。尚未完成真實瀏覽器從建局到多日終局的端到端測試。警長競選現已包含候選人退出、正式投票與一次平票重投；仍需瀏覽器驗收。獵人／狼王死亡技能已加入基礎觸發與目標選擇流程；白狼王與其他角色死亡連鎖仍未完成。 |
+| 2. 統一角色系統 | 部分完成 | 138 個角色的基本資料、別名、分類、技能摘要、關係、版本差異集中於 `role-database.js`；別名、欄位、陣營及關係引用有測試。 | 角色 metadata 不是可自動執行的技能規格。實際引擎只涵蓋少數通用操作：小狼夜刀／自爆、預言家查驗、女巫藥劑目標、守衛守護、投票與基礎勝負判定等。`獵人`與`狼王`的基礎死亡觸發技能已接入；`白狼王`、狼美人、騎士、白痴及多數第三方技能仍未完成。需持續擴充結構化技能註冊／觸發系統。 |
 | 3. 程式模組拆分 | 部分完成 | 已有 `role-database.js`、`ruleset.js`、`game-engine.js`、`game-flow.js`、`compendium.js`、`ui.js`、`app.js` 等模組，核心引擎不直接依賴 DOM。 | `app.js` 仍約 1,450 行，包含建房／加入原型、回合編排、計時器、警長、投票、媒體和多個 UI handler；不少介面仍用 inline `onclick` 及字串 `innerHTML`。狀態型別、事件／副作用邊界及錯誤回復仍需整理。Step 8 只先更新 UI 樣式與導覽，並未宣稱完成架構拆分。 |
 | 4. 真正多人房間 | 未完成 | 只有本機房間畫面、房號展示、Bot 座位與測試模式。 | `confirmJoinRoom()` 未驗證實際房間或建立網路連線；每個瀏覽器各自建立本機狀態。尚無後端、WebSocket／其他訊令通道、房主權限、伺服器權威狀態、資料持久化、重新連線、玩家離線處理或作弊防護。 |
 | 5. 多人視訊與音訊 | 未完成 | 本機麥克風／攝影機可透過 `getUserMedia()` 請求權限；本地 `MediaStream` 可以放進本機座位畫面。 | 沒有 `RTCPeerConnection`、SDP／ICE 訊令交換、遠端 stream、房間音訊路由或斷線恢復。主音量滑桿及麥克風音量滑桿目前未完整連接實際音訊處理。需要分瀏覽器、裝置與權限狀態測試。 |
@@ -72,3 +72,12 @@
 - 新增 `moderator-script.js`，按本局角色組合／夜數建構口白；目前有專屬模板與通用佔位模板之分，佔位流程不代表技能已實作。
 - 執行 `npm run check`：55/55 Node.js 測試通過，JavaScript 語法檢查通過。
 - 仍未完成：完整真實瀏覽器／手機端到端測試、多人後端同步、遠端影音，以及大部分角色的專屬技能引擎。
+
+
+## Step 10 implementation note — 2026-10-25
+
+- Removed the alternate Awoo-custom night order. Standard order is fixed to Guard → wolves → Witch → Seer.
+- Sheriff election now supports candidate withdrawal, multi-candidate voting, and one runoff for tied leaders. A second tie/no valid votes results in no sheriff.
+- Hunter/Wolf King base death-trigger skills are integrated in a dedicated `DEATH_SKILL` phase. Hunter shot is disabled by poison; Wolf King shot triggers on public execution.
+- Current GitHub Actions validation passed after the death-skill phase transition correction. Browser and mobile acceptance are still pending.
+- Remaining: sheriff badge transfer/destruction, White Wolf King skill, broader role trigger chains, complete win-condition acceptance, and real multiplayer/WebRTC.

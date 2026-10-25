@@ -10,19 +10,20 @@
   'use strict';
 
   const PHASES = Object.freeze([
-    'LOBBY', 'NIGHT', 'SHERIFF_ELECTION', 'SHERIFF_VOTING', 'DAY_DEATH',
+    'LOBBY', 'NIGHT', 'SHERIFF_ELECTION', 'SHERIFF_VOTING', 'DEATH_SKILL', 'DAY_DEATH',
     'DAY_SPEECH', 'VOTING', 'LAST_WORDS', 'GAME_OVER'
   ]);
   const TERMINAL_PHASE = 'GAME_OVER';
   const ALLOWED_TRANSITIONS = Object.freeze({
     LOBBY: new Set(['NIGHT']),
-    NIGHT: new Set(['SHERIFF_ELECTION', 'DAY_DEATH']),
+    NIGHT: new Set(['SHERIFF_ELECTION', 'DEATH_SKILL', 'DAY_DEATH']),
     // Jumps from daytime to NIGHT are reserved for a validated self-destruct action.
     SHERIFF_ELECTION: new Set(['SHERIFF_VOTING', 'DAY_DEATH', 'NIGHT']),
     SHERIFF_VOTING: new Set(['DAY_DEATH', 'NIGHT']),
+    DEATH_SKILL: new Set(['SHERIFF_ELECTION', 'DAY_DEATH', 'LAST_WORDS', 'NIGHT']),
     DAY_DEATH: new Set(['DAY_SPEECH', 'NIGHT']),
     DAY_SPEECH: new Set(['VOTING', 'NIGHT']),
-    VOTING: new Set(['LAST_WORDS', 'NIGHT']),
+    VOTING: new Set(['DEATH_SKILL', 'LAST_WORDS', 'NIGHT']),
     LAST_WORDS: new Set(['NIGHT']),
     GAME_OVER: new Set()
   });

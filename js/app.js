@@ -854,6 +854,18 @@ function showBgmPlayButton() {
         `;
       }
 
+      if ((p.role === '女巫' || p.role === 'WITCH') && roomState.currentPhase !== 'NIGHT') {
+        const witchDaySummary = document.createElement('div');
+        witchDaySummary.className = 'witch-day-summary';
+        witchDaySummary.textContent = `本局藥劑紀錄｜解藥：${roomState.witchSaveTargetId != null ? `${roomState.witchSaveTargetId}號` : roomState.witchElixirUsed ? '已使用' : '未使用'}；毒藥：${roomState.witchPoisonTargetId != null ? `${roomState.witchPoisonTargetId}號` : roomState.witchPoisonUsed ? '已使用' : '未使用'}`;
+        controls.appendChild(witchDaySummary);
+        const witchHistory = getPerspectiveActionHistory(p.id);
+        if (witchHistory.length) {
+          const history = document.createElement('div'); history.className = 'role-action-history';
+          history.innerHTML = `<b>本局技能紀錄</b><ul>${witchHistory.map(item => `<li>${AwooUI.escapeHtml(item)}</li>`).join('')}</ul>`;
+          controls.appendChild(history);
+        }
+      }
       const perspectiveHistory = getPerspectiveActionHistory(p.id);
       if (perspectiveHistory.length && p.role !== '女巫' && p.role !== 'WITCH') {
         const history = document.createElement('div'); history.className = 'role-action-history';
@@ -1670,11 +1682,13 @@ function showBgmPlayButton() {
 
     function shouldSkipModeratorStep(step) {
       if (!step || !step.condition) return false;
+      // Keep the Witch's narration even when a potion has already been spent.
+      // Only omit the antidote prompt when the wolf target does not exist or is already dead.
       if (step.condition === 'antidote-available') {
         const target = roomState.players.find(player => Number(player.id) === Number(roomState.nightVictim));
-        return roomState.witchElixirUsed || !target || !target.isAlive;
+        return !target || !target.isAlive;
       }
-      if (step.condition === 'poison-available') return roomState.witchPoisonUsed;
+      if (step.condition === 'poison-available') return false;
       return false;
     }
 

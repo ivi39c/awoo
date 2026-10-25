@@ -1039,8 +1039,8 @@ function showBgmPlayButton() {
       const validation = AwooGameEngine.validateNightAction({
         players: roomState.players, actorId: roomState.currentPerspective,
         action: 'witchSave', state: {
-          phase: roomState.currentPhase, nightVictim: roomState.nightVictim,
-          witchElixirUsed: roomState.witchElixirUsed
+          phase: roomState.currentPhase, currentDay: gameState.currentDay, nightVictim: roomState.nightVictim,
+          witchElixirUsed: roomState.witchElixirUsed, witchPoisonUsed: roomState.witchPoisonUsed
         }
       });
       if (!validation.valid) { alert(validation.reason); return; }
@@ -1084,7 +1084,7 @@ function showBgmPlayButton() {
         actorId: roomState.currentPerspective,
         action: 'witchPoison',
         targetId,
-        state: { phase: roomState.currentPhase, witchPoisonUsed: roomState.witchPoisonUsed },
+        state: { phase: roomState.currentPhase, currentDay: gameState.currentDay, witchPoisonUsed: roomState.witchPoisonUsed, witchElixirUsed: roomState.witchElixirUsed },
       });
       if (!validation.valid) {
         alert(validation.reason);

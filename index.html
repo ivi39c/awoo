@@ -213,6 +213,7 @@
 
   <div id="testModeBanner" class="test-mode-banner" style="display:none" role="status" aria-label="測試模式操作">
     <div class="test-mode-actions">
+      <button class="btn-gothic" id="testModeSkipSpeechButton" type="button" onclick="skipModeratorSpeech()" hidden>跳過口白</button>
       <button class="btn-gothic btn-crimson" id="testModeResolveNightButton" type="button" onclick="resolveNightNow()" hidden>立即結算本夜</button>
       <button class="btn-gothic" type="button" onclick="exitTestMode()">退出</button>
     </div>
@@ -244,6 +245,8 @@
     </div>
     <p class="god-flow-footnote">正式模式由系統自動主持：唸完口白後等待該角色完成操作，再自動播放下一句；測試模式則保留手動推進與佔位流程確認。最後一句「天亮請睜眼」後才會結算死訊。</p>
   </section>
+
+  <section id="gameHistoryPanel" class="game-history-panel" aria-label="全局行動紀錄"><button id="gameHistoryToggle" class="game-history-summary" type="button" onclick="toggleGameHistory()" aria-expanded="false"><strong>全局行動紀錄</strong><span id="gameHistorySummaryText">尚無紀錄</span><span class="history-toggle-label">查看紀錄</span></button><ol id="gameHistoryLog" hidden><li class="history-empty">尚無行動紀錄。</li></ol></section>
 
   <!-- 主要版面 -->
   <main class="main-layout" id="gameMain">
@@ -347,6 +350,6 @@
   <script src="js/compendium.js" defer></script>
   <script src="js/app.js" defer></script>
 
-  <section id="gameHistoryPanel" class="game-history-panel" aria-label="全局行動紀錄"><div class="game-history-heading"><strong>全局行動紀錄</strong><span>夜晚死訊・白天處決</span></div><ol id="gameHistoryLog"><li class="history-empty">尚無行動紀錄。</li></ol></section>
+  
 </body>
 </html>

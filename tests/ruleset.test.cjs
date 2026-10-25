@@ -25,3 +25,11 @@ test('房規驗證會拒絕非法階段與不合理警長票權重', () => {
   assert.equal(result.valid, false);
   assert.equal(result.errors.length, 2);
 });
+
+
+test('首夜女巫自救房規預設開啟且可由房主關閉', () => {
+  assert.equal(Ruleset.resolveRuleset().witchCanSelfSaveFirstNight, true);
+  assert.equal(Ruleset.resolveRuleset({ witchCanSelfSaveFirstNight: false }).witchCanSelfSaveFirstNight, false);
+  assert.equal(Ruleset.validateRuleset({ witchCanSelfSaveFirstNight: false }).valid, true);
+  assert.equal(Ruleset.validateRuleset({ witchCanSelfSaveFirstNight: 'false' }).valid, false);
+});

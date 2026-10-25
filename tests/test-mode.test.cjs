@@ -106,16 +106,14 @@ test('測試模式可把當前座位替換為圖鑑任一角色並追蹤已巡�
   assert.equal(vm.runInContext("getTestRoleControlStatus('妖狐').includes('尚未接入')", context), true);
 });
 
-test('測試模式提供所有圖鑑角色的控制台選項並標示尚未接入的專屬技能', () => {
+test('測試模式控制面板不再顯示額外的測試工具與操作說明', () => {
   const { context, elements } = createContext();
   context.startQuickBotTest();
   vm.runInContext(`roomState.gameStarted=true; roomState.currentPhase='NIGHT'; roomState.currentPerspective=1; gameState.players=roomState.players;`, context);
   context.assignTestRole(1, '小狼');
   const controls = elements.get('actionControls');
-  const sections = controls.children.filter(item => item.className === 'test-mode-tools');
-  assert.equal(sections.length, 1);
-  const select = sections[0].children.find(item => item.id === 'testRoleSelect');
-  assert.equal(select.children.length, vm.runInContext('ROLE_DATABASE.length', context));
+  assert.equal(controls.children.some(item => item.className === 'test-mode-tools'), false);
+  assert.equal(controls.children.some(item => /測試模式工具|請先點擊/.test(item.textContent || '')), false);
   assert.equal(vm.runInContext("getTestRoleControlStatus('狼王')", context).includes('專屬技能仍需另外實作'), true);
 });
 

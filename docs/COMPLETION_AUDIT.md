@@ -91,3 +91,11 @@
 - Hunter and Wolf King base death-trigger skills are integrated in a dedicated `DEATH_SKILL` phase. Hunter shot is disabled by poison; Wolf King shot triggers on public execution. Death skills resolve before win checks/day announcements/last words.
 - GitHub Actions syntax checks and unit tests passed on PRs #5–#8. Browser and mobile acceptance remain pending.
 - Remaining: White Wolf King skill, broader role trigger chains, complete win-condition scenario acceptance, mobile settings/media placement, and real multiplayer/WebRTC.
+
+
+## Step 10 follow-up — death skill single-use guard (2026-10-25)
+
+- The engine now records `deathSkillUsed` after a valid Hunter, Wolf King, or White Wolf King target resolution.
+- Repeated activation attempts are rejected even if a different living target is submitted; invalid attempts do not consume the skill.
+- Regression coverage was added to `tests/game-engine.test.cjs`.
+- Automated validation is pending the GitHub Actions run for this change. Browser-level chain-resolution acceptance remains pending.

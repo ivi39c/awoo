@@ -48,5 +48,5 @@ test('daytime self-destruct phases may jump directly to night after engine valid
 test('sheriff voting phase can transition to day death or night after a valid outcome', () => {
   const state = { currentPhase: 'SHERIFF_VOTING' };
   assert.equal(Flow.transitionPhase(state, 'DAY_DEATH').ok, true);
-  assert.equal(Flow.transitionPhase(state, 'NIGHT').ok, false, 'day-death announcement should happen before night');
+  assert.equal(Flow.transitionPhase(state, 'NIGHT').ok, true, 'self-destruct may interrupt sheriff voting and enter night');
 });

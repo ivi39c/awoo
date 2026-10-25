@@ -795,6 +795,9 @@ function showBgmPlayButton() {
       else if (roomState.currentPhase === 'SHERIFF_VOTING') {
         renderSheriffVotingPanel(p, controls);
       }
+      else if (roomState.currentPhase === 'DEATH_SKILL') {
+        renderDeathSkillPanel(p, controls);
+      }
       else if (roomState.currentPhase === 'DAY_DEATH') {
         if (p.isSheriff) {
           const hasDeath = Array.isArray(roomState.lastNightDeaths) && roomState.lastNightDeaths.length > 0;
@@ -1709,6 +1712,7 @@ function showBgmPlayButton() {
         roomState.witchPoisonTargetId,
         roomState.guardTargetId
       );
+      if (startDeathSkillResolution(roomState.lastNightDeaths, 'DAY_DEATH', null)) return true;
       const winner = checkWinCondition();
       if (winner) {
         const deaths = Array.isArray(roomState.lastNightDeaths) ? roomState.lastNightDeaths : [];
@@ -2052,14 +2056,119 @@ function showBgmPlayButton() {
       victim.isAlive = false;
       victim.deathReason = 'EXECUTED_BY_VOTE';
       renderTable();
-      const winner = checkWinCondition();
       speakGod(`公投結算結束，最高票數者為 ${targetId} 號玩家！此玩家處決出局。`);
+      if (startDeathSkillResolution([{ id: targetId, reason: 'EXECUTED_BY_VOTE' }], 'LAST_WORDS', targetId)) return;
+      const winner = checkWinCondition();
       if (winner) {
-        // Allow the current last-words flow to finish before displaying the end state.
-        startLastWordsPhase(targetId);
+        finishGame(winner, `${targetId} 號玩家已被處決。`);
         return;
       }
       startLastWordsPhase(targetId);
+    }
+
+    function startDeathSkillResolution(deaths, returnPhase, executedVictimId = null) {
+      const queue = (Array.isArray(deaths) ? deaths : []).map(death => {
+        const player = roomState.players.find(item => Number(item.id) === Number(death.id));
+        const skill = player ? AwooGameEngine.getDeathSkill(player, death.reason || player.deathReason) : null;
+        return skill ? { playerId: Number(player.id), deathReason: death.reason || player.deathReason, skill } : null;
+      }).filter(Boolean);
+      if (!queue.length) return false;
+      roomState.deathSkillQueue = queue;
+      roomState.deathSkillReturnPhase = returnPhase;
+      roomState.deathSkillExecutedVictim = executedVictimId == null ? null : Number(executedVictimId);
+      roomState.deathSkillDeaths = [];
+      if (!setCurrentPhase('DEATH_SKILL')) return false;
+      clearInterval(roomState.timerInterval);
+      roomState.timerInterval = null;
+      const current = queue[0];
+      updateBanner('【死亡技能】', `${current.playerId} 號 ${current.skill.role} 可以發動死亡技能。`, '請切換到該座位選擇目標。');
+      speakGod(`${current.playerId} 號 ${current.skill.role} 發動死亡技能，請選擇目標。`);
+      renderTable();
+      updateControlPanel();
+      return true;
+    }
+
+    function renderDeathSkillPanel(player, container) {
+      const current = roomState.deathSkillQueue[0];
+      if (!current) {
+        container.innerHTML = '<p>死亡技能結算中……</p>';
+        return;
+      }
+      if (Number(player.id) !== Number(current.playerId)) {
+        container.innerHTML = `<p style="color:#aaa;">等待 ${current.playerId} 號 ${current.skill.role} 完成死亡技能。</p>`;
+        return;
+      }
+      const targets = roomState.players.filter(item => item.isAlive && Number(item.id) !== Number(player.id));
+      container.innerHTML = `
+        <p style="color:var(--gold-primary);">${current.playerId} 號 ${current.skill.role}：選擇一名存活玩家發動技能。</p>
+        <div class="target-grid">${targets.map(target => `<button class="target-btn" onclick="resolveCurrentDeathSkill(${target.id})">${target.id}號</button>`).join('')}</div>
+      `;
+    }
+
+    function resolveCurrentDeathSkill(targetId) {
+      if (roomState.currentPhase !== 'DEATH_SKILL') return false;
+      const current = roomState.deathSkillQueue[0];
+      if (!current) return false;
+      if (Number(roomState.currentPerspective) !== Number(current.playerId)) {
+        alert(`請先切換到 ${current.playerId} 號座位。`);
+        return false;
+      }
+      const result = AwooGameEngine.resolveDeathSkill({
+        players: roomState.players,
+        actorId: current.playerId,
+        targetId,
+        deathReason: current.deathReason,
+      });
+      if (!result.valid) {
+        alert(result.reason);
+        return false;
+      }
+      roomState.deathSkillQueue.shift();
+      roomState.deathSkillDeaths.push(result.death);
+      if (roomState.deathSkillReturnPhase === 'DAY_DEATH') {
+        roomState.lastNightDeaths.push(result.death);
+      }
+      const chainedSkill = AwooGameEngine.getDeathSkill(result.target, result.death.reason);
+      if (chainedSkill) {
+        roomState.deathSkillQueue.push({
+          playerId: Number(result.target.id),
+          deathReason: result.death.reason,
+          skill: chainedSkill,
+        });
+      }
+      renderTable();
+      if (roomState.deathSkillQueue.length) {
+        const next = roomState.deathSkillQueue[0];
+        updateBanner('【死亡技能】', `${next.playerId} 號 ${next.skill.role} 可以發動死亡技能。`, '請切換到該座位選擇目標。');
+        speakGod(`${next.playerId} 號 ${next.skill.role} 發動死亡技能，請選擇目標。`);
+        updateControlPanel();
+        return true;
+      }
+      const returnPhase = roomState.deathSkillReturnPhase;
+      const executedVictimId = roomState.deathSkillExecutedVictim;
+      roomState.deathSkillReturnPhase = null;
+      roomState.deathSkillExecutedVictim = null;
+      roomState.deathSkillQueue = [];
+      const winner = checkWinCondition();
+      if (winner) {
+        const deaths = roomState.deathSkillReturnPhase === 'DAY_DEATH'
+          ? roomState.lastNightDeaths
+          : roomState.deathSkillDeaths;
+        const summary = deaths.length ? `出局玩家：${deaths.map(item => `${item.id} 號`).join('、')}。` : '';
+        finishGame(winner, summary);
+        return true;
+      }
+      if (returnPhase === 'LAST_WORDS') {
+        startLastWordsPhase(executedVictimId);
+      } else {
+        if (roomState.sheriffMode === 'enabled' && gameState.currentDay === 1 && !roomState.hasSheriffInGame) {
+          if (!setCurrentPhase('SHERIFF_ELECTION')) return false;
+          startSheriffCountdown();
+        } else {
+          announceDayDeath();
+        }
+      }
+      return true;
     }
 
     function startLastWordsPhase(victimId) {

@@ -173,3 +173,17 @@ Append a new dated entry below after each meaningful work session. Keep older en
 - **Code changes in this session:** this handoff document only.
 - **Tests run in this session:** none. The 75-test result is copied from the repository's existing documentation and was not rerun.
 - **Current next action:** run the baseline test command and map Section 5 requirements to actual code/tests before selecting the next implementation task.
+
+
+### 2026-10-25 — Initial requirement audit and Witch potion rule
+
+- **Starting baseline:** `main`, after adding `docs/PROJECT_HANDOFF.md` and `docs/REQUIREMENTS_TRACEABILITY.md`.
+- **Goal / agreed scope:** map prior requirements to repository code/tests; implement the clear first-night Witch potion constraint.
+- **Files changed:** `js/game-engine.js`, `js/app.js`, `tests/game-engine.test.cjs`, `docs/REQUIREMENTS_TRACEABILITY.md`, `docs/PROJECT_HANDOFF.md`, `CHANGELOG.md`.
+- **Implementation completed:** engine validation now rejects the second Witch potion on night one if the first potion was used; app passes night number and potion state; regression cases added for night one and night two.
+- **Requirements still open:** dead-role narration policy conflicts with current tests; Guard-first versus default Awoo night order needs confirmation; test-mode layout needs visual acceptance; multiplayer/WebRTC and multiple death-trigger skills remain incomplete.
+- **Tests run (exact commands):** none in this environment.
+- **Observed results:** GitHub accepted the code and documentation commits. Test execution is unverified.
+- **Manual browser/device checks:** none.
+- **Known risks:** rule change has not yet been executed through `npm run check` or a browser session.
+- **Next action:** run `npm run check`; then resolve the moderator narration and night-order decisions before implementing those changes.

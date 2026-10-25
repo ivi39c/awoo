@@ -880,12 +880,12 @@ input, select, textarea { max-width: 100%; }
   .witch-poison-picker .target-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 }
 
-/* Step 9.1 — On phones, avoid duplicating actions already available in the bottom dock.
-   Keep the test-perspective selector and Settings reachable; desktop keeps the full toolbar. */
+/* Step 9.1 — On phones, keep navigation in the bottom dock and avoid duplicate top actions. */
 @media (max-width: 760px) {
   #spectatorCountBtn,
   #mediaTopBtn,
-  #compendiumTopBtn {
+  #compendiumTopBtn,
+  #settingsTopBtn {
     display: none !important;
   }
   .top-actions {

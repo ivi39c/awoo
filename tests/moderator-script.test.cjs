@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const RoleDB = require('../js/role-database.js');
 const Moderator = require('../js/moderator-script.js');
 
-test('上帝口白依本局角色生成，預設順序為狼人、女巫、預言家、守衛', () => {
+test('明確選擇 Awoo custom 房規時，口白順序為狼人、女巫、預言家、守衛', () => {
   const result = Moderator.buildNightScript(['小狼', '女巫', '預言家', '守衛', '平民'], 1, {
     moderatorNightOrderPreset: 'awoo-custom',
   });

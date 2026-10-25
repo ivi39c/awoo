@@ -72,17 +72,39 @@ test('測試模式入口會建立 12 人 Bot 測試局並啟用全視角選單',
   assert.match(elements.get('testRoleCoverage').textContent, new RegExp(`0 \/ ${roleCount}`));
 });
 
-test('測試模式的立即結算按鈕只在夜晚階段顯示', () => {
+test('測試模式的立即結算只在夜晚顯示，跳過發言只在白天輪流發言顯示', () => {
   const { context, elements } = createContext();
   context.startQuickBotTest();
   vm.runInContext("roomState.gameStarted = true; roomState.currentPhase = 'NIGHT';", context);
   context.updateTestModeUI();
   assert.equal(elements.get('testModeResolveNightButton').hidden, false);
-  assert.equal(elements.get('testModeSkipSpeechButton').hidden, false);
+  assert.equal(elements.get('testModeSkipSpeechButton').hidden, true, '夜晚不應顯示跳過白天發言按鈕');
   vm.runInContext("roomState.currentPhase = 'DAY_SPEECH';", context);
   context.updateTestModeUI();
   assert.equal(elements.get('testModeResolveNightButton').hidden, true);
-  assert.equal(elements.get('testModeSkipSpeechButton').hidden, true);
+  assert.equal(elements.get('testModeSkipSpeechButton').hidden, false, '輪流發言時應顯示跳過發言按鈕');
+  vm.runInContext("roomState.currentPhase = 'VOTING';", context);
+  context.updateTestModeUI();
+  assert.equal(elements.get('testModeSkipSpeechButton').hidden, true, '進入公投後應隱藏跳過發言按鈕');
+});
+
+test('測試模式點擊跳過發言會略過整個逐玩家發言階段並直接進入公投', () => {
+  const { context } = createContext();
+  context.startQuickBotTest();
+  vm.runInContext(`
+    roomState.gameStarted = true;
+    roomState.currentPhase = 'DAY_SPEECH';
+    roomState.speechQueue = [1, 2, 3, 4];
+    roomState.currentQueueIndex = 1;
+    roomState.activeSpeakerId = 2;
+    roomState.timerInterval = 123;
+  `, context);
+  assert.equal(context.skipDaySpeech(), true);
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'VOTING');
+  assert.equal(vm.runInContext('roomState.activeSpeakerId', context), null);
+  assert.equal(vm.runInContext('roomState.currentQueueIndex', context), 4);
+  assert.equal(vm.runInContext('roomState.votingTimer', context), 15);
+  assert.equal(vm.runInContext('roomState.timerInterval', context), 123, '公投流程會建立自己的倒數計時器');
 });
 
 test('正式模式禁止切換視角，測試模式允許切換有效座位', () => {

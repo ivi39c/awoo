@@ -127,3 +127,9 @@
 
 - In progress: disabled/greyed Witch antidote state, hide wolf target after antidote use, global night-death/day-execution history, and per-role skill-target history.
 - Browser/mobile visual acceptance remains pending.
+
+
+## Follow-up batch — role perspective, narration, and compact history
+
+- Implementation submitted for review; do not mark as accepted until CI passes and browser/mobile acceptance is performed.
+- Main risks to verify: role-specific history privacy, narration step gating, and target-grid disabled states.

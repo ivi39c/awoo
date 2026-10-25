@@ -162,3 +162,16 @@ Do not mark a requirement “implemented” based only on role metadata, narrati
 - Global history records resolved night deaths and daytime public-vote executions; private skill targets are excluded from the global log.
 - Role panels show each role's own recorded skill targets for Wolf attack, Witch antidote/poison, Seer check, and Guard protection.
 - Automated checks and browser acceptance must pass before marking these items complete.
+
+
+## Follow-up UI and narration fixes (pending acceptance)
+
+- Refresh the perspective selector immediately after role dealing and normalize role labels.
+- Show living wolf teammates in the wolf control panel.
+- Reveal the wolf target only during the Witch's antidote prompt, not earlier in the night.
+- Add the requested Hunter wake/hand-signal narration cues.
+- Collapse the global action history into a single-line toggle under the God narration panel; expand on click.
+- Add a test-mode skip-narration control beside immediate night settlement.
+- Reuse a shared numbered target-grid renderer while applying per-role eligibility/disabled rules.
+- Include Witch poison deaths in the dawn announcement and show both potion targets in the Witch's role panel across phases.
+- Automated CI and browser/mobile acceptance remain required.

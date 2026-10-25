@@ -156,7 +156,7 @@ test('語音合成的 onend 回呼完成前，下一句保持鎖定；唸完後�
   latest.onend();
   assert.equal(vm.runInContext('roomState.moderatorSpeechDone', context), true);
   assert.equal(elements.get('godFlowNextButton').disabled, true, '狼人行動尚未完成，口白唸完仍不能直接推進');
-  assert.doesNotMatch(controls.innerHTML, /class=\"target-btn\" disabled onclick=\"wolfKillTarget/, '口白結束後應啟用狼人操作按鈕');
+  assert.match(controls.innerHTML, /class=\"target-btn\" onclick=\"wolfKillTarget\(2\)/, '口白結束後應啟用可攻擊的存活目標');
   assert.equal(context.wolfKillTarget(2), true);
   assert.equal(elements.get('godFlowNextButton').disabled, false);
 });
@@ -223,5 +223,5 @@ test('角色操作控制項會在輪到該角色且口白播放完成前保持�
   assert.match(controls.innerHTML, /class=\"target-btn\" disabled onclick=\"wolfKillTarget/);
   vm.runInContext('roomState.moderatorSpeechDone = true', context);
   context.renderNightPanel(vm.runInContext('roomState.players[0]', context), controls);
-  assert.doesNotMatch(controls.innerHTML, /class=\"target-btn\" disabled onclick=\"wolfKillTarget/);
+  assert.match(controls.innerHTML, /class=\"target-btn\" onclick=\"wolfKillTarget\(2\)/, '口白完成後可選擇合法目標；隊友仍反灰');
 });

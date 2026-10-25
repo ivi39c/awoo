@@ -1,9 +1,7 @@
 /*
  * Awoo moderator / God voice script builder.
  * Generates the night-call sequence from the roles actually configured for the current game.
- * Note: common Werewolf variants use different action orders. The default follows the
- * order requested for Awoo (wolves -> witch -> seer -> guard); `classic` can be selected
- * in the ruleset for guard -> wolves -> witch -> seer.
+ * The Awoo standard order is fixed: Guard -> wolves -> Witch -> Seer.
  */
 (function (root, factory) {
   const roleDb = (typeof module === 'object' && module.exports)
@@ -352,7 +350,7 @@
     const names = [...new Set((Array.isArray(rolesInGame) ? rolesInGame : []).map(canonicalRole).filter(Boolean))];
     const nameSet = new Set(names);
     const firstNight = Number(day) === 1;
-    const orderPreset = rules.moderatorNightOrderPreset === 'awoo-custom' ? 'awoo-custom' : 'classic';
+    const orderPreset = 'classic';
     const steps = [line('全體', '天黑請閉眼。', '等待所有玩家準備好，再逐句推進主持流程。')];
     const configuredRoles = new Set(['狼人']);
     const notices = [];

@@ -154,6 +154,9 @@
       case 'witchSave': {
         if (!isRole(actor, ROLE_CANONICAL.witch)) return { valid: false, reason: '只有女巫可以使用解藥。' };
         if (state.witchElixirUsed) return { valid: false, reason: '解藥已經使用過了。' };
+        if (Number(state.currentDay) === 1 && state.witchPoisonUsed) {
+          return { valid: false, reason: '首夜不能同時使用解藥與毒藥。' };
+        }
         const victim = isAlivePlayer(roster, state.nightVictim);
         if (!victim) return { valid: false, reason: '目前沒有有效的狼人襲擊目標。' };
         return { valid: true, actor, target: victim };
@@ -161,6 +164,9 @@
       case 'witchPoison':
         if (!isRole(actor, ROLE_CANONICAL.witch)) return { valid: false, reason: '只有女巫可以使用毒藥。' };
         if (state.witchPoisonUsed) return { valid: false, reason: '毒藥已經使用過了。' };
+        if (Number(state.currentDay) === 1 && state.witchElixirUsed) {
+          return { valid: false, reason: '首夜不能同時使用解藥與毒藥。' };
+        }
         return { valid: true, actor, target };
       default:
         return { valid: false, reason: `未知的夜晚行動：${String(action)}。` };

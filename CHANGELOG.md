@@ -1,3 +1,11 @@
+## 2026-10-25 — Role-target grid and history acceptance coverage
+
+- Corrected an extra closing `</div>` in the Seer panel markup so the result element is nested cleanly after the shared target grid.
+- Added automated checks that Wolf teammates are listed with eliminated status, Seer self-selection and dead targets are disabled, Guard's previous-night target is disabled, and another valid living target remains selectable.
+- Added interaction checks for the global history's collapsed default and expand/collapse behavior, plus a static layout check confirming it sits directly under God narration and begins as a one-line summary.
+- Updated the current README test baseline.
+- GitHub Actions `Awoo checks` passed on commit `3316bca021c873fb68e865c6910c4100c861e045`: syntax checks passed; **104/104 automated tests passed**. Browser/mobile acceptance remains pending.
+
 ## 2026-10-25 — Night target privacy and narration regression coverage
 
 - Removed the wolf-kill target number from the generic action alert; the number remains in the wolf's private panel/history and is shown to the Witch only after the antidote prompt has finished.

@@ -133,3 +133,9 @@
 
 - Implementation submitted for review; do not mark as accepted until CI passes and browser/mobile acceptance is performed.
 - Main risks to verify: role-specific history privacy, narration step gating, and target-grid disabled states.
+
+
+## Follow-up acceptance — night role display and poison announcement
+
+- Pending CI: perspective selector refresh after dealing/night initialization, shared numbered target controls, and consistent cause-aware night-death summaries including the immediate-victory path.
+- Browser/mobile acceptance remains pending.

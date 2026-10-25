@@ -128,7 +128,7 @@
     return {
       valid: true,
       actor,
-      death: { id: Number(actor.id), reason: 'WOLF_SELF_DESTRUCT' },
+      death: { id: Number(actor.id), reason: actor.deathReason },
       skippedDay: true,
       nextPhase: 'NIGHT',
       requiresTargetSelection: validation.whiteWolfKing,

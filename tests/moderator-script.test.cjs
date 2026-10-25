@@ -66,6 +66,10 @@ test('預女獵守板型包含獵人睜眼、開槍手勢與閉眼口白', () =>
   assert.match(texts, /獵人請睜眼/);
   assert.match(texts, /今晚開槍請比手勢/);
   assert.match(texts, /獵人請閉眼/);
+  const hunterSteps = result.steps.filter(step => step.role === '獵人');
+  assert.equal(hunterSteps.length, 3, '獵人應有睜眼、手勢提示、閉眼三句口白');
+  assert.ok(hunterSteps.every(step => !step.actionKey),
+    '手勢提示是主持口白，不得被誤判成夜間死亡技能行動或鎖住流程');
 });
 
 

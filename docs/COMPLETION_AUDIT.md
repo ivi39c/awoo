@@ -139,3 +139,43 @@
 
 - Pending CI: perspective selector refresh after dealing/night initialization, shared numbered target controls, and consistent cause-aware night-death summaries including the immediate-victory path.
 - Browser/mobile acceptance remains pending.
+
+
+## PR #27 CI repair — perspective selector regression test (2026-10-25)
+
+- Root cause of the failing GitHub Actions run: `tests/test-mode.test.cjs` destructured only `context` from `createContext()`, then asserted against `elements`; this raised `ReferenceError: elements is not defined` at the perspective-switch test.
+- Fixed the test setup to capture both `context` and `elements`. No game runtime code was changed for this CI-only failure.
+- GitHub Actions `Awoo checks` passed for commit `487d7609709c051a1141b73c53a0167451d6eeb1`.
+- This confirms syntax checks and the automated Node test suite passed in CI. It does not replace browser/mobile acceptance for the ten reported UI/game-flow issues.
+
+
+## PR #27 follow-up — Witch narration regression test (2026-10-25)
+
+- Added a regression test proving that when both Witch potions have already been used, the moderator still retains and advances through the antidote prompt, poison prompt, and Witch close-eyes line.
+- GitHub Actions `Awoo checks` passed for commit `1a771aa993192c94080d746b80fa78a9f2fd4b67`: syntax checks passed; Node test suite reported 96 tests passed, 0 failed.
+- Existing source/test evidence also covers the perspective selector labels, wolf teammate seat display, shared target-grid behavior, Hunter narration cues, Witch poison settlement and dawn/victory death announcements, private Witch action records, and the collapsible global action history.
+- Acceptance boundary: these are source-level and automated-test results. A real-browser run across role changes, full night narration, privacy visibility, and mobile layout is still required before calling all ten reported issues fully accepted.
+
+
+## PR #27 follow-up — private target visibility and narration safeguards (2026-10-25)
+
+- Removed target seat numbers from generic alerts for Wolf attacks, Witch antidote use, and Guard protection. Those private targets remain in the actor's private skill history/panel.
+- Removed the Witch poison target number from the global test-mode banner. The Witch's target remains available through the Witch panel/day summary and private skill history; the public global history excludes private entries.
+- Added a regression test that proves the Wolf target is absent from the generic alert and global action history, while the Wolf's own panel/private history retains it.
+- Added a timing regression test that proves the Wolf target is not shown in the Witch panel before the Witch antidote prompt has finished speaking.
+- Added a Witch privacy regression test proving that the poison target is not present in the global banner or public history, but is visible to the Witch in the daytime summary.
+- Added tests confirming that test-mode speech skip cannot advance past an uncompleted role action, the skip/resolve controls are hidden outside Night, and the Hunter wake/hand-signal/close-eyes cues do not create a night action gate.
+- GitHub Actions `Awoo checks` passed on commit `7b75b3a9fbc1bbace5405567b48328c21bf03253`: syntax checks passed; **100 tests passed, 0 failed**.
+- **Acceptance boundary:** privacy and timing behavior now have source-level regression coverage, but browser/mobile acceptance is still pending. In this local prototype, perspective switching is a test tool, not a server-enforced multiplayer privacy boundary.
+
+
+
+## PR #27 follow-up — target eligibility, teammate list, and history interaction (2026-10-25)
+
+- Added UI-level regression coverage for the Wolf teammate list, including eliminated teammates; Seer self-target/dead-target disabling; Guard repeat-target/dead-target disabling; and a remaining legal target.
+- Added interaction coverage for the global action-history toggle (collapsed by default, expands and collapses correctly) and static verification that it sits immediately below the God narration with a single-line summary.
+- Corrected a redundant closing `</div>` in the Seer result-panel markup.
+- Updated `README.md` to reflect the current automated test baseline.
+- GitHub Actions `Awoo checks` passed on commit `3316bca021c873fb68e865c6910c4100c861e045`: syntax checks passed; **104 tests passed, 0 failed**.
+- Browser/mobile acceptance is still pending. The repository remains a local prototype; this work does not create server-enforced private role views or real multiplayer synchronization.
+

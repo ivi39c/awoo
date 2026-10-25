@@ -1,3 +1,20 @@
+## 2026-10-25 — Role-target grid and history acceptance coverage
+
+- Corrected an extra closing `</div>` in the Seer panel markup so the result element is nested cleanly after the shared target grid.
+- Added automated checks that Wolf teammates are listed with eliminated status, Seer self-selection and dead targets are disabled, Guard's previous-night target is disabled, and another valid living target remains selectable.
+- Added interaction checks for the global history's collapsed default and expand/collapse behavior, plus a static layout check confirming it sits directly under God narration and begins as a one-line summary.
+- Updated the current README test baseline.
+- GitHub Actions `Awoo checks` passed on commit `3316bca021c873fb68e865c6910c4100c861e045`: syntax checks passed; **104/104 automated tests passed**. Browser/mobile acceptance remains pending.
+
+## 2026-10-25 — Night target privacy and narration regression coverage
+
+- Removed the wolf-kill target number from the generic action alert; the number remains in the wolf's private panel/history and is shown to the Witch only after the antidote prompt has finished.
+- Removed the Witch poison target number from the global test-mode banner and kept private Witch target details in the Witch panel/day summary and private action history.
+- Changed the antidote and Guard confirmation alerts to avoid placing their private target numbers in generic pop-up notifications.
+- Added regression tests for target privacy, the Witch prompt visibility gate, Witch narration after both potions are spent, the test-mode speech-skip button's phase visibility, and the rule that skipping speech cannot bypass a pending role action.
+- Asserted that the Hunter wake / hand-signal / close-eyes sequence is narration-only and does not create an actionable night-skill step.
+- GitHub Actions `Awoo checks` passed on commit `7b75b3a9fbc1bbace5405567b48328c21bf03253`: syntax checks passed; **100/100 automated tests passed**. Browser/mobile acceptance is still outstanding.
+
 # Changelog
 
 ## 2026-10-25 — Requirement audit and Witch potion rule

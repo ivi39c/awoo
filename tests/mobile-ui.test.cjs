@@ -48,3 +48,18 @@ test('mobile top toolbar hides actions duplicated in the bottom dock while prese
   assert.match(css, /\.top-actions #perspectiveSelect\s*\{[^}]*max-width:/s);
   assert.match(css, /@media \(min-width:\s*761px\)/);
 });
+
+
+test('global action history sits immediately below the God narration and is collapsed by default', () => {
+  const narration = html.indexOf('<section id="godFlowPanel"');
+  const history = html.indexOf('<section id="gameHistoryPanel"');
+  const main = html.indexOf('<main class="main-layout" id="gameMain"');
+  assert.ok(narration >= 0 && history > narration && main > history,
+    '行動紀錄應緊接在上帝口白下方、座位桌面上方');
+  assert.match(html, /id="gameHistoryToggle"[^>]*aria-expanded="false"/);
+  assert.match(html, /<ol id="gameHistoryLog" hidden>/,
+    '明細預設收合，只呈現單行摘要');
+  assert.match(css, /\.game-history-summary #gameHistorySummaryText\s*\{[^}]*overflow:\s*hidden/s);
+  assert.match(css, /\.game-history-summary #gameHistorySummaryText\s*\{[^}]*text-overflow:\s*ellipsis/s);
+  assert.match(css, /\.game-history-summary #gameHistorySummaryText\s*\{[^}]*white-space:\s*nowrap/s);
+});

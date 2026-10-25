@@ -65,6 +65,7 @@ test('測試模式入口會建立 12 人 Bot 測試局並啟用全視角選單',
   assert.equal(elements.get('compendiumTopBtn').style.display, 'none');
   assert.equal(elements.get('settingsTopBtn').style.display, 'none');
   assert.equal(elements.get('testModeResolveNightButton').hidden, true);
+  assert.equal(elements.get('testModeSkipSpeechButton').hidden, true);
   assert.match(elements.get('perspectiveSelect').children[0].textContent, /^視角：1號（.+）$/);
   assert.doesNotMatch(elements.get('perspectiveSelect').children[0].textContent, /測試者|Bot/);
   const roleCount = vm.runInContext('ROLE_DATABASE.length', context);
@@ -77,19 +78,22 @@ test('測試模式的立即結算按鈕只在夜晚階段顯示', () => {
   vm.runInContext("roomState.gameStarted = true; roomState.currentPhase = 'NIGHT';", context);
   context.updateTestModeUI();
   assert.equal(elements.get('testModeResolveNightButton').hidden, false);
+  assert.equal(elements.get('testModeSkipSpeechButton').hidden, false);
   vm.runInContext("roomState.currentPhase = 'DAY_SPEECH';", context);
   context.updateTestModeUI();
   assert.equal(elements.get('testModeResolveNightButton').hidden, true);
+  assert.equal(elements.get('testModeSkipSpeechButton').hidden, true);
 });
 
 test('正式模式禁止切換視角，測試模式允許切換有效座位', () => {
-  const { context } = createContext();
+  const { context, elements } = createContext();
   vm.runInContext(`roomState.players = [{id:1,name:'A',role:'小狼',isAlive:true},{id:2,name:'B',role:'平民',isAlive:true}]; roomState.mySeatId=1; roomState.currentPerspective=1;`, context);
   assert.equal(context.switchPerspective(2), false);
   assert.equal(vm.runInContext('roomState.currentPerspective', context), 1);
   vm.runInContext('roomState.isTestMode = true', context);
   assert.equal(context.switchPerspective(2), true);
   assert.equal(vm.runInContext('roomState.currentPerspective', context), 2);
+  assert.equal(elements.get('perspectiveSelect').children[1].textContent, '視角：2號（平民）');
   assert.equal(context.switchPerspective(999), false);
 });
 

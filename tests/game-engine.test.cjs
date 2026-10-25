@@ -327,5 +327,7 @@ test('死亡技能只可由符合資格的出局角色對存活目標發動，�
   assert.equal(players[2].isAlive, false);
   assert.equal(players[2].deathReason, 'HUNTER_SHOT');
   assert.equal(Engine.resolveDeathSkill({ players, actorId: 1, targetId: 3 }).valid, false, '不能重複對已出局目標開槍');
+  assert.equal(Engine.resolveDeathSkill({ players, actorId: 1, targetId: 2 }).valid, false, '同一角色不能改選另一個存活目標再次開槍');
+  assert.equal(players[0].deathSkillUsed, true, '成功發動後必須標記死亡技能已使用');
   assert.equal(Engine.resolveDeathSkill({ players, actorId: 2, targetId: 3 }).valid, false, '存活角色不能使用死亡技能');
 });

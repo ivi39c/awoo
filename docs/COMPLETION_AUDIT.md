@@ -147,3 +147,11 @@
 - Fixed the test setup to capture both `context` and `elements`. No game runtime code was changed for this CI-only failure.
 - GitHub Actions `Awoo checks` passed for commit `487d7609709c051a1141b73c53a0167451d6eeb1`.
 - This confirms syntax checks and the automated Node test suite passed in CI. It does not replace browser/mobile acceptance for the ten reported UI/game-flow issues.
+
+
+## PR #27 follow-up — Witch narration regression test (2026-10-25)
+
+- Added a regression test proving that when both Witch potions have already been used, the moderator still retains and advances through the antidote prompt, poison prompt, and Witch close-eyes line.
+- GitHub Actions `Awoo checks` passed for commit `1a771aa993192c94080d746b80fa78a9f2fd4b67`: syntax checks passed; Node test suite reported 96 tests passed, 0 failed.
+- Existing source/test evidence also covers the perspective selector labels, wolf teammate seat display, shared target-grid behavior, Hunter narration cues, Witch poison settlement and dawn/victory death announcements, private Witch action records, and the collapsible global action history.
+- Acceptance boundary: these are source-level and automated-test results. A real-browser run across role changes, full night narration, privacy visibility, and mobile layout is still required before calling all ten reported issues fully accepted.

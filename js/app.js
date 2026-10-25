@@ -1317,6 +1317,14 @@ function showBgmPlayButton() {
       roomState.hasSheriffInGame = false;
       roomState.sheriffId = null;
       roomState.sheriffCandidates = [];
+      roomState.sheriffVotes = {};
+      roomState.sheriffElectionRound = 0;
+      roomState.deathSkillQueue = [];
+      roomState.deathSkillReturnPhase = null;
+      roomState.deathSkillExecutedVictim = null;
+      roomState.deathSkillDeaths = [];
+      roomState.sheriffBadgeReturnPhase = null;
+      roomState.sheriffBadgeExecutedVictim = null;
       roomState.guardLastTarget = null;
       roomState.witchElixirUsed = false;
       roomState.witchPoisonUsed = false;

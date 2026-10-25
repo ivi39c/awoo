@@ -60,11 +60,12 @@ test('未實作的特殊角色選擇口白會標記手動確認，而不是允�
 });
 
 
-test('常見房規中的獵人屬於死亡觸發技能，不應每晚被上帝叫醒', () => {
+test('預女獵守板型包含獵人睜眼、開槍手勢與閉眼口白', () => {
   const result = Moderator.buildNightScript(['小狼', '女巫', '預言家', '守衛', '獵人'], 2);
   const texts = result.steps.map(step => step.text).join('\n');
-  assert.doesNotMatch(texts, /獵人請睜眼/);
-  assert.doesNotMatch(texts, /獵人，請確認你的開槍狀態/);
+  assert.match(texts, /獵人請睜眼/);
+  assert.match(texts, /今晚開槍請比手勢/);
+  assert.match(texts, /獵人請閉眼/);
 });
 
 

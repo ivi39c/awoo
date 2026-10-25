@@ -737,6 +737,8 @@ function showBgmPlayButton() {
       const nextId = Number(id);
       if (!roomState.players.some(player => player.id === nextId)) return false;
       roomState.currentPerspective = nextId;
+      // Rebuild the selector from the current dealt roles so its label and panel perspective stay aligned.
+      updatePerspectiveSelect();
       updateControlPanel();
       renderTable();
       return true;

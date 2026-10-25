@@ -81,3 +81,13 @@
 - Hunter/Wolf King base death-trigger skills are integrated in a dedicated `DEATH_SKILL` phase. Hunter shot is disabled by poison; Wolf King shot triggers on public execution.
 - Current GitHub Actions validation passed after the death-skill phase transition correction. Browser and mobile acceptance are still pending.
 - Remaining: sheriff badge transfer/destruction, White Wolf King skill, broader role trigger chains, complete win-condition acceptance, and real multiplayer/WebRTC.
+
+
+## Step 10 update — 2026-10-25
+
+- Fixed the only night order to Guard → wolves → Witch → Seer; alternate Awoo-custom order removed.
+- Sheriff election now supports candidate withdrawal, multi-candidate voting, and one runoff for tied leaders. A second tie or no valid votes results in no sheriff.
+- Sheriff death now opens a badge decision: transfer to a living player or destroy the badge.
+- Hunter and Wolf King base death-trigger skills are integrated in a dedicated `DEATH_SKILL` phase. Hunter shot is disabled by poison; Wolf King shot triggers on public execution. Death skills resolve before win checks/day announcements/last words.
+- GitHub Actions syntax checks and unit tests passed on PRs #5–#8. Browser and mobile acceptance remain pending.
+- Remaining: White Wolf King skill, broader role trigger chains, complete win-condition scenario acceptance, mobile settings/media placement, and real multiplayer/WebRTC.

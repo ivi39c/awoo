@@ -1067,7 +1067,12 @@ function showBgmPlayButton() {
         actorId: roomState.currentPerspective,
         action: 'witchPoison',
         targetId,
-        state: { phase: roomState.currentPhase, witchPoisonUsed: roomState.witchPoisonUsed },
+        state: {
+          phase: roomState.currentPhase,
+          currentDay: gameState.currentDay,
+          witchPoisonUsed: roomState.witchPoisonUsed,
+          witchElixirUsed: roomState.witchElixirUsed,
+        },
       });
       if (!validation.valid) {
         alert(validation.reason || '請先選擇一位存活玩家。');

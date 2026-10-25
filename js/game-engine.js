@@ -102,13 +102,20 @@
     }
     const actor = isAlivePlayer(roster, actorId);
     if (!actor) return { valid: false, reason: '自爆玩家不存在或已出局。' };
+    const role = normalizeRoleName(actor.role);
+    // White Wolf King has a distinct daytime self-destruct: only during day speech,
+    // and the death must be followed by choosing one living player to take down.
+    if (role === '白狼王') {
+      if (phase !== 'DAY_SPEECH') return { valid: false, reason: '白狼王只能在白天發言階段自爆帶走一名玩家。' };
+      return { valid: true, actor, phase, rules: settings, whiteWolfKing: true };
+    }
     const configuredRoles = Array.isArray(settings.wolfSelfDestructRoles)
       ? settings.wolfSelfDestructRoles.map(normalizeRoleName)
       : [];
-    if (getTeam(actor.role) !== 'wolf' || !configuredRoles.includes(normalizeRoleName(actor.role))) {
+    if (getTeam(actor.role) !== 'wolf' || !configuredRoles.includes(role)) {
       return { valid: false, reason: '此角色沒有小狼自爆技能。' };
     }
-    return { valid: true, actor, phase, rules: settings };
+    return { valid: true, actor, phase, rules: settings, whiteWolfKing: false };
   }
 
   function resolveWolfSelfDestruct({ players, actorId, phase, rules = {} }) {
@@ -116,14 +123,15 @@
     if (!validation.valid) return validation;
     const actor = validation.actor;
     actor.isAlive = false;
-    actor.deathReason = 'WOLF_SELF_DESTRUCT';
+    actor.deathReason = validation.whiteWolfKing ? 'WHITE_WOLF_KING_SELF_DESTRUCT' : 'WOLF_SELF_DESTRUCT';
     actor.isProtected = false;
     return {
       valid: true,
       actor,
-      death: { id: Number(actor.id), reason: 'WOLF_SELF_DESTRUCT' },
+      death: { id: Number(actor.id), reason: actor.deathReason },
       skippedDay: true,
       nextPhase: 'NIGHT',
+      requiresTargetSelection: validation.whiteWolfKing,
     };
   }
 
@@ -264,6 +272,9 @@
     if (role === '狼王' && reason === 'EXECUTED_BY_VOTE') {
       return { type: 'wolf-king-shot', role: '狼王', actorId: Number(player.id) };
     }
+    if (role === '白狼王' && reason === 'WHITE_WOLF_KING_SELF_DESTRUCT') {
+      return { type: 'white-wolf-king-shot', role: '白狼王', actorId: Number(player.id) };
+    }
     return null;
   }
 
@@ -277,7 +288,7 @@
     if (!target) return { valid: false, reason: '請選擇仍存活的目標。' };
     if (Number(target.id) === Number(actor.id)) return { valid: false, reason: '不能選擇自己作為死亡技能目標。' };
     target.isAlive = false;
-    target.deathReason = skill.type === 'hunter-shot' ? 'HUNTER_SHOT' : 'WOLF_KING_SHOT';
+    target.deathReason = skill.type === 'hunter-shot' ? 'HUNTER_SHOT' : skill.type === 'white-wolf-king-shot' ? 'WHITE_WOLF_KING_SHOT' : 'WOLF_KING_SHOT';
     return { valid: true, skill, actor, target, death: { id: Number(target.id), reason: target.deathReason } };
   }
 

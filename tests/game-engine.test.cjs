@@ -140,6 +140,25 @@ test('女巫首夜自救依房規開關驗證，其他夜晚不受此開關影�
   }).valid, true);
 });
 
+test('白狼王只能在白天發言階段自爆，並取得帶走一人的死亡技能', () => {
+  const players = [player(1, '白狼王'), player(2, '平民'), player(3, '獵人')];
+  const rules = require('../js/ruleset.js').resolveRuleset();
+  const valid = Engine.resolveWolfSelfDestruct({ players, actorId: 1, phase: 'DAY_SPEECH', rules });
+  assert.equal(valid.valid, true);
+  assert.equal(valid.requiresTargetSelection, true);
+  assert.equal(valid.death.reason, 'WHITE_WOLF_KING_SELF_DESTRUCT');
+  assert.equal(Engine.getDeathSkill(valid.actor, valid.death.reason).type, 'white-wolf-king-shot');
+  assert.equal(Engine.validateWolfSelfDestruct({ players: [player(1, '白狼王')], actorId: 1, phase: 'VOTING', rules }).valid, false);
+});
+
+test('白狼王帶走目標後正確標記死亡原因', () => {
+  const players = [player(1, '白狼王', { isAlive: false, deathReason: 'WHITE_WOLF_KING_SELF_DESTRUCT' }), player(2, '平民')];
+  const result = Engine.resolveDeathSkill({ players, actorId: 1, targetId: 2, deathReason: 'WHITE_WOLF_KING_SELF_DESTRUCT' });
+  assert.equal(result.valid, true);
+  assert.equal(result.target.isAlive, false);
+  assert.equal(result.death.reason, 'WHITE_WOLF_KING_SHOT');
+});
+
 test('勝負判定不會因為沒有狼人或沒有某一好人分組而誤判', () => {
   assert.equal(Engine.checkWinCondition([player(1, '平民'), player(2, '預言家')]), null);
   assert.equal(Engine.checkWinCondition([
@@ -268,8 +287,8 @@ test('小狼自爆可以中斷白天公投，但不能在夜晚發動', () => {
   assert.equal(players[0].isAlive, true, '非法階段不能改變存活狀態');
 });
 
-test('自爆限制只允許房規指定的基本小狼，其他角色不可借用此技能', () => {
-  for (const role of ['狼王', '白狼王', '平民']) {
+test('基本小狼自爆限制只允許房規指定角色，狼王與平民不可借用此技能', () => {
+  for (const role of ['狼王', '平民']) {
     const players = [player(1, role), player(2, '小狼')];
     const result = Engine.resolveWolfSelfDestruct({ players, actorId: 1, phase: 'DAY_SPEECH' });
     assert.equal(result.valid, false, `${role} 不應直接使用小狼自爆技能`);

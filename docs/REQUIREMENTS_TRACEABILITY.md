@@ -52,7 +52,7 @@ Repository-documented baseline: package version `0.9.3`; README says Step 9.3 an
 
 ### A. Dead-role narration currently contradicts the requirement
 
-Current `refreshModeratorScriptForCurrentNight()` in `js/app.js` filters roles by `player.isAlive` before building the moderator script. A test in `tests/moderator-action-gating.test.cjs` explicitly expects the dead Seer's wake-up line to be absent. This conflicts with the user's stated requirement that a configured role's narration line should still be read even if that role has been eliminated.
+`refreshModeratorScriptForCurrentNight()` in `js/app.js` builds the moderator script from all dealt roles. Eliminated roles retain a narration cue, but their action key is removed so they cannot act. `tests/moderator-action-gating.test.cjs` covers this behavior.
 
 **Recommended resolution:** decide the desired rule once, then change both implementation and test. If the requirement is to retain the line, do not simply call a dead role's action panel; separate “roles configured for narration” from “living actors allowed to submit an action.” Dead actors must never be allowed to act.
 

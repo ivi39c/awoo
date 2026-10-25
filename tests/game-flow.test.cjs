@@ -19,6 +19,12 @@ test('phase engine accepts valid transitions and rejects impossible transitions'
   assert.equal(Flow.transitionPhase(state, 'NIGHT').ok, false, 'game over is terminal');
 });
 
+test('day speech can enter death-skill resolution for White Wolf King self-destruct', () => {
+  const state = { currentPhase: 'DAY_SPEECH' };
+  assert.equal(Flow.transitionPhase(state, 'DEATH_SKILL').ok, true);
+  assert.equal(state.currentPhase, 'DEATH_SKILL');
+});
+
 test('speech queue wraps seats in either direction and skips dead/missing players', () => {
   const players = [player(1), player(2, false), player(3), player(4), player(5, false)];
   assert.deepEqual(Flow.buildSpeechQueue(players, 5, 3, true), [3, 4, 1]);

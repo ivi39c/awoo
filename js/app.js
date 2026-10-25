@@ -831,11 +831,14 @@ function showBgmPlayButton() {
       wrapper.className = 'wolf-self-destruct-action';
       const note = document.createElement('p');
       note.className = 'wolf-self-destruct-note';
-      note.textContent = '小狼自爆會立即中止白天、公投與遺言流程，直接進入下一夜。';
+      const isWhiteWolfKing = getRoleDefinition(player.role)?.name === '白狼王';
+      note.textContent = isWhiteWolfKing
+        ? '白狼王只能在白天發言階段自爆，並選擇一名存活玩家一同出局。'
+        : '小狼自爆會立即中止白天、公投與遺言流程，直接進入下一夜。';
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'btn-gothic btn-crimson';
-      button.textContent = '💥 小狼自爆（立即入夜）';
+      button.textContent = isWhiteWolfKing ? '💥 白狼王自爆並帶走一人' : '💥 小狼自爆（立即入夜）';
       button.addEventListener('click', () => wolfSelfDestruct(player.id));
       wrapper.append(note, button);
       container.appendChild(wrapper);
@@ -877,6 +880,9 @@ function showBgmPlayButton() {
       }
 
       renderTable();
+      if (result.requiresTargetSelection) {
+        if (startDeathSkillResolution([result.death], 'WHITE_WOLF_KING_SELF_DESTRUCT', null)) return;
+      }
       const winner = roomState.ruleset.wolfSelfDestructEnabled ? checkWinCondition() : null;
       if (winner) {
         finishGame(winner);
@@ -2120,7 +2126,12 @@ function showBgmPlayButton() {
         return true;
       }
       if (startSheriffBadgeDecision(returnPhase, executedVictimId)) return true;
-      if (returnPhase === 'LAST_WORDS') {
+      if (returnPhase === 'WHITE_WOLF_KING_SELF_DESTRUCT') {
+        startNextNight({
+          announcement: '白狼王自爆並帶走一名玩家，白天流程立即中止。',
+          voiceMessage: '白狼王自爆，並帶走一名玩家。天黑請閉眼。',
+        });
+      } else if (returnPhase === 'LAST_WORDS') {
         startLastWordsPhase(executedVictimId);
       } else {
         if (roomState.sheriffMode === 'enabled' && gameState.currentDay === 1 && !roomState.hasSheriffInGame) {

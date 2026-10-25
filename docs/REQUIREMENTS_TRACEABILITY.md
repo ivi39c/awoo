@@ -154,3 +154,15 @@ Do not mark a requirement “implemented” based only on role metadata, narrati
 - Removed long test-mode instructions from the main banner on test-mode entry and reset; the concise title remains.
 - Added regression coverage to prevent the instructional copy from returning.
 - Browser-level layout acceptance remains pending.
+
+## Follow-up — current merged status reconciliation (2026-10-25)
+
+This entry supersedes earlier “remaining” lists above where they conflict with later merged pull requests; earlier entries remain as audit history.
+
+- PR #18: White Wolf King self-destruct followed by sheriff badge transfer/destruction now continues into the correct night flow rather than a generic daytime-death announcement.
+- PR #19: formal role dealing resets `deathSkillUsed`; regression coverage checks the reset block.
+- PR #21: engine regression covers Hunter skill eliminating the final wolf before the win check, and confirms Hunter-shot deaths do not recursively trigger another Hunter skill.
+- PR #22: test-mode entry/reset clears instructional subtitle copy while retaining the concise title.
+- GitHub Actions `npm run check` passed for these merged changes. Do not interpret that as browser/mobile acceptance.
+- Test-mode selector labels are generated as `視角：座位號碼（身份）`; the test currently verifies the format on quick-test initialization. A separate real-browser check after formal role dealing is still outstanding.
+- Browser/mobile layout, full chained death-skill UI transitions, complete role skill coverage, underspecified third-party win conditions, multiplayer backend, and remote WebRTC/audio privacy remain outstanding.

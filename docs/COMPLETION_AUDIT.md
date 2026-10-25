@@ -121,3 +121,14 @@
 - Entering or resetting the local Bot test mode now keeps only the concise test-mode title and clears the two instructional subtitle lines.
 - Added regression coverage for both entry/reset copy and the concise banner call.
 - Automated validation pending; visual browser acceptance remains pending.
+
+## Step 10 follow-up — current merged status reconciliation (2026-10-25)
+
+This entry supersedes older “remaining” lists above where they conflict with later merged pull requests. Earlier entries are retained as historical notes.
+
+- PR #18 fixed the White Wolf King sheriff-badge interaction: after White Wolf King self-destructs, a badge transfer/destruction decision no longer falls through to the generic daytime-death announcement.
+- PR #19 resets `deathSkillUsed` on formal role dealing so a reused player object does not carry a previous game's one-use lock.
+- PR #21 added engine-level regression coverage for a Hunter shot that eliminates the final wolf and for preventing recursive Hunter-shot activation.
+- PR #22 removed instructional subtitle copy from the test-mode banner on entry/reset; the concise `【測試模式】` title remains.
+- These PRs passed GitHub Actions `npm run check` before merge. This confirms automated syntax/unit-test coverage only.
+- Still pending: real browser/mobile visual acceptance; end-to-end verification of the complete death-skill queue and sheriff-badge transitions; broad role-skill implementation; third-party win conditions where the exact rules remain unspecified; multiplayer server authority, reconnect, and WebRTC media routing.

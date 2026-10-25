@@ -182,3 +182,13 @@ Do not mark a requirement “implemented” based only on role metadata, narrati
 - Refresh perspective labels after role dealing and again when a new night initializes; labels are derived from the canonical role definition on the actual seat record.
 - Reuse the same numbered-seat grid for Witch poison selection and death-skill targets, preserving disabled/greyed states for invalid or eliminated seats.
 - Use one death-summary formatter for the dawn announcement, the global night log, and a night-ending victory announcement. It includes Witch poison and combined wolf-plus-poison causes so an immediate game-ending poison is not omitted.
+
+
+## Latest CI verification — 2026-10-25
+
+- Verified commit: `3316bca021c873fb68e865c6910c4100c861e045`.
+- GitHub Actions `Awoo checks`: syntax checks passed; `npm test` reported **104 passed, 0 failed**. [Run details](https://github.com/ivi39c/awoo/actions/runs/40174160926).
+- Regression coverage now explicitly checks: role-label refresh, Wolf teammate seats, no early Wolf target disclosure, Witch target visibility only after the Witch prompt finishes, Hunter narration cues without an action gate, speech-skip not bypassing pending role actions, shared target-grid eligibility for Seer/Guard, Witch poison privacy/day summary, Witch narration after both potions are spent, dawn poison deaths, and the collapsed global history interaction.
+- **Still pending:** live browser and mobile acceptance of the complete night-to-dawn flow, role changes, screen visibility, and viewport layout.
+- **Architecture limitation:** this repository is still a local prototype. Local test-mode perspective switching is not server-enforced role privacy, and multiplayer room authority/synchronization is not implemented.
+

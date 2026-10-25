@@ -225,3 +225,45 @@ test('角色操作控制項會在輪到該角色且口白播放完成前保持�
   context.renderNightPanel(vm.runInContext('roomState.players[0]', context), controls);
   assert.match(controls.innerHTML, /class=\"target-btn\" onclick=\"wolfKillTarget\(2\)/, '口白完成後可選擇合法目標；隊友仍反灰');
 });
+
+
+test('女巫兩瓶藥都已使用時，解藥與毒藥口白仍依序保留且流程可繼續', () => {
+  const { context } = makeContext();
+  vm.runInContext(`
+    roomState.isTestMode = true;
+    roomState.gameStarted = true;
+    roomState.gameOver = false;
+    roomState.currentPhase = 'NIGHT';
+    roomState.currentPerspective = 1;
+    roomState.players = [
+      new Player(1, 'Witch', '女巫'),
+      new Player(2, 'Wolf', '小狼'),
+      new Player(3, 'Civilian', '平民')
+    ];
+    gameState.players = roomState.players;
+    roomState.nightVictim = 2;
+    roomState.witchElixirUsed = true;
+    roomState.witchPoisonUsed = true;
+    roomState.witchSaveDecisionMade = false;
+    roomState.witchPoisonDecisionMade = false;
+    roomState.moderatorScript = [
+      { role: '女巫', text: '今天晚上這位玩家死了，你要救他嗎？', speechText: '今天晚上這位玩家死了，你要救他嗎？', actionKey: 'witchSaveDecision', condition: 'antidote-available' },
+      { role: '女巫', text: '你有一瓶毒藥，你要毒死誰嗎？', speechText: '你有一瓶毒藥，你要毒死誰嗎？', actionKey: 'witchPoisonDecision', condition: 'poison-available' },
+      { role: '女巫', text: '女巫請閉眼。', speechText: '女巫請閉眼。', actionKey: null },
+    ];
+    roomState.moderatorStepIndex = 0;
+    roomState.moderatorSpeechDone = true;
+    roomState.moderatorManualCompletedStepIndex = null;
+  `, context);
+
+  assert.equal(context.shouldSkipModeratorStep(vm.runInContext('roomState.moderatorScript[0]', context)), false,
+    '存活的狼刀目標存在時，不能因解藥已用而刪掉女巫救人提示');
+  assert.equal(context.shouldSkipModeratorStep(vm.runInContext('roomState.moderatorScript[1]', context)), false,
+    '毒藥口白不能因毒藥已用而被跳過');
+  assert.equal(context.advanceModeratorLine(), true);
+  assert.equal(vm.runInContext('roomState.moderatorStepIndex', context), 1,
+    '解藥已用時仍應能通過該行動步驟並播放毒藥口白');
+  assert.equal(context.advanceModeratorLine(), true);
+  assert.equal(vm.runInContext('roomState.moderatorStepIndex', context), 2,
+    '毒藥已用時仍應能通過該行動步驟並播放女巫閉眼口白');
+});

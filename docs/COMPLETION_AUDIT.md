@@ -168,3 +168,14 @@
 - GitHub Actions `Awoo checks` passed on commit `7b75b3a9fbc1bbace5405567b48328c21bf03253`: syntax checks passed; **100 tests passed, 0 failed**.
 - **Acceptance boundary:** privacy and timing behavior now have source-level regression coverage, but browser/mobile acceptance is still pending. In this local prototype, perspective switching is a test tool, not a server-enforced multiplayer privacy boundary.
 
+
+
+## PR #27 follow-up — target eligibility, teammate list, and history interaction (2026-10-25)
+
+- Added UI-level regression coverage for the Wolf teammate list, including eliminated teammates; Seer self-target/dead-target disabling; Guard repeat-target/dead-target disabling; and a remaining legal target.
+- Added interaction coverage for the global action-history toggle (collapsed by default, expands and collapses correctly) and static verification that it sits immediately below the God narration with a single-line summary.
+- Corrected a redundant closing `</div>` in the Seer result-panel markup.
+- Updated `README.md` to reflect the current automated test baseline.
+- GitHub Actions `Awoo checks` passed on commit `3316bca021c873fb68e865c6910c4100c861e045`: syntax checks passed; **104 tests passed, 0 failed**.
+- Browser/mobile acceptance is still pending. The repository remains a local prototype; this work does not create server-enforced private role views or real multiplayer synchronization.
+

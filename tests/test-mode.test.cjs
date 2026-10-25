@@ -151,3 +151,32 @@ test('測試模式橫幅不顯示說明文案或角色巡檢計數', () => {
   assert.match(banner, /立即結算本夜/);
   assert.match(banner, />退出</);
 });
+
+
+test('白狼王帶走警長後處理警徽仍會直接進入下一夜', () => {
+  const { context } = createContext();
+  vm.runInContext(`
+    roomState.currentPhase = 'SHERIFF_BADGE';
+    roomState.players = [
+      { id: 1, role: '白狼王', isAlive: false, isSheriff: false },
+      { id: 2, role: '平民', isAlive: false, isSheriff: true },
+      { id: 3, role: '小狼', isAlive: true, isSheriff: false },
+    ];
+    roomState.sheriffId = 2;
+    roomState.sheriffBadgeReturnPhase = 'WHITE_WOLF_KING_SELF_DESTRUCT';
+    roomState.sheriffBadgeExecutedVictim = null;
+    roomState.currentPerspective = 2;
+  `, context);
+  let nightStarted = false;
+  let dayAnnounced = false;
+  context.speakGod = () => {};
+  context.renderTable = () => {};
+  context.startNextNight = (options) => {
+    nightStarted = true;
+    assert.match(options.announcement, /白狼王自爆/);
+  };
+  context.announceDayDeath = () => { dayAnnounced = true; };
+  assert.equal(context.resolveSheriffBadge('destroy'), true);
+  assert.equal(nightStarted, true, '警徽處理完後必須依白狼王自爆規則進入下一夜');
+  assert.equal(dayAnnounced, false, '不能錯誤地恢復白天死亡公告流程');
+});

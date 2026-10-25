@@ -2211,8 +2211,16 @@ function showBgmPlayButton() {
       roomState.sheriffBadgeExecutedVictim = null;
       speakGod(successor ? `警徽已移交給 ${successor.id} 號玩家。` : '警徽已銷毀，本局不再有警長。');
       renderTable();
-      if (returnPhase === 'LAST_WORDS') startLastWordsPhase(executedVictimId);
-      else announceDayDeath();
+      if (returnPhase === 'LAST_WORDS') {
+        startLastWordsPhase(executedVictimId);
+      } else if (returnPhase === 'WHITE_WOLF_KING_SELF_DESTRUCT') {
+        startNextNight({
+          announcement: '白狼王自爆並帶走一名玩家，白天流程立即中止。',
+          voiceMessage: '白狼王自爆，並帶走一名玩家。天黑請閉眼。',
+        });
+      } else {
+        announceDayDeath();
+      }
       return true;
     }
 

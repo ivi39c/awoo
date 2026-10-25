@@ -981,7 +981,7 @@ function showBgmPlayButton() {
           ? `查驗結果：${checkedTarget.id}號 是 ${getRoleCamp(checkedTarget.role) === '狼人' ? '狼人陣營（查殺）' : '好人陣營（金水）'}`
           : '';
         const resultColor = checkedTarget && getRoleCamp(checkedTarget.role) === '狼人' ? 'var(--crimson-bright)' : 'var(--gold-primary)';
-        html += `</div><div id="seerResult" style="margin-top:10px; font-weight:bold; color:${resultColor};">${resultText}</div>`;
+        html += `<div id="seerResult" style="margin-top:10px; font-weight:bold; color:${resultColor};">${resultText}</div>`;
         container.innerHTML = html;
       }
       else if (p.role === '女巫' || p.role === 'WITCH') {

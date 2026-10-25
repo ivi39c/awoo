@@ -180,6 +180,23 @@ test('屠邊勝負判定需要狼仍存活，並確認初始存在的分組已�
   ]), null);
 });
 
+test('死亡技能連鎖後才判定勝負，且獵人被技能帶走不會再次開槍', () => {
+  const players = [
+    player(1, '獵人', { isAlive: false, deathReason: 'KILLED_BY_WOLF' }),
+    player(2, '小狼'),
+    player(3, '獵人', { isAlive: true }),
+    player(4, '平民'),
+  ];
+
+  const shot = Engine.resolveDeathSkill({
+    players, actorId: 1, targetId: 2, deathReason: 'KILLED_BY_WOLF',
+  });
+  assert.equal(shot.valid, true);
+  assert.equal(shot.target.isAlive, false);
+  assert.equal(Engine.checkWinCondition(players), 'GOOD_WIN', '死亡技能完成後，最後一隻狼出局應判好人勝利');
+  assert.equal(Engine.getDeathSkill(shot.target, shot.death.reason), null, '被獵人技能帶走的角色不能因該死亡原因再觸發死亡技能');
+});
+
 test('公投結算正確處理警長權重、平票、棄票與無效目標', () => {
   const players = [
     player(1, '小狼', { isSheriff: true }),

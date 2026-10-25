@@ -164,6 +164,53 @@ test('投票驗證拒絕重複提交、死亡玩家與已出局目標', () => {
   assert.equal(Engine.validateVoteSelection({ players, voterId: 1, targetId: 3, votes: {}, phase: 'VOTING' }).valid, false);
 });
 
+test('警長 1.5 票權會影響唯一最高票，且出局玩家的殘留票不計入', () => {
+  const players = [
+    player(1, '平民', { isSheriff: true }),
+    player(2, '小狼'),
+    player(3, '平民'),
+    player(4, '預言家', { isAlive: false }),
+  ];
+
+  const weighted = Engine.resolveVotes(players, { 1: 2, 2: 3, 3: 3, 4: 2 });
+  assert.equal(weighted.status, 'executed');
+  assert.equal(weighted.targetId, 3);
+  assert.equal(weighted.counts[2], 1.5);
+  assert.equal(weighted.counts[3], 2);
+  assert.equal(Object.hasOwn(weighted.counts, 4), false, '出局玩家的票不得影響結算');
+
+  const sheriffBreaksTie = Engine.resolveVotes(players, { 1: 2, 2: 3 });
+  assert.equal(sheriffBreaksTie.status, 'executed');
+  assert.equal(sheriffBreaksTie.targetId, 2, '警長 1.5 票應高於一般玩家的 1 票');
+});
+
+test('屠邊與屠城模式採用各自明確的勝負條件', () => {
+  const edgeBoard = [
+    player(1, '小狼'),
+    player(2, '預言家'),
+    player(3, '平民'),
+  ];
+  assert.equal(Engine.checkWinCondition(edgeBoard, { winMode: 'edge' }), null);
+  edgeBoard[1].isAlive = false;
+  assert.equal(Engine.checkWinCondition(edgeBoard, { winMode: 'edge' }), 'WEREWOLF_WIN');
+
+  const parityBoard = [
+    player(1, '小狼'),
+    player(2, '預言家'),
+    player(3, '平民'),
+  ];
+  assert.equal(Engine.checkWinCondition(parityBoard, { winMode: 'parity' }), null);
+  parityBoard[2].isAlive = false;
+  assert.equal(Engine.checkWinCondition(parityBoard, { winMode: 'parity' }), 'WEREWOLF_WIN');
+
+  const parityGoodWin = [
+    player(1, '小狼', { isAlive: false }),
+    player(2, '預言家'),
+    player(3, '平民'),
+  ];
+  assert.equal(Engine.checkWinCondition(parityGoodWin, { winMode: 'parity' }), 'GOOD_WIN');
+});
+
 test('新夜重置只清理本夜暫存，不重置整局技能資源', () => {
   const state = {
     nightVictim: 2, lastNightDeaths: [{ id: 2 }], witchSaveTargetId: 2,

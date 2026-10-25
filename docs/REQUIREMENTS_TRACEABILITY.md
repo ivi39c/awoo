@@ -154,3 +154,11 @@ Do not mark a requirement “implemented” based only on role metadata, narrati
 - Removed long test-mode instructions from the main banner on test-mode entry and reset; the concise title remains.
 - Added regression coverage to prevent the instructional copy from returning.
 - Browser-level layout acceptance remains pending.
+
+
+## Recent requested fixes — Witch UI and action history
+
+- Implementation adds a greyed disabled Witch antidote control and hides the wolf target after antidote use.
+- Global history records resolved night deaths and daytime public-vote executions; private skill targets are excluded from the global log.
+- Role panels show each role's own recorded skill targets for Wolf attack, Witch antidote/poison, Seer check, and Guard protection.
+- Automated checks and browser acceptance must pass before marking these items complete.

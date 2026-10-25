@@ -22,6 +22,8 @@
     name: 'Awoo 標準房規',
     winMode: 'edge',
     sheriffWeight: 1.5,
+    // Preserve current behavior by default; room creator can disable first-night self-save.
+    witchCanSelfSaveFirstNight: true,
     // User-requested default: Guard -> wolves -> Witch -> Seer.
     moderatorNightOrderPreset: 'classic',
     guardAndSaveSameTargetDies: true,
@@ -62,6 +64,9 @@
     }
     if (typeof rules.sheriffWeight !== 'number' || !Number.isFinite(rules.sheriffWeight) || rules.sheriffWeight <= 0) {
       errors.push('sheriffWeight 必須是大於 0 的有限數字。');
+    }
+    if (typeof rules.witchCanSelfSaveFirstNight !== 'boolean') {
+      errors.push('witchCanSelfSaveFirstNight 必須是布林值。');
     }
     if (typeof rules.guardAndSaveSameTargetDies !== 'boolean') {
       errors.push('guardAndSaveSameTargetDies 必須是布林值。');

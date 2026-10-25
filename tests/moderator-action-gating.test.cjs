@@ -267,3 +267,24 @@ test('女巫兩瓶藥都已使用時，解藥與毒藥口白仍依序保留且�
   assert.equal(vm.runInContext('roomState.moderatorStepIndex', context), 2,
     '毒藥已用時仍應能通過該行動步驟並播放女巫閉眼口白');
 });
+
+
+test('狼人確認夜刀後，全局通知與行動紀錄不會提前洩漏目標號碼', () => {
+  const { context, elements } = makeContext();
+  setupWolfAction(context);
+  const alerts = [];
+  context.alert = (message) => alerts.push(String(message));
+
+  assert.equal(context.wolfKillTarget(2), true);
+  assert.ok(alerts.length > 0);
+  assert.doesNotMatch(alerts.join(' '), /2\s*號|2號/,
+    '狼刀目標不能透過全局 alert 提前曝光');
+  assert.match(elements.get('actionControls').innerHTML, /已完成狼人行動：2號/,
+    '狼人自己的控制台仍應保留行動確認資訊');
+
+  const history = JSON.parse(vm.runInContext('JSON.stringify(roomState.actionHistory)', context));
+  assert.ok(history.some(entry => entry.visibility === 'private' && /2\s*號/.test(entry.message)),
+    '目標號碼仍需保存在私密行動紀錄中');
+  assert.doesNotMatch(elements.get('gameHistoryLog').innerHTML, /狼人夜刀指定|2\s*號/,
+    '全局可展開紀錄不得顯示狼人私密夜刀目標');
+});

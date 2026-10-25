@@ -124,6 +124,28 @@ test('從女巫選擇座位到夜晚結算的整條鏈會將 1 號列入死亡�
   assert.ok(spoken.some(line => line.includes('昨夜出局：1 號')), '天亮口白必须依据实际结算死亡名册');
 });
 
+test('確認毒藥時會再次檢查首夜雙藥限制，不能沿用過期的選擇驗證', () => {
+  const { context } = makeContext();
+  vm.runInContext(`
+    roomState.isTestMode = true; roomState.gameStarted = true; roomState.currentPhase = 'NIGHT';
+    roomState.currentPerspective = 2; roomState.players = [
+      new Player(1, 'target', '平民'), new Player(2, 'witch', '女巫'), new Player(3, 'wolf', '小狼')
+    ];
+    gameState.players = roomState.players; gameState.currentDay = 1;
+    roomState.witchPoisonUsed = false; roomState.witchElixirUsed = false;
+    roomState.moderatorScript = [{ role: '女巫', text: '毒藥', speechText: '毒藥', actionKey: 'witchPoisonDecision' }];
+    roomState.moderatorStepIndex = 0; roomState.moderatorSpeechDone = true;
+  `, context);
+
+  assert.equal(context.useWitchPoison(), true);
+  assert.equal(context.selectWitchPoisonTarget(1), true);
+  // Simulate state changing after target selection but before confirmation.
+  vm.runInContext('roomState.witchElixirUsed = true', context);
+  assert.equal(context.confirmWitchPoison(), false);
+  assert.equal(vm.runInContext('roomState.witchPoisonUsed', context), false);
+  assert.equal(vm.runInContext('roomState.witchPoisonTargetId', context), null);
+});
+
 test('已出局目標不可投毒，且取消選擇不會消耗毒藥', () => {
   const { context } = makeContext();
   vm.runInContext(`

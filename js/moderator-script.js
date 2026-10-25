@@ -352,7 +352,7 @@
     const names = [...new Set((Array.isArray(rolesInGame) ? rolesInGame : []).map(canonicalRole).filter(Boolean))];
     const nameSet = new Set(names);
     const firstNight = Number(day) === 1;
-    const orderPreset = rules.moderatorNightOrderPreset === 'classic' ? 'classic' : 'awoo-custom';
+    const orderPreset = rules.moderatorNightOrderPreset === 'awoo-custom' ? 'awoo-custom' : 'classic';
     const steps = [line('全體', '天黑請閉眼。', '等待所有玩家準備好，再逐句推進主持流程。')];
     const configuredRoles = new Set(['狼人']);
     const notices = [];

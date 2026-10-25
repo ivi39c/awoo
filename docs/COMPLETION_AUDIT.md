@@ -106,4 +106,4 @@
 - Fresh role dealing now resets `deathSkillUsed` alongside death reason, alive state, Hunter eligibility, and sheriff status.
 - Added a regression assertion that the formal deal reset block clears stale death-skill state.
 - This prevents a reused player object from carrying a prior round's one-use skill lock into a new game.
-- CI and browser acceptance are pending for this change; no browser-level claim is made.
+- GitHub Actions `npm run check` passed on PR #19 after correcting the regression assertion. Browser acceptance remains pending; no browser-level claim is made.

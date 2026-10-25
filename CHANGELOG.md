@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-25 — Requirement audit and Witch potion rule
+
+- Added `docs/PROJECT_HANDOFF.md` and `docs/REQUIREMENTS_TRACEABILITY.md` to preserve project continuity and map requirements to source/test evidence.
+- Enforced the user-defined Witch rule in the engine: on night one, antidote and poison cannot both be used; from night two onward, both may be used if available.
+- Passed current night and potion-used state from the app to the engine validator; added regression cases for both action orders across night one and night two.
+- Automated tests have **not** been run after these changes; verify with `npm run check` before treating this change as test-passing.
+
+
 ## Step 8 — 手機優先 UI 與完成度盤點
 
 - 以手機使用情境重整整體視覺：提高觸控區、座位卡兩欄佈局、固定底部導覽與底部操作抽屜。

@@ -50,3 +50,14 @@ test('sheriff voting phase can transition to day death or night after a valid ou
   assert.equal(Flow.transitionPhase(state, 'DAY_DEATH').ok, true);
   assert.equal(Flow.transitionPhase(state, 'NIGHT').ok, true, 'self-destruct may interrupt sheriff voting and enter night');
 });
+
+
+test('警長警徽處理階段可返回天亮公告或處決遺言', () => {
+  const night = { currentPhase: 'NIGHT' };
+  assert.equal(Flow.transitionPhase(night, 'SHERIFF_BADGE').ok, true);
+  assert.equal(Flow.transitionPhase(night, 'DAY_DEATH').ok, true);
+  const vote = { currentPhase: 'VOTING' };
+  assert.equal(Flow.transitionPhase(vote, 'SHERIFF_BADGE').ok, true);
+  const badge = { currentPhase: 'SHERIFF_BADGE' };
+  assert.equal(Flow.transitionPhase(badge, 'LAST_WORDS').ok, true);
+});

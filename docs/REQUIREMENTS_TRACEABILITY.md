@@ -26,7 +26,7 @@ Repository-documented baseline: package version `0.9.3`; README says Step 9.3 an
 |---|---|---|---|---|
 | MOD-01 | Official moderator advances narration automatically after speech; action steps wait for valid action or explicit decline | `js/app.js`; `js/moderator-script.js`; `tests/autonomous-moderator.test.cjs`; `tests/moderator-action-gating.test.cjs` | Partial / existing tests | Run `npm run check`; manually verify all supported role actions in a real browser. Confirm no placeholder can be mistaken for a completed skill. |
 | MOD-02 | Still narrate a configured role's night line even if that role has died | `js/app.js` builds narration from all dealt roles; dead-role action prompts become an explicit skip line with no `actionKey`; `tests/moderator-action-gating.test.cjs` covers dead Seer narration and action blocking | Implemented in source/test evidence | CI passed on PR #1. Browser acceptance is still required to verify narration timing and that no dead role can act through another UI path. |
-| MOD-03 | Guard acts first in the user's requested role set/order | `js/ruleset.js` default is now `classic`, which orders Guard → wolves → Witch → Seer; `awoo-custom` remains available as an explicit alternative | Updated default; automated test suite passed | CI passed on PR #1. Add a dedicated order assertion and verify the displayed narration order in browser. |
+| MOD-03 | Guard acts first in the user's requested role set/order | `js/ruleset.js` and `js/moderator-script.js` use a fixed Guard → wolves → Witch → Seer order; the alternate `awoo-custom` preset has been removed | Fixed order; alternate preset removed | Regression test asserts Guard → wolves → Witch → Seer. CI verification is required after this change; browser acceptance remains pending. |
 | MOD-04 | Seer result is private and shown only after the result line is spoken | `js/moderator-script.js` marks result line as private (`speechText: null)); moderator tests cover script metadata | Partial | Verify UI action/result timing in browser: no result before the result step; no public voice or other seat can see the result. |
 | MOD-05 | Witch's wolf target must not be publicly announced; private info stays private | `js/moderator-script.js` Witch template includes a private-information note; `tests/moderator-script.test.cjs` covers script structure | Partial | Browser acceptance with speech synthesis and perspective switching; inspect whether the UI renders target only to Witch. |
 | WIT-01 | On night one only, Witch cannot use antidote and poison together; from night two onward, both may be used if rules allow | `js/game-engine.js`, `js/app.js`, and `tests/game-engine.test.cjs` cover both action orders on night one and combined use on later nights | Implemented in source; CI-verified | `npm run check` passed in GitHub Actions on PR #1 and PR #2. Browser acceptance remains outstanding. |
@@ -106,3 +106,11 @@ Do not mark a requirement “implemented” based only on role metadata, narrati
 - GitHub Actions `npm run check` passed on both pull requests.
 - Still not complete: special-role skills (including Hunter/Wolf King), sheriff election and badge transfer/destruction, full voting/win-condition acceptance, and real multiplayer/WebRTC.
 - Browser/device acceptance has not been performed by CI and must remain marked pending.
+
+
+## Follow-up entry — 2026-10-25: fixed night order
+
+- Removed the Awoo-custom night-order alternative. The standard night order is fixed as Guard → wolves → Witch → Seer.
+- The ruleset validator no longer accepts the old alternate preset, and the moderator script no longer branches on it.
+- Regression tests now assert the fixed order rather than a selectable preset.
+- Sheriff election and death-triggered special-role skills remain in the next implementation batch.

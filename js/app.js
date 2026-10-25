@@ -2151,7 +2151,7 @@ function showBgmPlayButton() {
       roomState.deathSkillQueue = [];
       const winner = checkWinCondition();
       if (winner) {
-        const deaths = roomState.deathSkillReturnPhase === 'DAY_DEATH'
+        const deaths = returnPhase === 'DAY_DEATH'
           ? roomState.lastNightDeaths
           : roomState.deathSkillDeaths;
         const summary = deaths.length ? `出局玩家：${deaths.map(item => `${item.id} 號`).join('、')}。` : '';

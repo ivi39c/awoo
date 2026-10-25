@@ -140,3 +140,14 @@ test('測試模式的立即結算夜晚共用正式夜晚結算流程', () => {
   assert.equal(announced, true);
   assert.equal(vm.runInContext('roomState.timerInterval', context), null);
 });
+
+test('測試模式橫幅不顯示說明文案或角色巡檢計數', () => {
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  const start = html.indexOf('<div id="testModeBanner"');
+  const end = html.indexOf('</div>', html.indexOf('<div class="test-mode-actions">', start)) + '</div>'.length;
+  assert.notEqual(start, -1, '必須存在測試模式操作橫幅');
+  const banner = html.slice(start, end);
+  assert.doesNotMatch(banner, /本機 Bot 測試|可切換座位|角色控制台巡檢|測試模式已開啟/);
+  assert.match(banner, /立即結算本夜/);
+  assert.match(banner, />退出</);
+});

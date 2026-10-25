@@ -71,6 +71,17 @@ test('測試模式入口會建立 12 人 Bot 測試局並啟用全視角選單',
   assert.match(elements.get('testRoleCoverage').textContent, new RegExp(`0 \/ ${roleCount}`));
 });
 
+test('測試模式的立即結算按鈕只在夜晚階段顯示', () => {
+  const { context, elements } = createContext();
+  context.startQuickBotTest();
+  vm.runInContext("roomState.gameStarted = true; roomState.currentPhase = 'NIGHT';", context);
+  context.updateTestModeUI();
+  assert.equal(elements.get('testModeResolveNightButton').hidden, false);
+  vm.runInContext("roomState.currentPhase = 'DAY_SPEECH';", context);
+  context.updateTestModeUI();
+  assert.equal(elements.get('testModeResolveNightButton').hidden, true);
+});
+
 test('正式模式禁止切換視角，測試模式允許切換有效座位', () => {
   const { context } = createContext();
   vm.runInContext(`roomState.players = [{id:1,name:'A',role:'小狼',isAlive:true},{id:2,name:'B',role:'平民',isAlive:true}]; roomState.mySeatId=1; roomState.currentPerspective=1;`, context);

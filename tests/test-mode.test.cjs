@@ -150,6 +150,12 @@ test('測試模式的立即結算夜晚共用正式夜晚結算流程', () => {
   assert.equal(vm.runInContext('roomState.timerInterval', context), null);
 });
 
+test('進入或重置測試模式時不顯示多餘的操作說明文案', () => {
+  const appSource = fs.readFileSync(path.join(root, 'js/app.js'), 'utf8');
+  assert.doesNotMatch(appSource, /Bot 已填滿座位。請開始遊戲|測試局已重置。可重新發牌|測試模式允許切換視角及覆蓋測試角色/);
+  assert.match(appSource, /updateBanner\('【測試模式】', '', ''\)/, '測試模式只保留簡短狀態標題，不顯示操作教學');
+});
+
 test('測試模式橫幅不顯示說明文案或角色巡檢計數', () => {
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   const start = html.indexOf('<div id="testModeBanner"');

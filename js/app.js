@@ -407,68 +407,6 @@ class Player {
       return true;
     }
 
-    function appendTestModeTools(player, container) {
-      if (!roomState.isTestMode || !player || !container) return;
-
-      const section = document.createElement('section');
-      section.className = 'test-mode-tools';
-      const title = document.createElement('div');
-      title.className = 'test-mode-tools-title';
-      title.textContent = '🧪 測試模式工具';
-      const note = document.createElement('p');
-      note.textContent = '可以替換目前視角座位的角色，以巡檢角色在當前階段的控制台。這會改動本機測試局，不影響正式房間。';
-      if (!roomState.gameStarted) {
-        note.textContent = '請先點擊「開始遊戲流程（抽卡發牌）」。發牌後即可在此下拉選單中巡檢圖鑑內所有角色。';
-        section.append(title, note);
-        container.appendChild(section);
-        return;
-      }
-      const label = document.createElement('label');
-      label.textContent = `座位 ${player.id}：測試角色`;
-      label.htmlFor = 'testRoleSelect';
-      const select = document.createElement('select');
-      select.id = 'testRoleSelect';
-      select.setAttribute('aria-label', '選擇要巡檢的角色');
-      ROLE_DATABASE.forEach(role => {
-        const option = document.createElement('option');
-        option.value = role.name;
-        option.textContent = `${role.name}（${role.category || role.team || '特殊'}）`;
-        option.selected = role.name === player.role;
-        select.appendChild(option);
-      });
-      select.addEventListener('change', () => assignTestRole(player.id, select.value));
-
-      const status = document.createElement('p');
-      status.className = 'test-control-status';
-      status.textContent = `控制項狀態：${getTestRoleControlStatus(player.role)}`;
-      section.append(title, note, label, select, status);
-
-      const addAction = (labelText, handler, danger = false) => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = danger ? 'btn-gothic btn-crimson' : 'btn-gothic';
-        button.textContent = labelText;
-        button.addEventListener('click', handler);
-        section.appendChild(button);
-      };
-
-      if (roomState.gameStarted && !roomState.gameOver) {
-        if (roomState.currentPhase === 'NIGHT') addAction('立即結算本夜', resolveNightNow, true);
-        if (roomState.currentPhase === 'SHERIFF_ELECTION') {
-          addAction('結束警長競選倒數', () => {
-            clearInterval(roomState.timerInterval);
-            roomState.timerInterval = null;
-            processSheriffCandidates();
-          });
-        }
-        if (roomState.currentPhase === 'DAY_SPEECH') addAction('跳過目前發言', endSpeech);
-        if (roomState.currentPhase === 'VOTING') addAction('立即結算公投', finalizePublicVote, true);
-        if (roomState.currentPhase === 'LAST_WORDS') addAction('立即結束遺言', endLastWords);
-      }
-      if (roomState.gameOver) addAction('重新開始測試局', resetTestGame, true);
-      container.appendChild(section);
-    }
-
     function resetTestGame() {
       if (!roomState.isTestMode) return;
       clearModeratorAutoAdvance();
@@ -874,7 +812,6 @@ function showBgmPlayButton() {
       // The panel belongs to the selected player's perspective in the local prototype.
       // Perspective switching and role overrides are intentionally isolated to test mode.
       appendWolfSelfDestructAction(p, controls);
-      appendTestModeTools(p, controls);
     }
 
     function appendWolfSelfDestructAction(player, container) {

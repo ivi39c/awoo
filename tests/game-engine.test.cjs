@@ -90,6 +90,41 @@ test('夜晚行動驗證會檢查角色、階段、存活狀態與守衛連守',
   }).valid, true);
 });
 
+
+test('女巫首夜不能同時使用解藥與毒藥，第二夜則允許兩者並用', () => {
+  const players = [
+    player(1, '女巫'),
+    player(2, '平民'),
+    player(3, '小狼'),
+  ];
+
+  const firstNightPoisonAfterSave = Engine.validateNightAction({
+    players, actorId: 1, action: 'witchPoison', targetId: 2,
+    state: { phase: 'NIGHT', currentDay: 1, witchElixirUsed: true, witchPoisonUsed: false },
+  });
+  assert.equal(firstNightPoisonAfterSave.valid, false);
+  assert.match(firstNightPoisonAfterSave.reason, /首夜不能同時使用解藥與毒藥/);
+
+  const firstNightSaveAfterPoison = Engine.validateNightAction({
+    players, actorId: 1, action: 'witchSave',
+    state: { phase: 'NIGHT', currentDay: 1, nightVictim: 2, witchElixirUsed: false, witchPoisonUsed: true },
+  });
+  assert.equal(firstNightSaveAfterPoison.valid, false);
+  assert.match(firstNightSaveAfterPoison.reason, /首夜不能同時使用解藥與毒藥/);
+
+  const secondNightPoisonAfterSave = Engine.validateNightAction({
+    players, actorId: 1, action: 'witchPoison', targetId: 2,
+    state: { phase: 'NIGHT', currentDay: 2, witchElixirUsed: true, witchPoisonUsed: false },
+  });
+  assert.equal(secondNightPoisonAfterSave.valid, true);
+
+  const secondNightSaveAfterPoison = Engine.validateNightAction({
+    players, actorId: 1, action: 'witchSave',
+    state: { phase: 'NIGHT', currentDay: 2, nightVictim: 2, witchElixirUsed: false, witchPoisonUsed: true },
+  });
+  assert.equal(secondNightSaveAfterPoison.valid, true);
+});
+
 test('勝負判定不會因為沒有狼人或沒有某一好人分組而誤判', () => {
   assert.equal(Engine.checkWinCondition([player(1, '平民'), player(2, '預言家')]), null);
   assert.equal(Engine.checkWinCondition([

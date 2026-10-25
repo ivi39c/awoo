@@ -107,3 +107,10 @@
 - Added a regression assertion that the formal deal reset block clears stale death-skill state.
 - This prevents a reused player object from carrying a prior round's one-use skill lock into a new game.
 - GitHub Actions `npm run check` passed on PR #19 after correcting the regression assertion. Browser acceptance remains pending; no browser-level claim is made.
+
+
+## Step 10 follow-up — death-skill chain win-condition regression (2026-10-25)
+
+- Added engine-level regression coverage that a Hunter death skill can eliminate the final wolf and the subsequent win-condition check returns the good-team win.
+- Also asserts a Hunter-shot death reason does not recursively grant another Hunter death skill.
+- This is domain-engine coverage only; the complete browser flow for chained skill prompts remains pending.

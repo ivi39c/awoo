@@ -228,3 +228,23 @@ test('自爆需要存活玩家且可由 ruleset 關閉', () => {
   assert.equal(disabled.valid, false);
   assert.equal(players[0].isAlive, true);
 });
+
+
+test('死亡技能資格依角色與死因判定：獵人可因狼刀或放逐開槍，毒殺不可；狼王僅放逐可開槍', () => {
+  assert.equal(Engine.getDeathSkill(player(1, '獵人', { isAlive: false }), 'KILLED_BY_WOLF').type, 'hunter-shot');
+  assert.equal(Engine.getDeathSkill(player(1, '獵人', { isAlive: false }), 'EXECUTED_BY_VOTE').type, 'hunter-shot');
+  assert.equal(Engine.getDeathSkill(player(1, '獵人', { isAlive: false }), 'POISONED_BY_WITCH'), null);
+  assert.equal(Engine.getDeathSkill(player(1, '獵人', { isAlive: false, canShoot: false }), 'KILLED_BY_WOLF'), null);
+  assert.equal(Engine.getDeathSkill(player(1, '狼王', { isAlive: false }), 'EXECUTED_BY_VOTE').type, 'wolf-king-shot');
+  assert.equal(Engine.getDeathSkill(player(1, '狼王', { isAlive: false }), 'KILLED_BY_WOLF'), null);
+});
+
+test('死亡技能只可由符合資格的出局角色對存活目標發動，並正確記錄死因', () => {
+  const players = [player(1, '獵人', { isAlive: false, deathReason: 'KILLED_BY_WOLF' }), player(2, '平民'), player(3, '小狼')];
+  const result = Engine.resolveDeathSkill({ players, actorId: 1, targetId: 3 });
+  assert.equal(result.valid, true);
+  assert.equal(players[2].isAlive, false);
+  assert.equal(players[2].deathReason, 'HUNTER_SHOT');
+  assert.equal(Engine.resolveDeathSkill({ players, actorId: 1, targetId: 3 }).valid, false, '不能重複對已出局目標開槍');
+  assert.equal(Engine.resolveDeathSkill({ players, actorId: 2, targetId: 3 }).valid, false, '存活角色不能使用死亡技能');
+});

@@ -175,3 +175,10 @@ Do not mark a requirement “implemented” based only on role metadata, narrati
 - Reuse a shared numbered target-grid renderer while applying per-role eligibility/disabled rules.
 - Include Witch poison deaths in the dawn announcement and show both potion targets in the Witch's role panel across phases.
 - Automated CI and browser/mobile acceptance remain required.
+
+
+## Night flow follow-up — perspective labels, shared target grid, and death announcements
+
+- Refresh perspective labels after role dealing and again when a new night initializes; labels are derived from the canonical role definition on the actual seat record.
+- Reuse the same numbered-seat grid for Witch poison selection and death-skill targets, preserving disabled/greyed states for invalid or eliminated seats.
+- Use one death-summary formatter for the dawn announcement, the global night log, and a night-ending victory announcement. It includes Witch poison and combined wolf-plus-poison causes so an immediate game-ending poison is not omitted.

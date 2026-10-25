@@ -51,12 +51,25 @@ class Player {
       if (label) label.textContent = expanded ? '收起紀錄' : '查看紀錄';
       return true;
     }
-    function renderPlayerTargetGrid({ onSelect, isAllowed = () => true, selectedId = null, isDisabled = () => false, showDead = true } = {}) {
+    function renderPlayerTargetGrid({ onSelect, isAllowed = () => true, selectedId = null, isDisabled = () => false, showDead = true, dataAttribute = null } = {}) {
       return `<div class="target-grid">${roomState.players.map(target => {
         const dead = !target.isAlive, allowed = isAllowed(target), selected = selectedId != null && Number(selectedId) === Number(target.id);
         const disabled = !allowed || isDisabled(target) || (dead && !showDead);
-        return `<button class="target-btn${dead ? ' is-dead' : ''}${selected ? ' selected' : ''}" ${disabled ? 'disabled ' : ''}onclick="${onSelect}(${Number(target.id)})" type="button" aria-disabled="${disabled ? 'true' : 'false'}" aria-pressed="${selected ? 'true' : 'false'}">${target.id}號${dead && showDead ? '（已出局）' : ''}</button>`;
+        const dataAttr = dataAttribute ? ` ${dataAttribute}="${Number(target.id)}"` : '';
+        return `<button class="target-btn${dead ? ' is-dead' : ''}${selected ? ' selected' : ''}"${dataAttr} ${disabled ? 'disabled ' : ''}onclick="${onSelect}(${Number(target.id)})" type="button" aria-disabled="${disabled ? 'true' : 'false'}" aria-pressed="${selected ? 'true' : 'false'}">${target.id}號${dead && showDead ? '（已出局）' : ''}</button>`;
       }).join('')}</div>`;
+    }
+    function formatNightDeathSummary(deaths, emptyText = '昨夜是平安夜，無人出局！') {
+      const causeLabels = {
+        POISONED_BY_WITCH: '女巫毒殺',
+        KILLED_BY_WOLF_AND_POISON: '狼刀＋女巫毒殺',
+        KILLED_BY_WOLF: '狼人襲擊',
+        HUNTER_SHOT: '獵人開槍',
+        WOLF_KING_SHOT: '狼王開槍',
+        WHITE_WOLF_KING_SHOT: '白狼王開槍',
+      };
+      if (!Array.isArray(deaths) || deaths.length === 0) return emptyText;
+      return `昨夜出局：${deaths.map(death => `${Number(death.id)} 號${causeLabels[death.reason] ? `（${causeLabels[death.reason]}）` : ''}`).join('、')}。`;
     }
     function settleNightActions(wolfTargetId, witchSaveTargetId, witchPoisonTargetId, guardTargetId) {
       const result = AwooGameEngine.resolveNight({
@@ -71,11 +84,7 @@ class Player {
       gameState.lastGuardedId = result.lastGuardedId;
       roomState.guardLastTarget = result.lastGuardedId;
       roomState.lastNightDeaths = result.deaths;
-      const deathSummary = result.deaths.length ? result.deaths.map(item => {
-        const cause = item.reason === 'POISONED_BY_WITCH' ? '（女巫毒殺）' : item.reason === 'KILLED_BY_WOLF_AND_POISON' ? '（狼刀＋女巫毒殺）' : item.reason === 'KILLED_BY_WOLF' ? '（狼人襲擊）' : '';
-        return `${item.id} 號${cause}`;
-      }).join('、') : '無人出局（平安夜）';
-      recordGameHistory({ phaseLabel: '夜晚結算', message: `昨夜出局：${deathSummary}。` });
+      recordGameHistory({ phaseLabel: '夜晚結算', message: formatNightDeathSummary(result.deaths, '無人出局（平安夜）') });
       if (result.warnings.length) console.warn('[Awoo] 夜晚結算提醒：', result.warnings);
       return result.deaths;
     }
@@ -979,12 +988,7 @@ function showBgmPlayButton() {
         const poisonSelection = roomState.showWitchPoisonTargets && canWitchPoison && !roomState.witchPoisonUsed
           ? `<div class="witch-poison-picker" role="group" aria-label="選擇毒藥目標">
               <p class="witch-poison-heading">選擇毒殺目標（已出局玩家反灰且不可選）</p>
-              <div class="target-grid">${roomState.players.map(t => {
-                const dead = !t.isAlive;
-                const selected = Number(roomState.witchPoisonDraftTargetId) === Number(t.id);
-                const classes = `target-btn${dead ? ' is-dead' : ''}${selected ? ' selected' : ''}`;
-                return `<button type="button" class="${classes}" data-poison-target="${t.id}" ${dead || !canWitchPoison ? 'disabled aria-disabled="true"' : ''} aria-pressed="${selected ? 'true' : 'false'}" onclick="selectWitchPoisonTarget(${t.id})">${t.id}號${dead ? '（已出局）' : ''}</button>`;
-              }).join('')}</div>
+              ${renderPlayerTargetGrid({ onSelect: 'selectWitchPoisonTarget', isAllowed: t => t.isAlive, selectedId: roomState.witchPoisonDraftTargetId, isDisabled: () => !canWitchPoison, showDead: true, dataAttribute: 'data-poison-target' })}
               <div class="witch-poison-confirm-row">
                 <p class="witch-poison-selection">${roomState.witchPoisonDraftTargetId ? `目前選擇：${roomState.witchPoisonDraftTargetId}號` : '請選擇一位存活玩家。'}</p>
                 <button type="button" class="btn-gothic btn-crimson" onclick="confirmWitchPoison()" ${roomState.witchPoisonDraftTargetId == null || !canWitchPoison ? 'disabled' : ''}>確認使用毒藥</button>
@@ -1360,6 +1364,8 @@ function showBgmPlayButton() {
       roomState.showWitchPoisonTargets = false;
       roomState.witchPoisonDraftTargetId = null;
       refreshModeratorScriptForCurrentNight(entry);
+      // Rebuild the perspective labels after role assignment and night-state initialization.
+      updatePerspectiveSelect();
 
       const nightAnnouncement = entry.announcement || `第 ${gameState.currentDay} 夜：上帝將依本局角色自動主持。`;
       const nightDuration = Math.max(90, (roomState.moderatorScript || []).length * 5);
@@ -1755,10 +1761,7 @@ function showBgmPlayButton() {
       const winner = checkWinCondition();
       if (winner) {
         const deaths = Array.isArray(roomState.lastNightDeaths) ? roomState.lastNightDeaths : [];
-        const deathSummary = deaths.length
-          ? `昨夜出局：${deaths.map(item => `${item.id} 號`).join('、')}。`
-          : '昨夜平安夜，無人出局。';
-        finishGame(winner, deathSummary);
+        finishGame(winner, formatNightDeathSummary(deaths));
         return true;
       }
       if (startSheriffBadgeDecision('DAY_DEATH')) return true;
@@ -1942,10 +1945,7 @@ function showBgmPlayButton() {
     function announceDayDeath() {
       renderGodFlowPanel();
       const deaths = Array.isArray(roomState.lastNightDeaths) ? roomState.lastNightDeaths : [];
-      const deathIds = deaths.map(item => item.id);
-      const text = deathIds.length
-        ? `昨夜出局：${deaths.map(item => `${item.id} 號${item.reason === 'POISONED_BY_WITCH' ? '（女巫毒殺）' : item.reason === 'KILLED_BY_WOLF_AND_POISON' ? '（狼刀＋女巫毒殺）' : item.reason === 'KILLED_BY_WOLF' ? '（狼人襲擊）' : ''}`).join('、')}。`
-        : '昨夜是平安夜，無人出局！';
+      const text = formatNightDeathSummary(deaths);
 
       const sheriff = roomState.players.find(p => p.id === roomState.sheriffId);
       if (roomState.hasSheriffInGame && (!sheriff || !sheriff.isAlive)) {
@@ -2140,10 +2140,9 @@ function showBgmPlayButton() {
         container.innerHTML = `<p style="color:#aaa;">等待 ${current.playerId} 號 ${current.skill.role} 完成死亡技能。</p>`;
         return;
       }
-      const targets = roomState.players.filter(item => item.isAlive && Number(item.id) !== Number(player.id));
       container.innerHTML = `
         <p style="color:var(--gold-primary);">${current.playerId} 號 ${current.skill.role}：選擇一名存活玩家發動技能。</p>
-        <div class="target-grid">${targets.map(target => `<button class="target-btn" onclick="resolveCurrentDeathSkill(${target.id})">${target.id}號</button>`).join('')}</div>
+        ${renderPlayerTargetGrid({ onSelect: 'resolveCurrentDeathSkill', isAllowed: target => target.isAlive && Number(target.id) !== Number(player.id), showDead: true })}
       `;
     }
 

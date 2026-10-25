@@ -194,7 +194,7 @@ test('死亡技能連鎖後才判定勝負，且獵人被技能帶走不會再�
   assert.equal(shot.valid, true);
   assert.equal(shot.target.isAlive, false);
   assert.equal(Engine.checkWinCondition(players), 'GOOD_WIN', '死亡技能完成後，最後一隻狼出局應判好人勝利');
-  assert.equal(Engine.getDeathSkill(shot.target, shot.death.reason), null, '被獵人技能帶走的角色不能因該死亡原因再觸發死亡技能');
+  assert.equal(Engine.getDeathSkill(player(5, '獵人', { isAlive: false, deathReason: 'HUNTER_SHOT' }), 'HUNTER_SHOT'), null, '被獵人技能帶走的獵人不能再次觸發死亡技能');
 });
 
 test('公投結算正確處理警長權重、平票、棄票與無效目標', () => {

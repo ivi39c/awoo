@@ -901,3 +901,5 @@ input, select, textarea { max-width: 100%; }
     max-width: min(56vw, 260px);
   }
 }
+
+.game-history-panel{margin:12px 14px;padding:12px 14px;border:1px solid rgba(224,191,98,.2);border-radius:12px;background:rgba(17,13,23,.88)}.game-history-heading{display:flex;justify-content:space-between;gap:10px;color:var(--gold-light);font-size:.86rem}.game-history-heading span{color:#92899d;font-size:.72rem}#gameHistoryLog,.role-action-history ul{margin:8px 0 0;padding-left:20px;color:#c9c1d2;font-size:.78rem;line-height:1.6}.history-empty{color:#888;list-style:none;margin-left:-20px}.role-action-history{margin-top:12px;padding:10px;border:1px solid rgba(224,191,98,.18);border-radius:8px;color:var(--gold-light);font-size:.8rem}#actionControls button:disabled{opacity:.42;filter:grayscale(1);cursor:not-allowed}

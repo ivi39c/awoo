@@ -121,3 +121,9 @@
 - Entering or resetting the local Bot test mode now keeps only the concise test-mode title and clears the two instructional subtitle lines.
 - Added regression coverage for both entry/reset copy and the concise banner call.
 - Automated validation pending; visual browser acceptance remains pending.
+
+
+## Step 10 follow-up — Witch UI and action history
+
+- In progress: disabled/greyed Witch antidote state, hide wolf target after antidote use, global night-death/day-execution history, and per-role skill-target history.
+- Browser/mobile visual acceptance remains pending.

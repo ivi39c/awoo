@@ -26,6 +26,20 @@ class Player {
       players: []
     };
 
+    function recordGameHistory(entry) {
+      if (!Array.isArray(roomState.actionHistory)) roomState.actionHistory = [];
+      roomState.actionHistory.push({ day: Number(gameState.currentDay) || 1, ...entry });
+      renderGameHistory();
+      updateControlPanel();
+    }
+    function renderGameHistory() {
+      const log = document.getElementById('gameHistoryLog'); if (!log) return;
+      const entries = (roomState.actionHistory || []).filter(entry => entry.visibility !== 'private');
+      log.innerHTML = entries.length ? entries.slice().reverse().map(entry => `<li><b>第 ${AwooUI.escapeHtml(entry.day)} 天・${AwooUI.escapeHtml(entry.phaseLabel || '')}</b> ${AwooUI.escapeHtml(entry.message || '')}</li>`).join('') : '<li class="history-empty">尚無行動紀錄。</li>';
+    }
+    function getPerspectiveActionHistory(playerId) {
+      return (roomState.actionHistory || []).filter(entry => entry.visibility === 'private' && Number(entry.actorId) === Number(playerId)).map(entry => `第 ${entry.day} 天・${entry.phaseLabel}：${entry.message}`);
+    }
     function settleNightActions(wolfTargetId, witchSaveTargetId, witchPoisonTargetId, guardTargetId) {
       const result = AwooGameEngine.resolveNight({
         players: gameState.players,
@@ -39,6 +53,7 @@ class Player {
       gameState.lastGuardedId = result.lastGuardedId;
       roomState.guardLastTarget = result.lastGuardedId;
       roomState.lastNightDeaths = result.deaths;
+      recordGameHistory({ phaseLabel: '夜晚結算', message: result.deaths.length ? `昨夜出局：${result.deaths.map(item => `${item.id} 號`).join('、')}。` : '昨夜平安夜，無人出局。' });
       if (result.warnings.length) console.warn('[Awoo] 夜晚結算提醒：', result.warnings);
       return result.deaths;
     }
@@ -110,6 +125,7 @@ class Player {
       gameStarted: false,
       gameOver: false,
       lastNightDeaths: [],
+      actionHistory: [],
       witchSaveTargetId: null,
       witchPoisonTargetId: null,
       guardTargetId: null,
@@ -813,6 +829,12 @@ function showBgmPlayButton() {
         `;
       }
 
+      const perspectiveHistory = getPerspectiveActionHistory(p.id);
+      if (perspectiveHistory.length && p.role !== '女巫' && p.role !== 'WITCH') {
+        const history = document.createElement('div'); history.className = 'role-action-history';
+        history.innerHTML = `<b>本局技能紀錄</b><ul>${perspectiveHistory.map(item => `<li>${AwooUI.escapeHtml(item)}</li>`).join('')}</ul>`;
+        controls.appendChild(history);
+      }
       // The panel belongs to the selected player's perspective in the local prototype.
       // Perspective switching and role overrides are intentionally isolated to test mode.
       appendWolfSelfDestructAction(p, controls);
@@ -938,8 +960,9 @@ function showBgmPlayButton() {
         const poisonStatus = roomState.witchPoisonUsed
           ? `<p class="witch-poison-status">毒藥已使用${roomState.witchPoisonTargetId ? `：${roomState.witchPoisonTargetId}號，等待本夜結算` : ''}。</p>`
           : '';
+        const witchActionHistory = getPerspectiveActionHistory(p.id);
         container.innerHTML = `
-          <p style="font-size:0.8rem;">今晚狼刀目標：<b style="color:var(--crimson-bright);">${roomState.nightVictim ? roomState.nightVictim + '號' : '尚未選定／空刀'}</b></p>
+          ${roomState.witchElixirUsed ? '<p style="font-size:0.8rem;color:#999;">解藥已使用，狼刀目標不再顯示。</p>' : `<p style="font-size:0.8rem;">今晚狼刀目標：<b style="color:var(--crimson-bright);">${roomState.nightVictim ? roomState.nightVictim + '號' : '尚未選定／空刀'}</b></p>`}
           <div class="witch-action-row">
             <button type="button" class="btn-gothic" ${!canWitchSave || roomState.witchElixirUsed || roomState.witchSaveDecisionMade || !roomState.nightVictim ? 'disabled' : ''} onclick="useWitchElixir()">${roomState.witchElixirUsed ? '解藥（已用）' : '解藥救人'}</button>
             <button type="button" class="btn-gothic btn-crimson" ${!canWitchPoison || roomState.witchPoisonUsed || roomState.witchPoisonDecisionMade ? 'disabled' : ''} onclick="useWitchPoison()">${roomState.witchPoisonUsed ? '毒藥（已用）' : '毒藥毒人'}</button>
@@ -948,6 +971,7 @@ function showBgmPlayButton() {
           </div>
           ${poisonStatus}
           ${poisonSelection}
+          ${witchActionHistory.length ? `<div class="role-action-history"><b>本局技能紀錄</b><ul>${witchActionHistory.map(item => `<li>${AwooUI.escapeHtml(item)}</li>`).join('')}</ul></div>` : ''}
           ${roomState.isTestMode && roomState.witchPoisonTargetId ? `<p class="test-action-confirmation">測試紀錄：女巫毒藥目標已保存為 ${roomState.witchPoisonTargetId}號。</p>` : ''}
         `;
       }
@@ -997,6 +1021,7 @@ function showBgmPlayButton() {
         return;
       }
       roomState.seerTargetId = validation.target.id;
+      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, message: `預言家查驗 ${validation.target.id} 號。` });
       const isWolf = getRoleCamp(target.role) === '狼人';
       if (result) {
         result.textContent = `查驗結果：${targetId}號 是 ${isWolf ? '狼人陣營（查殺）' : '好人陣營（金水）'}`;
@@ -1022,6 +1047,7 @@ function showBgmPlayButton() {
       roomState.witchElixirUsed = true;
       roomState.witchSaveDecisionMade = true;
       roomState.witchSaveTargetId = Number(validation.target.id);
+      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, message: `女巫使用解藥救援 ${roomState.witchSaveTargetId} 號。` });
       alert(`已使用解藥，嘗試救援 ${roomState.witchSaveTargetId} 號玩家。`);
       updateControlPanel();
       renderGodFlowPanel();
@@ -1092,6 +1118,7 @@ function showBgmPlayButton() {
       roomState.witchPoisonUsed = true;
       roomState.witchPoisonDecisionMade = true;
       roomState.witchPoisonTargetId = Number(validation.target.id);
+      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, message: `女巫使用毒藥指定 ${roomState.witchPoisonTargetId} 號。` });
       roomState.showWitchPoisonTargets = false;
       roomState.witchPoisonDraftTargetId = null;
       updateControlPanel();
@@ -1131,6 +1158,7 @@ function showBgmPlayButton() {
       });
       if (!validation.valid) { alert(validation.reason); return; }
       roomState.guardTargetId = Number(validation.target.id);
+      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, message: `守衛守護 ${validation.target.id} 號。` });
       alert(`今晚守護 ${validation.target.id} 號玩家。`);
       updateControlPanel();
       renderGodFlowPanel();
@@ -1147,6 +1175,7 @@ function showBgmPlayButton() {
       });
       if (!validation.valid) { alert(validation.reason); return; }
       roomState.nightVictim = Number(validation.target.id);
+      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, message: `狼人夜刀指定 ${roomState.nightVictim} 號。` });
       roomState.wolfActionDecided = true;
       alert(`狼隊已指定 ${validation.target.id} 號為襲擊目標。`);
       updateControlPanel();
@@ -1263,6 +1292,7 @@ function showBgmPlayButton() {
       });
       gameState.players = roomState.players;
       roomState.rolesInGame = [...new Set(dealtRoles)];
+      roomState.actionHistory = [];
       gameState.currentDay = 1;
       gameState.sheriffId = null;
       gameState.lastGuardedId = null;
@@ -2021,6 +2051,7 @@ function showBgmPlayButton() {
       const victim = roomState.players.find(p => p.id === targetId);
       if (!victim || !victim.isAlive) { setTimeout(startNextNight, 1000); return; }
       roomState.executedVictim = targetId;
+      recordGameHistory({ phaseLabel: '白天處決', message: `${targetId} 號被公投處決。` });
       victim.isAlive = false;
       victim.deathReason = 'EXECUTED_BY_VOTE';
       renderTable();

@@ -316,7 +316,7 @@ test('狼刀號碼只在女巫救人提示已播完後顯示於女巫控制台',
     roomState.moderatorSpeechDone = true;
   `, context);
 
-  const controls = elements.get('actionControls');
+  const controls = context.document.getElementById('actionControls');
   const witch = vm.runInContext('roomState.players[2]', context);
   context.renderNightPanel(witch, controls);
   assert.doesNotMatch(controls.innerHTML, /今晚狼刀目標/,

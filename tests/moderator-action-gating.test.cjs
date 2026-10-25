@@ -340,3 +340,22 @@ test('狼刀號碼只在女巫救人提示已播完後顯示於女巫控制台',
   assert.match(controls.innerHTML, /今晚狼刀目標：[\s\S]*?2號/,
     '女巫救人提示播完後，女巫控制台才顯示狼刀號碼');
 });
+
+
+test('測試模式跳過口白只跳過語音，不可略過尚未完成的角色行動', () => {
+  const { context } = makeContext();
+  setupWolfAction(context);
+  vm.runInContext('roomState.moderatorSpeechDone = false', context);
+
+  assert.equal(context.skipModeratorSpeech(), true);
+  assert.equal(vm.runInContext('roomState.moderatorStepIndex', context), 0,
+    '狼人尚未選擇目標時，跳過口白不能推進到下一句');
+  assert.equal(vm.runInContext('roomState.moderatorSpeechDone', context), true);
+  assert.equal(context.advanceModeratorLine(), false,
+    '跳過語音後仍須等待狼人完成行動');
+
+  assert.equal(context.wolfKillTarget(2), true);
+  assert.equal(context.advanceModeratorLine(), true,
+    '狼人完成合法行動後才可進入下一句口白');
+  assert.equal(vm.runInContext('roomState.moderatorStepIndex', context), 1);
+});

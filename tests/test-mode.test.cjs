@@ -60,6 +60,11 @@ test('測試模式入口會建立 12 人 Bot 測試局並啟用全視角選單',
   assert.equal(vm.runInContext('roomState.players.length', context), 12);
   assert.equal(elements.get('perspectiveSelect').style.display, '');
   assert.equal(elements.get('testModeBanner').style.display, 'flex');
+  assert.equal(elements.get('spectatorCountBtn').style.display, 'none');
+  assert.equal(elements.get('mediaTopBtn').style.display, 'none');
+  assert.equal(elements.get('compendiumTopBtn').style.display, 'none');
+  assert.equal(elements.get('settingsTopBtn').style.display, 'none');
+  assert.equal(elements.get('testModeResolveNightButton').hidden, true);
   assert.match(elements.get('perspectiveSelect').children[0].textContent, /^視角：1號（.+）$/);
   assert.doesNotMatch(elements.get('perspectiveSelect').children[0].textContent, /測試者|Bot/);
   const roleCount = vm.runInContext('ROLE_DATABASE.length', context);

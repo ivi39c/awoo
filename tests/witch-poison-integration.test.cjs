@@ -196,3 +196,63 @@ test('若夜間投毒直接觸發勝負，結束公告仍會說明 1 號已出�
   assert.ok(banners.some(banner => String(banner.announcement).includes('1 號（女巫毒殺）')));
   assert.ok(spoken.some(line => line.includes('1 號（女巫毒殺）')), '夜間毒殺直接結束遊戲時也要播報毒殺原因');
 });
+
+
+test('女巫毒藥目標不會寫入全局通知或公開行動紀錄，白天仍可在女巫面板查看', () => {
+  const { context, elements } = makeContext();
+  vm.runInContext(`
+    roomState.isTestMode = true;
+    roomState.gameStarted = true;
+    roomState.gameOver = false;
+    roomState.currentPhase = 'NIGHT';
+    roomState.currentPerspective = 1;
+    roomState.ruleset = window.AwooRuleset.resolveRuleset({ winMode: 'edge' });
+    roomState.players = [
+      new Player(1, 'Witch', '女巫'),
+      new Player(2, 'Target', '平民'),
+      new Player(3, 'Wolf', '小狼')
+    ];
+    gameState.players = roomState.players;
+    gameState.currentDay = 2;
+    roomState.witchElixirUsed = false;
+    roomState.witchSaveTargetId = null;
+    roomState.witchPoisonUsed = false;
+    roomState.witchPoisonTargetId = null;
+    roomState.witchPoisonDecisionMade = false;
+    roomState.witchPoisonDraftTargetId = null;
+    roomState.actionHistory = [];
+    roomState.moderatorScript = [{
+      role: '女巫', text: '你有一瓶毒藥，你要毒死誰嗎？請選擇目標。',
+      speechText: '你有一瓶毒藥，你要毒死誰嗎？請選擇目標。',
+      actionKey: 'witchPoisonDecision'
+    }];
+    roomState.moderatorStepIndex = 0;
+    roomState.moderatorSpeechDone = true;
+  `, context);
+
+  const banners = [];
+  context.updateBanner = (phase, announcement, detail) => {
+    banners.push({ phase: String(phase), announcement: String(announcement), detail: String(detail) });
+  };
+
+  assert.equal(context.useWitchPoison(), true);
+  assert.equal(context.selectWitchPoisonTarget(2), true);
+  assert.equal(context.confirmWitchPoison(), true);
+
+  assert.ok(banners.length > 0, '測試模式仍可顯示一般行動狀態');
+  assert.doesNotMatch(JSON.stringify(banners), /2\s*號|2號/,
+    '全局狀態欄不能揭露女巫的私密毒藥目標');
+  assert.doesNotMatch(elements.get('gameHistoryLog').innerHTML, /女巫使用毒藥指定|2\s*號/,
+    '全局行動紀錄不能顯示女巫的私密技能目標');
+
+  const privateHistory = JSON.parse(vm.runInContext('JSON.stringify(roomState.actionHistory)', context));
+  assert.ok(privateHistory.some(entry => entry.visibility === 'private' && /2\s*號/.test(entry.message)),
+    '目標號碼仍需保存於私密技能紀錄');
+
+  vm.runInContext("roomState.currentPhase = 'DAY_DEATH'; roomState.currentPerspective = 1;", context);
+  context.updateControlPanel();
+  const witchSummary = elements.get('actionControls').children.find(child => child.className === 'witch-day-summary');
+  assert.ok(witchSummary, '白天女巫控制台應顯示藥劑使用摘要');
+  assert.match(witchSummary.textContent, /毒藥：2號/,
+    '女巫白天仍應能看到實際使用毒藥的目標');
+});

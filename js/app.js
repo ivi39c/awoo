@@ -130,6 +130,8 @@ class Player {
       deathSkillQueue: [],
       deathSkillReturnPhase: null,
       deathSkillExecutedVictim: null,
+      sheriffBadgeReturnPhase: null,
+      sheriffBadgeExecutedVictim: null,
       sheriffId: null,
       guardLastTarget: null,
       nightVictim: null,
@@ -797,6 +799,9 @@ function showBgmPlayButton() {
       }
       else if (roomState.currentPhase === 'DEATH_SKILL') {
         renderDeathSkillPanel(p, controls);
+      }
+      else if (roomState.currentPhase === 'SHERIFF_BADGE') {
+        renderSheriffBadgePanel(p, controls);
       }
       else if (roomState.currentPhase === 'DAY_DEATH') {
         if (p.isSheriff) {
@@ -1722,6 +1727,7 @@ function showBgmPlayButton() {
         finishGame(winner, deathSummary);
         return true;
       }
+      if (startSheriffBadgeDecision('DAY_DEATH')) return true;
 
       if (roomState.sheriffMode === 'enabled' && gameState.currentDay === 1 && !roomState.hasSheriffInGame) {
         if (!setCurrentPhase('SHERIFF_ELECTION')) return false;
@@ -2063,6 +2069,7 @@ function showBgmPlayButton() {
         finishGame(winner, `${targetId} 號玩家已被處決。`);
         return;
       }
+      if (startSheriffBadgeDecision('LAST_WORDS', targetId)) return;
       startLastWordsPhase(targetId);
     }
 
@@ -2158,6 +2165,7 @@ function showBgmPlayButton() {
         finishGame(winner, summary);
         return true;
       }
+      if (startSheriffBadgeDecision(returnPhase, executedVictimId)) return true;
       if (returnPhase === 'LAST_WORDS') {
         startLastWordsPhase(executedVictimId);
       } else {
@@ -2168,6 +2176,77 @@ function showBgmPlayButton() {
           announceDayDeath();
         }
       }
+      return true;
+    }
+
+    function startSheriffBadgeDecision(returnPhase, executedVictimId = null) {
+      const sheriff = roomState.players.find(player => Number(player.id) === Number(roomState.sheriffId));
+      if (!sheriff || sheriff.isAlive || !sheriff.isSheriff) return false;
+      roomState.sheriffBadgeReturnPhase = returnPhase;
+      roomState.sheriffBadgeExecutedVictim = executedVictimId == null ? null : Number(executedVictimId);
+      if (!setCurrentPhase('SHERIFF_BADGE')) return false;
+      clearInterval(roomState.timerInterval);
+      roomState.timerInterval = null;
+      updateBanner('【警徽處理】', `${sheriff.id} 號警長已出局，請選擇移交警徽或銷毀警徽。`, '請切換到已出局的警長座位進行選擇。');
+      speakGod(`${sheriff.id} 號警長出局，請選擇移交警徽或銷毀警徽。`);
+      updateControlPanel();
+      return true;
+    }
+
+    function renderSheriffBadgePanel(player, container) {
+      const sheriff = roomState.players.find(item => Number(item.id) === Number(roomState.sheriffId));
+      if (!sheriff || sheriff.isAlive || !sheriff.isSheriff) {
+        container.innerHTML = '<p>警徽狀態已更新。</p>';
+        return;
+      }
+      if (Number(player.id) !== Number(sheriff.id)) {
+        container.innerHTML = `<p style="color:#aaa;">等待 ${sheriff.id} 號已出局警長處理警徽。</p>`;
+        return;
+      }
+      const targets = roomState.players.filter(item => item.isAlive && Number(item.id) !== Number(sheriff.id));
+      container.innerHTML = `
+        <p style="color:var(--gold-primary);">你已出局，請選擇警徽處理方式。</p>
+        <div class="target-grid">${targets.map(target => `<button class="target-btn" onclick="resolveSheriffBadge('transfer', ${target.id})">移交給 ${target.id} 號</button>`).join('')}</div>
+        <button class="btn-gothic btn-crimson" style="width:100%;margin-top:8px;" onclick="resolveSheriffBadge('destroy')">銷毀警徽</button>
+      `;
+    }
+
+    function resolveSheriffBadge(action, targetId = null) {
+      if (roomState.currentPhase !== 'SHERIFF_BADGE') return false;
+      const sheriff = roomState.players.find(player => Number(player.id) === Number(roomState.sheriffId));
+      if (!sheriff || sheriff.isAlive || Number(roomState.currentPerspective) !== Number(sheriff.id)) {
+        alert('請切換到已出局的警長座位處理警徽。');
+        return false;
+      }
+      let successor = null;
+      if (action === 'transfer') {
+        successor = roomState.players.find(player => Number(player.id) === Number(targetId) && player.isAlive);
+        if (!successor || Number(successor.id) === Number(sheriff.id)) {
+          alert('請選擇一名仍存活的警徽接收者。');
+          return false;
+        }
+      } else if (action !== 'destroy') {
+        return false;
+      }
+      sheriff.isSheriff = false;
+      if (successor) {
+        successor.isSheriff = true;
+        roomState.sheriffId = Number(successor.id);
+        gameState.sheriffId = Number(successor.id);
+        roomState.hasSheriffInGame = true;
+      } else {
+        roomState.sheriffId = null;
+        gameState.sheriffId = null;
+        roomState.hasSheriffInGame = false;
+      }
+      const returnPhase = roomState.sheriffBadgeReturnPhase;
+      const executedVictimId = roomState.sheriffBadgeExecutedVictim;
+      roomState.sheriffBadgeReturnPhase = null;
+      roomState.sheriffBadgeExecutedVictim = null;
+      speakGod(successor ? `警徽已移交給 ${successor.id} 號玩家。` : '警徽已銷毀，本局不再有警長。');
+      renderTable();
+      if (returnPhase === 'LAST_WORDS') startLastWordsPhase(executedVictimId);
+      else announceDayDeath();
       return true;
     }
 

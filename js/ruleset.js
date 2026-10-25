@@ -23,7 +23,6 @@
     winMode: 'edge',
     sheriffWeight: 1.5,
     // User-requested default: Guard -> wolves -> Witch -> Seer.
-    // The awoo-custom preset remains available as an explicit alternative.
     moderatorNightOrderPreset: 'classic',
     guardAndSaveSameTargetDies: true,
     wolfSelfDestructEnabled: true,
@@ -58,8 +57,8 @@
     if (!['edge', 'parity'].includes(rules.winMode)) {
       errors.push('winMode 只能是 edge 或 parity。');
     }
-    if (!['awoo-custom', 'classic'].includes(rules.moderatorNightOrderPreset)) {
-      errors.push('moderatorNightOrderPreset 只能是 awoo-custom 或 classic。');
+    if (rules.moderatorNightOrderPreset !== 'classic') {
+      errors.push('Awoo 標準房規固定使用守衛優先的夜晚順序。');
     }
     if (typeof rules.sheriffWeight !== 'number' || !Number.isFinite(rules.sheriffWeight) || rules.sheriffWeight <= 0) {
       errors.push('sheriffWeight 必須是大於 0 的有限數字。');

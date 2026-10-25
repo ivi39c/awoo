@@ -114,3 +114,10 @@
 - Added engine-level regression coverage that a Hunter death skill can eliminate the final wolf and the subsequent win-condition check returns the good-team win.
 - Also asserts a Hunter-shot death reason does not recursively grant another Hunter death skill.
 - This is domain-engine coverage only; the complete browser flow for chained skill prompts remains pending.
+
+
+## Step 10 follow-up — remove test-mode instructional banner copy (2026-10-25)
+
+- Entering or resetting the local Bot test mode now keeps only the concise test-mode title and clears the two instructional subtitle lines.
+- Added regression coverage for both entry/reset copy and the concise banner call.
+- Automated validation pending; visual browser acceptance remains pending.

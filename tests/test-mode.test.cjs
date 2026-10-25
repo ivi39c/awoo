@@ -78,9 +78,11 @@ test('測試模式的立即結算按鈕只在夜晚階段顯示', () => {
   vm.runInContext("roomState.gameStarted = true; roomState.currentPhase = 'NIGHT';", context);
   context.updateTestModeUI();
   assert.equal(elements.get('testModeResolveNightButton').hidden, false);
+  assert.equal(elements.get('testModeSkipSpeechButton').hidden, false);
   vm.runInContext("roomState.currentPhase = 'DAY_SPEECH';", context);
   context.updateTestModeUI();
   assert.equal(elements.get('testModeResolveNightButton').hidden, true);
+  assert.equal(elements.get('testModeSkipSpeechButton').hidden, true);
 });
 
 test('正式模式禁止切換視角，測試模式允許切換有效座位', () => {

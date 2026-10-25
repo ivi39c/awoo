@@ -311,6 +311,14 @@ class Player {
         selector.setAttribute?.('aria-hidden', roomState.isTestMode ? 'false' : 'true');
       }
       if (banner) banner.style.display = roomState.isTestMode ? 'flex' : 'none';
+      ['spectatorCountBtn', 'mediaTopBtn', 'compendiumTopBtn', 'settingsTopBtn'].forEach(id => {
+        const control = document.getElementById(id);
+        if (control) control.style.display = roomState.isTestMode ? 'none' : '';
+      });
+      const resolveButton = document.getElementById('testModeResolveNightButton');
+      if (resolveButton) {
+        resolveButton.hidden = !roomState.isTestMode || !roomState.gameStarted || roomState.currentPhase !== 'NIGHT' || roomState.gameOver;
+      }
       const coverage = document.getElementById('testRoleCoverage');
       if (coverage) {
         const total = ROLE_DATABASE.length;

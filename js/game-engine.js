@@ -282,11 +282,13 @@
     if (!Array.isArray(players)) throw new TypeError('resolveDeathSkill() 需要 players 陣列。');
     const actor = findPlayer(players, actorId);
     if (!actor || actor.isAlive) return { valid: false, reason: '死亡技能只能由已出局且仍有技能資格的角色發動。' };
+    if (actor.deathSkillUsed === true) return { valid: false, reason: '此角色的死亡技能已經使用過。' };
     const skill = getDeathSkill(actor, deathReason || actor.deathReason);
     if (!skill) return { valid: false, reason: '此角色因目前的死亡原因不能發動死亡技能。' };
     const target = isAlivePlayer(players, targetId);
     if (!target) return { valid: false, reason: '請選擇仍存活的目標。' };
     if (Number(target.id) === Number(actor.id)) return { valid: false, reason: '不能選擇自己作為死亡技能目標。' };
+    actor.deathSkillUsed = true;
     target.isAlive = false;
     target.deathReason = skill.type === 'hunter-shot' ? 'HUNTER_SHOT' : skill.type === 'white-wolf-king-shot' ? 'WHITE_WOLF_KING_SHOT' : 'WOLF_KING_SHOT';
     return { valid: true, skill, actor, target, death: { id: Number(target.id), reason: target.deathReason } };

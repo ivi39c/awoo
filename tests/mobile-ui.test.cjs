@@ -43,6 +43,7 @@ test('mobile top toolbar hides actions duplicated in the bottom dock while prese
   assert.match(html, /id="mediaTopBtn"/);
   assert.match(html, /id="compendiumTopBtn"/);
   assert.match(html, /id="settingsTopBtn"/);
+  assert.match(html, /onclick="openSettings\(\)" aria-label="開啟設定與影音控制"/);
   assert.match(css, /@media \(max-width:\s*760px\)[\s\S]*?#spectatorCountBtn,[\s\S]*?#mediaTopBtn,[\s\S]*?#compendiumTopBtn[\s\S]*?display:\s*none\s*!important/s);
   assert.match(css, /\.top-actions #perspectiveSelect\s*\{[^}]*max-width:/s);
   assert.match(css, /@media \(min-width:\s*761px\)/);

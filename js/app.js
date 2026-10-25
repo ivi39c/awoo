@@ -1083,7 +1083,7 @@ function showBgmPlayButton() {
       roomState.witchSaveDecisionMade = true;
       roomState.witchSaveTargetId = Number(validation.target.id);
       recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, message: `女巫使用解藥救援 ${roomState.witchSaveTargetId} 號。` });
-      alert(`已使用解藥，嘗試救援 ${roomState.witchSaveTargetId} 號玩家。`);
+      alert('已使用解藥；目標已記錄在女巫私密面板。');
       updateControlPanel();
       renderGodFlowPanel();
       notifyModeratorActionCompleted();
@@ -1158,7 +1158,7 @@ function showBgmPlayButton() {
       roomState.witchPoisonDraftTargetId = null;
       updateControlPanel();
       renderGodFlowPanel();
-      if (roomState.isTestMode) updateBanner('【女巫行動已記錄】', `測試紀錄：毒藥目標為 ${roomState.witchPoisonTargetId}號。`, '此目標將在本夜統一結算，實際死亡名單以結算結果為準。');
+      if (roomState.isTestMode) updateBanner('【女巫行動已記錄】', '女巫已記錄毒藥行動。', '毒藥目標只顯示在女巫私密面板；實際死亡名單以夜晚結算結果為準。');
       notifyModeratorActionCompleted();
       return true;
     }
@@ -1194,7 +1194,7 @@ function showBgmPlayButton() {
       if (!validation.valid) { alert(validation.reason); return; }
       roomState.guardTargetId = Number(validation.target.id);
       recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, message: `守衛守護 ${validation.target.id} 號。` });
-      alert(`今晚守護 ${validation.target.id} 號玩家。`);
+      alert('守衛行動已記錄；目標保存在守衛的私密技能紀錄中。');
       updateControlPanel();
       renderGodFlowPanel();
       notifyModeratorActionCompleted();
@@ -1212,7 +1212,7 @@ function showBgmPlayButton() {
       roomState.nightVictim = Number(validation.target.id);
       recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, message: `狼人夜刀指定 ${roomState.nightVictim} 號。` });
       roomState.wolfActionDecided = true;
-      alert(`狼隊已指定 ${validation.target.id} 號為襲擊目標。`);
+      alert('狼隊夜間行動已記錄。目標編號不會在女巫提示前透過全局通知顯示。');
       updateControlPanel();
       renderGodFlowPanel();
       notifyModeratorActionCompleted();

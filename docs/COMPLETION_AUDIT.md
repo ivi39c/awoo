@@ -155,3 +155,16 @@
 - GitHub Actions `Awoo checks` passed for commit `1a771aa993192c94080d746b80fa78a9f2fd4b67`: syntax checks passed; Node test suite reported 96 tests passed, 0 failed.
 - Existing source/test evidence also covers the perspective selector labels, wolf teammate seat display, shared target-grid behavior, Hunter narration cues, Witch poison settlement and dawn/victory death announcements, private Witch action records, and the collapsible global action history.
 - Acceptance boundary: these are source-level and automated-test results. A real-browser run across role changes, full night narration, privacy visibility, and mobile layout is still required before calling all ten reported issues fully accepted.
+
+
+## PR #27 follow-up — private target visibility and narration safeguards (2026-10-25)
+
+- Removed target seat numbers from generic alerts for Wolf attacks, Witch antidote use, and Guard protection. Those private targets remain in the actor's private skill history/panel.
+- Removed the Witch poison target number from the global test-mode banner. The Witch's target remains available through the Witch panel/day summary and private skill history; the public global history excludes private entries.
+- Added a regression test that proves the Wolf target is absent from the generic alert and global action history, while the Wolf's own panel/private history retains it.
+- Added a timing regression test that proves the Wolf target is not shown in the Witch panel before the Witch antidote prompt has finished speaking.
+- Added a Witch privacy regression test proving that the poison target is not present in the global banner or public history, but is visible to the Witch in the daytime summary.
+- Added tests confirming that test-mode speech skip cannot advance past an uncompleted role action, the skip/resolve controls are hidden outside Night, and the Hunter wake/hand-signal/close-eyes cues do not create a night action gate.
+- GitHub Actions `Awoo checks` passed on commit `7b75b3a9fbc1bbace5405567b48328c21bf03253`: syntax checks passed; **100 tests passed, 0 failed**.
+- **Acceptance boundary:** privacy and timing behavior now have source-level regression coverage, but browser/mobile acceptance is still pending. In this local prototype, perspective switching is a test tool, not a server-enforced multiplayer privacy boundary.
+

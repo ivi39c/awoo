@@ -117,7 +117,7 @@ test('女巫明確選擇不使用毒藥後，才可繼續主持流程且不消�
   assert.equal(vm.runInContext('roomState.moderatorStepIndex', context), 1);
 });
 
-test('每晚主持流程只叫醒仍存活的角色，避免已出局神職卡住整晚', () => {
+test('每晚保留已出局神職的主持提示，但略過技能行動', () => {
   const { context } = makeContext();
   vm.runInContext(`
     roomState.gameStarted = true; roomState.gameOver = false; roomState.currentPhase = 'NIGHT';
@@ -129,8 +129,11 @@ test('每晚主持流程只叫醒仍存活的角色，避免已出局神職卡�
   `, context);
   context.refreshModeratorScriptForCurrentNight();
   const scriptText = vm.runInContext('roomState.moderatorScript.map(step => step.text).join("\\n")', context);
-  assert.doesNotMatch(scriptText, /預言家請睜眼/);
+  assert.match(scriptText, /預言家請睜眼/);
+  assert.match(scriptText, /預言家已出局，本夜略過行動/);
   assert.match(scriptText, /狼人現身，請睜眼/);
+  const deadSeerSteps = vm.runInContext('roomState.moderatorScript.filter(step => step.role === \'預言家\')', context);
+  assert.equal(deadSeerSteps.some(step => step.actionKey), false, '已出局角色不得保留可提交技能的 actionKey');
 });
 
 test('語音合成的 onend 回呼完成前，下一句保持鎖定；唸完後才解鎖', () => {

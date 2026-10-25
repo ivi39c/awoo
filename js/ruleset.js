@@ -22,9 +22,9 @@
     name: 'Awoo 標準房規',
     winMode: 'edge',
     sheriffWeight: 1.5,
-    // Awoo custom follows the requested order: wolves -> witch -> seer -> guard.
-    // 'classic' follows common alternative boards: guard -> wolves -> witch -> seer.
-    moderatorNightOrderPreset: 'awoo-custom',
+    // User-requested default: Guard -> wolves -> Witch -> Seer.
+    // The awoo-custom preset remains available as an explicit alternative.
+    moderatorNightOrderPreset: 'classic',
     guardAndSaveSameTargetDies: true,
     wolfSelfDestructEnabled: true,
     // By default only the basic wolf can self-destruct. Variants such as White Wolf King

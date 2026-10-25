@@ -918,7 +918,7 @@ function showBgmPlayButton() {
       roomState.executedVictim = null;
 
       // If the first-day sheriff election is interrupted, that election ends without a sheriff.
-      if (previousPhase === 'SHERIFF_ELECTION') {
+      if (previousPhase === 'SHERIFF_ELECTION' || previousPhase === 'SHERIFF_VOTING') {
         roomState.sheriffCandidates = [];
         roomState.hasSheriffInGame = false;
         roomState.sheriffId = null;

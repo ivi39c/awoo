@@ -263,6 +263,9 @@ class Player {
       roomState.isSpectator = (entryType === 'spectator');
       roomState.mySeatId = roomState.isSpectator ? null : 1;
       roomState.sheriffMode = document.getElementById('enableSheriffMode').checked ? 'enabled' : 'disabled';
+      roomState.ruleset = AwooRuleset.resolveRuleset({
+        witchCanSelfSaveFirstNight: document.getElementById('witchCanSelfSaveFirstNight')?.checked !== false,
+      });
 
       closeModal('createRoomModal');
       document.getElementById('lobbyScreen').style.display = 'none';
@@ -1004,7 +1007,8 @@ function showBgmPlayButton() {
         players: roomState.players, actorId: roomState.currentPerspective,
         action: 'witchSave', state: {
           phase: roomState.currentPhase, currentDay: gameState.currentDay, nightVictim: roomState.nightVictim,
-          witchElixirUsed: roomState.witchElixirUsed, witchPoisonUsed: roomState.witchPoisonUsed
+          witchElixirUsed: roomState.witchElixirUsed, witchPoisonUsed: roomState.witchPoisonUsed,
+          witchCanSelfSaveFirstNight: roomState.ruleset.witchCanSelfSaveFirstNight,
         }
       });
       if (!validation.valid) { alert(validation.reason); return; }

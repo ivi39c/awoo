@@ -125,6 +125,21 @@ test('女巫首夜不能同時使用解藥與毒藥，第二夜則允許兩者�
   assert.equal(secondNightSaveAfterPoison.valid, true);
 });
 
+test('女巫首夜自救依房規開關驗證，其他夜晚不受此開關影響', () => {
+  const players = [player(1, '女巫'), player(2, '小狼')];
+  const base = {
+    players, actorId: 1, action: 'witchSave',
+    state: { phase: 'NIGHT', currentDay: 1, nightVictim: 1, witchElixirUsed: false, witchPoisonUsed: false },
+  };
+  assert.equal(Engine.validateNightAction({ ...base, state: { ...base.state, witchCanSelfSaveFirstNight: true } }).valid, true);
+  const blocked = Engine.validateNightAction({ ...base, state: { ...base.state, witchCanSelfSaveFirstNight: false } });
+  assert.equal(blocked.valid, false);
+  assert.match(blocked.reason, /不允許女巫首夜自救/);
+  assert.equal(Engine.validateNightAction({
+    ...base, state: { ...base.state, currentDay: 2, witchCanSelfSaveFirstNight: false },
+  }).valid, true);
+});
+
 test('勝負判定不會因為沒有狼人或沒有某一好人分組而誤判', () => {
   assert.equal(Engine.checkWinCondition([player(1, '平民'), player(2, '預言家')]), null);
   assert.equal(Engine.checkWinCondition([

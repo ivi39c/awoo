@@ -159,6 +159,9 @@
         }
         const victim = isAlivePlayer(roster, state.nightVictim);
         if (!victim) return { valid: false, reason: '目前沒有有效的狼人襲擊目標。' };
+        if (Number(state.currentDay) === 1 && Number(victim.id) === Number(actor.id) && state.witchCanSelfSaveFirstNight === false) {
+          return { valid: false, reason: '目前房規不允許女巫首夜自救。' };
+        }
         return { valid: true, actor, target: victim };
       }
       case 'witchPoison':

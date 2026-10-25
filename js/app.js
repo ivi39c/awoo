@@ -713,7 +713,7 @@ function showBgmPlayButton() {
       roomState.players.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.id;
-        opt.textContent = `視角: ${p.id}號 (${p.name} · ${p.role})`;
+        opt.textContent = `視角：${p.id}號（${p.role}）`;
         if (p.id === roomState.currentPerspective) opt.selected = true;
         select.appendChild(opt);
       });
@@ -1392,16 +1392,27 @@ function showBgmPlayButton() {
         renderGodFlowPanel();
         return;
       }
-      // Only living roles should receive an action call this night. This also means
-      // test-mode role replacement is reflected immediately instead of reusing stale deal data.
-      const roleNames = [...new Set(roomState.players
-        .filter(player => player.isAlive && player.role && player.role !== '未發牌')
-        .map(player => player.role))];
-      roomState.rolesInGame = [...new Set(roomState.players
+      // Build narration from the roles dealt into the game, not only the living players.
+      // Eliminated roles still receive their wake/close narration cue, but never an actionable prompt.
+      const configuredRoleNames = [...new Set(roomState.players
         .filter(player => player.role && player.role !== '未發牌')
         .map(player => player.role))];
-      const result = AwooModeratorScript.buildNightScript(roleNames, gameState.currentDay, roomState.ruleset);
-      roomState.moderatorScript = result.steps;
+      const livingRoleNames = new Set(roomState.players
+        .filter(player => player.isAlive && player.role && player.role !== '未發牌')
+        .map(player => player.role));
+      roomState.rolesInGame = configuredRoleNames;
+      const result = AwooModeratorScript.buildNightScript(configuredRoleNames, gameState.currentDay, roomState.ruleset);
+      roomState.moderatorScript = result.steps.map(step => {
+        if (!step.role || step.role === '全體' || step.role === '狼人陣營' || livingRoleNames.has(step.role) || !step.actionKey) return step;
+        return {
+          ...step,
+          text: `${step.role}已出局，本夜略過行動。`,
+          speechText: `${step.role}已出局，本夜略過行動。`,
+          note: '角色已出局：保留主持流程提示，但不允許提交技能行動。',
+          actionKey: null,
+          kind: 'call',
+        };
+      });
       roomState.moderatorNotices = result.notices;
       roomState.moderatorStepIndex = 0;
       roomState.moderatorManualCompletedStepIndex = null;

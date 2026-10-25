@@ -195,3 +195,17 @@ test('白狼王帶走警長後處理警徽仍會直接進入下一夜', () => {
   assert.equal(nightStarted, true, '警徽處理完後必須依白狼王自爆規則進入下一夜');
   assert.equal(dayAnnounced, false, '不能錯誤地恢復白天死亡公告流程');
 });
+
+
+test('正式發牌後，視角選單每個座位都顯示該座位實際發到的正規身份', () => {
+  const { context, elements } = createContext();
+  context.startQuickBotTest();
+  context.startGameFlow();
+  const expected = JSON.parse(vm.runInContext('JSON.stringify(roomState.players.map(p => ({ id: p.id, role: getRoleDefinition(p.role)?.name || p.role })))', context));
+  const options = elements.get('perspectiveSelect').children;
+  assert.equal(options.length, expected.length);
+  expected.forEach((player, index) => {
+    assert.equal(String(options[index].value), String(player.id));
+    assert.equal(options[index].textContent, `視角：${player.id}號（${player.role}）`);
+  });
+});

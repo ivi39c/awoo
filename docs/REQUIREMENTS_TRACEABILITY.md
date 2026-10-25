@@ -139,4 +139,4 @@ Do not mark a requirement “implemented” based only on role metadata, narrati
 
 - Formal role dealing now resets `deathSkillUsed` for every seat, preventing stale one-use skill state from a prior game.
 - Added regression coverage in `tests/test-mode.test.cjs` for the deal initialization block.
-- Automated CI verification and browser acceptance are pending.
+- GitHub Actions `npm run check` passed on PR #19. Browser acceptance remains pending.

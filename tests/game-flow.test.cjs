@@ -10,6 +10,7 @@ test('phase engine accepts valid transitions and rejects impossible transitions'
   assert.equal(state.currentPhase, 'NIGHT');
   assert.equal(Flow.transitionPhase(state, 'VOTING').ok, false, 'night cannot jump directly to voting');
   assert.equal(state.currentPhase, 'NIGHT', 'rejected transition must not mutate state');
+  assert.equal(Flow.transitionPhase(state, 'SHERIFF_VOTING').ok, false, 'night cannot jump to sheriff voting');
   assert.equal(Flow.transitionPhase(state, 'DAY_DEATH').ok, true);
   assert.equal(Flow.transitionPhase(state, 'DAY_SPEECH').ok, true);
   assert.equal(Flow.transitionPhase(state, 'DAY_SPEECH').ok, true, 'same phase is an accepted no-op for next speaker');
@@ -41,4 +42,11 @@ test('daytime self-destruct phases may jump directly to night after engine valid
     assert.equal(result.ok, true, `${phase} should allow an immediate night transition`);
     assert.equal(state.currentPhase, 'NIGHT');
   }
+});
+
+
+test('sheriff voting phase can transition to day death or night after a valid outcome', () => {
+  const state = { currentPhase: 'SHERIFF_VOTING' };
+  assert.equal(Flow.transitionPhase(state, 'DAY_DEATH').ok, true);
+  assert.equal(Flow.transitionPhase(state, 'NIGHT').ok, true, 'self-destruct may interrupt sheriff voting and enter night');
 });

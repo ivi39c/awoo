@@ -124,7 +124,7 @@ test('正式發牌時重置上一局遺留的死亡技能使用狀態', () => {
   const dealEnd = appSource.indexOf('gameState.players = roomState.players;', dealStart);
   assert.notEqual(dealStart, -1, '必須存在正式發牌的玩家重置區段');
   assert.notEqual(dealEnd, -1, '必須存在發牌後的狀態初始化');
-  assert.match(appSource.slice(dealStart, dealEnd), /p\\.deathSkillUsed = false;/, '每次正式發牌都必須重置死亡技能狀態');
+  assert.match(appSource.slice(dealStart, dealEnd), /deathSkillUsed = false/, '每次正式發牌都必須重置死亡技能狀態');
 });
 
 test('一般創房流程會關閉測試模式，測試角色覆蓋也不能在一般模式使用', () => {

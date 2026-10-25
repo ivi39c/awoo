@@ -374,7 +374,7 @@ class Player {
         if (control) control.style.display = roomState.isTestMode ? 'none' : '';
       });
       const skipSpeechButton = document.getElementById('testModeSkipSpeechButton');
-      if (skipSpeechButton) skipSpeechButton.hidden = !roomState.isTestMode || !roomState.gameStarted || roomState.currentPhase !== 'NIGHT' || roomState.gameOver;
+      if (skipSpeechButton) skipSpeechButton.hidden = !roomState.isTestMode || !roomState.gameStarted || roomState.currentPhase !== 'DAY_SPEECH' || roomState.gameOver;
       const resolveButton = document.getElementById('testModeResolveNightButton');
       if (resolveButton) {
         resolveButton.hidden = !roomState.isTestMode || !roomState.gameStarted || roomState.currentPhase !== 'NIGHT' || roomState.gameOver;
@@ -1734,6 +1734,18 @@ function showBgmPlayButton() {
       roomState.moderatorSpeechDone = true; renderGodFlowPanel(); updateControlPanel();
       if (isModeratorStepActionComplete(step)) return advanceModeratorLine();
       return true;
+    }
+
+    // Test-mode shortcut: skip the entire player-by-player daytime speech phase.
+    // This deliberately does not skip moderator narration during the night.
+    function skipDaySpeech() {
+      if (!roomState.isTestMode || !roomState.gameStarted || roomState.currentPhase !== 'DAY_SPEECH' || roomState.gameOver) return false;
+      clearInterval(roomState.timerInterval);
+      roomState.timerInterval = null;
+      roomState.activeSpeakerId = null;
+      roomState.currentQueueIndex = Array.isArray(roomState.speechQueue) ? roomState.speechQueue.length : 0;
+      enterVotingPhase();
+      return roomState.currentPhase === 'VOTING';
     }
 
     function replayModeratorScript() {

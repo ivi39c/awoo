@@ -147,3 +147,10 @@ Do not mark a requirement “implemented” based only on role metadata, narrati
 - Added engine regression coverage for a Hunter shot eliminating the final wolf before the win-condition check.
 - Added coverage that a Hunter-shot death reason does not recursively grant another death skill.
 - Browser-level interaction and full queue-transition acceptance remain pending.
+
+
+## Follow-up — test-mode main banner cleanup
+
+- Removed long test-mode instructions from the main banner on test-mode entry and reset; the concise title remains.
+- Added regression coverage to prevent the instructional copy from returning.
+- Browser-level layout acceptance remains pending.

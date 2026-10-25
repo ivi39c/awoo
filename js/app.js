@@ -1212,7 +1212,7 @@ function showBgmPlayButton() {
       roomState.nightVictim = Number(validation.target.id);
       recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, message: `狼人夜刀指定 ${roomState.nightVictim} 號。` });
       roomState.wolfActionDecided = true;
-      alert('狼隊夜間行動已記錄。目標編號不會在女巫提示前透過全局通知顯示。');
+      alert('狼隊夜間行動已記錄。');
       updateControlPanel();
       renderGodFlowPanel();
       notifyModeratorActionCompleted();

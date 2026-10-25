@@ -378,6 +378,7 @@ class Player {
       player.role = definition.name;
       player.isAlive = true;
       player.deathReason = null;
+      player.deathSkillUsed = false;
       player.isProtected = false;
       player.canShoot = true;
       if (player.isSheriff) {

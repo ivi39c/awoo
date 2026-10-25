@@ -998,7 +998,7 @@ function showBgmPlayButton() {
         const witchActionHistory = getPerspectiveActionHistory(p.id);
         const witchHistoryPanel = witchActionHistory.length ? `<div class="role-action-history"><b>本局技能紀錄</b><ul>${witchActionHistory.map(item => `<li>${AwooUI.escapeHtml(item)}</li>`).join('')}</ul></div>` : '';
         container.innerHTML = `
-          ${isModeratorActionStep('witchSaveDecision') && roomState.moderatorSpeechDone ? `<p style="font-size:0.8rem;">今晚狼刀目標：<b style="color:var(--crimson-bright);">${roomState.nightVictim != null ? roomState.nightVictim + '號' : '狼人選擇空刀'}</b></p>` : (roomState.witchElixirUsed ? '<p style="font-size:0.8rem;color:#999;">解藥已使用。</p>' : '')}
+          ${isModeratorActionStep('witchSaveDecision') && roomState.moderatorSpeechDone && !roomState.witchElixirUsed ? `<p style="font-size:0.8rem;">今晚狼刀目標：<b style="color:var(--crimson-bright);">${roomState.nightVictim != null ? roomState.nightVictim + '號' : '狼人選擇空刀'}</b></p>` : (roomState.witchElixirUsed ? '<p style="font-size:0.8rem;color:#999;">解藥已使用。</p>' : '')}
           <div class="witch-action-row">
             <button type="button" class="btn-gothic" ${!canWitchSave || roomState.witchElixirUsed || roomState.witchSaveDecisionMade || !roomState.nightVictim ? 'disabled' : ''} onclick="useWitchElixir()">${roomState.witchElixirUsed ? '解藥（已用）' : '解藥救人'}</button>
             <button type="button" class="btn-gothic btn-crimson" ${!canWitchPoison || roomState.witchPoisonUsed || roomState.witchPoisonDecisionMade ? 'disabled' : ''} onclick="useWitchPoison()">${roomState.witchPoisonUsed ? '毒藥（已用）' : '毒藥毒人'}</button>
@@ -1020,8 +1020,8 @@ function showBgmPlayButton() {
       }
       else if (getRoleCamp(p.role) === '狼人') {
         const canWolfAct = isModeratorActionStep('wolfAttack') && roomState.moderatorSpeechDone;
-        const teammates = roomState.players.filter(t => t.isAlive && getRoleCamp(t.role) === '狼人' && Number(t.id) !== Number(p.id));
-        let html = `<p style="font-size:0.8rem; color:var(--crimson-bright);">狼隊隊友：<b>${teammates.length ? teammates.map(t => `${t.id}號`).join('、') : '沒有其他存活隊友'}</b></p><p style="font-size:0.8rem; color:var(--crimson-bright);">狼隊討論夜刀標靶：</p>`;
+        const teammates = roomState.players.filter(t => getRoleCamp(t.role) === '狼人' && Number(t.id) !== Number(p.id));
+        let html = `<p style="font-size:0.8rem; color:var(--crimson-bright);">狼隊隊友：<b>${teammates.length ? teammates.map(t => `${t.id}號${t.isAlive ? '' : '（已出局）'}`).join('、') : '沒有其他隊友'}</b></p><p style="font-size:0.8rem; color:var(--crimson-bright);">狼隊討論夜刀標靶：</p>`;
         html += renderPlayerTargetGrid({ onSelect: 'wolfKillTarget', isAllowed: t => t.isAlive && getRoleCamp(t.role) !== '狼人', isDisabled: () => !canWolfAct || roomState.wolfActionDecided, showDead: true });
         html += `<button type="button" class="btn-gothic" style="width:100%; margin-top:8px;" onclick="confirmWolfNoKill()" ${!canWolfAct || roomState.wolfActionDecided ? 'disabled' : ''}>確認空刀（本夜不襲擊）</button>`;
         if (roomState.wolfActionDecided) html += `<p class="test-action-confirmation">已完成狼人行動${roomState.nightVictim != null ? `：${roomState.nightVictim}號` : '：空刀'}，可繼續上帝流程。</p>`;

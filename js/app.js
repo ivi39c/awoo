@@ -55,7 +55,7 @@ class Player {
       return `<div class="target-grid">${roomState.players.map(target => {
         const dead = !target.isAlive, allowed = isAllowed(target), selected = selectedId != null && Number(selectedId) === Number(target.id);
         const disabled = !allowed || isDisabled(target) || (dead && !showDead);
-        return `<button type="button" class="target-btn${dead ? ' is-dead' : ''}${selected ? ' selected' : ''}" ${disabled ? 'disabled aria-disabled="true"' : ''} aria-pressed="${selected ? 'true' : 'false'}" onclick="${onSelect}(${Number(target.id)})">${target.id}號${dead && showDead ? '（已出局）' : ''}</button>`;
+        return `<button class="target-btn${dead ? ' is-dead' : ''}${selected ? ' selected' : ''}" ${disabled ? 'disabled' : ''} onclick="${onSelect}(${Number(target.id)})" type="button" aria-disabled="${disabled ? 'true' : 'false'}" aria-pressed="${selected ? 'true' : 'false'}">${target.id}號${dead && showDead ? '（已出局）' : ''}</button>`;
       }).join('')}</div>`;
     }
     function settleNightActions(wolfTargetId, witchSaveTargetId, witchPoisonTargetId, guardTargetId) {

@@ -310,7 +310,7 @@ class Player {
       updateTestModeUI();
       initBgmAudio();
       initPlayers(12);
-      updateBanner('【測試模式】', 'Bot 已填滿座位。請開始遊戲，再切換視角並使用角色下拉選單巡檢所有角色控制台。', '測試模式允許切換視角及覆蓋測試角色；一般模式不提供此功能。');
+      updateBanner('【測試模式】', '', '');
     }
 
     function updateTestModeUI() {
@@ -456,7 +456,7 @@ class Player {
       gameState.sheriffId = null;
       initPlayers(12);
       updateTestModeUI();
-      updateBanner('【測試模式】', '測試局已重置。可重新發牌，繼續檢查角色控制台。', '測試角色覆蓋與視角切換僅在此模式有效。');
+      updateBanner('【測試模式】', '', '');
     }
 
     function exitTestMode() {

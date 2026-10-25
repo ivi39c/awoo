@@ -133,3 +133,10 @@ Do not mark a requirement “implemented” based only on role metadata, narrati
 - PR #8 added sheriff badge transfer/destruction after a sheriff's death. CI passed.
 - Browser-level acceptance is still pending. These changes are verified by syntax/unit tests, not by a complete browser-played game.
 - Still incomplete: White Wolf King/other role skills, comprehensive voting/win-condition scenario coverage, mobile settings/media placement verification, and real multiplayer/WebRTC.
+
+
+## Follow-up — reset death-skill state when dealing a new game
+
+- Formal role dealing now resets `deathSkillUsed` for every seat, preventing stale one-use skill state from a prior game.
+- Added regression coverage in `tests/test-mode.test.cjs` for the deal initialization block.
+- Automated CI verification and browser acceptance are pending.

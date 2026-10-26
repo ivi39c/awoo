@@ -1333,9 +1333,11 @@ function showBgmPlayButton() {
       }
       else if (p.role === '獵人' || p.role === 'HUNTER') {
         const wolfTargetedHunter = Number(roomState.nightVictim) === Number(p.id);
+        const guarded = Number(roomState.guardTargetId) === Number(p.id);
+        const saved = Number(roomState.witchSaveTargetId) === Number(p.id);
+        const guardAndSaveSameTargetDies = roomState.ruleset?.guardAndSaveSameTargetDies !== false;
         const canShootTonight = wolfTargetedHunter
-          && Number(roomState.guardTargetId) !== Number(p.id)
-          && Number(roomState.witchSaveTargetId) !== Number(p.id)
+          && ((guarded && saved && guardAndSaveSameTargetDies) || (!guarded && !saved))
           && Number(roomState.witchPoisonTargetId) !== Number(p.id)
           && !roomState.hunterNightShotUsed;
         const canAct = isModeratorActionStep('hunterNightShot') && roomState.moderatorSpeechDone;
@@ -1372,10 +1374,12 @@ function showBgmPlayButton() {
     function hunterNightShoot(targetId) {
       if (!canSubmitModeratorAction('hunterNightShot')) return false;
       const hunter = roomState.players.find(player => Number(player.id) === Number(roomState.currentPerspective));
+      const guarded = hunter && Number(roomState.guardTargetId) === Number(hunter.id);
+      const saved = hunter && Number(roomState.witchSaveTargetId) === Number(hunter.id);
+      const guardAndSaveSameTargetDies = roomState.ruleset?.guardAndSaveSameTargetDies !== false;
       const canShootTonight = hunter && hunter.role === '獵人'
         && Number(roomState.nightVictim) === Number(hunter.id)
-        && Number(roomState.guardTargetId) !== Number(hunter.id)
-        && Number(roomState.witchSaveTargetId) !== Number(hunter.id)
+        && ((guarded && saved && guardAndSaveSameTargetDies) || (!guarded && !saved))
         && Number(roomState.witchPoisonTargetId) !== Number(hunter.id)
         && !roomState.hunterNightShotUsed;
       const target = roomState.players.find(player => Number(player.id) === Number(targetId) && player.isAlive && Number(player.id) !== Number(hunter?.id));

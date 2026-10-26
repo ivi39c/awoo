@@ -2257,6 +2257,7 @@ function showBgmPlayButton() {
       container.innerHTML = `
         <p style="color:var(--gold-primary);">${current.playerId} 號 ${current.skill.role}：選擇一名存活玩家發動技能。</p>
         ${renderPlayerTargetGrid({ onSelect: 'resolveCurrentDeathSkill', isAllowed: target => target.isAlive && Number(target.id) !== Number(player.id), showDead: true })}
+        ${current.skill.type === 'hunter-shot' ? '<button type="button" class="btn-gothic" style="width:100%;margin-top:8px;" onclick="declineCurrentDeathSkill()">不開槍</button>' : ''}
       `;
     }
 
@@ -2278,18 +2279,40 @@ function showBgmPlayButton() {
         alert(result.reason);
         return false;
       }
-      roomState.deathSkillQueue.shift();
-      roomState.deathSkillDeaths.push(result.death);
-      if (roomState.deathSkillReturnPhase === 'DAY_DEATH') {
-        roomState.lastNightDeaths.push(result.death);
+      return completeCurrentDeathSkill(result);
+    }
+
+    function declineCurrentDeathSkill() {
+      if (roomState.currentPhase !== 'DEATH_SKILL') return false;
+      const current = roomState.deathSkillQueue[0];
+      if (!current || current.skill.type !== 'hunter-shot') return false;
+      if (Number(roomState.currentPerspective) !== Number(current.playerId)) {
+        alert(`請先切換到 ${current.playerId} 號座位。`);
+        return false;
       }
-      const chainedSkill = AwooGameEngine.getDeathSkill(result.target, result.death.reason);
-      if (chainedSkill) {
-        roomState.deathSkillQueue.push({
-          playerId: Number(result.target.id),
-          deathReason: result.death.reason,
-          skill: chainedSkill,
-        });
+      const player = roomState.players.find(item => Number(item.id) === Number(current.playerId));
+      if (!player || player.isAlive || player.deathSkillUsed === true) return false;
+      player.deathSkillUsed = true;
+      return completeCurrentDeathSkill(null);
+    }
+
+    function completeCurrentDeathSkill(result) {
+      const current = roomState.deathSkillQueue[0];
+      if (!current) return false;
+      roomState.deathSkillQueue.shift();
+      if (result && result.death) {
+        roomState.deathSkillDeaths.push(result.death);
+        if (roomState.deathSkillReturnPhase === 'DAY_DEATH') {
+          roomState.lastNightDeaths.push(result.death);
+        }
+        const chainedSkill = AwooGameEngine.getDeathSkill(result.target, result.death.reason);
+        if (chainedSkill) {
+          roomState.deathSkillQueue.push({
+            playerId: Number(result.target.id),
+            deathReason: result.death.reason,
+            skill: chainedSkill,
+          });
+        }
       }
       renderTable();
       if (roomState.deathSkillQueue.length) {

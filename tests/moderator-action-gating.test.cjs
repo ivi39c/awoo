@@ -604,3 +604,62 @@ test('正式模式不顯示可能洩漏隱藏角色資訊的主持備註，測�
   assert.equal(elements.get('godFlowNote').textContent, '私密測試備註');
   assert.match(elements.get('godFlowNotices').textContent, /預言家/);
 });
+
+
+test('遊戲結束後再開一局會保留房間與玩家，並清除上一局狀態', () => {
+  const { context, elements } = makeContext();
+  vm.runInContext(`
+    roomState.isHost = true;
+    roomState.roomId = 'AWOO-1234';
+    roomState.playerCount = 3;
+    roomState.currentPhase = 'GAME_OVER';
+    roomState.gameStarted = true;
+    roomState.gameOver = true;
+    roomState.players = [
+      new Player(1, 'Alice', '預言家'),
+      new Player(2, 'Bob', '小狼'),
+      new Player(3, 'Carol', '女巫')
+    ];
+    roomState.players[1].isAlive = false;
+    roomState.players[1].deathReason = 'KILLED_BY_WOLF';
+    roomState.players[2].isSheriff = true;
+    roomState.actionHistory = [{ day: 1, visibility: 'public', phaseLabel: '白天出局', message: '2號' }];
+    roomState.pendingDawnHistory = { message: '2號' };
+    roomState.userVotes = { 1: 2 };
+    roomState.sheriffCandidates = [3];
+    roomState.deathSkillQueue = [{ playerId: 2 }];
+    gameState.players = roomState.players;
+    gameState.currentDay = 3;
+  `, context);
+  context.updatePerspectiveSelect = () => {};
+  context.updateBanner = () => {};
+  context.renderTable = () => {};
+  context.renderGameHistory = () => {};
+  context.renderGodFlowPanel = () => {};
+  context.updateControlPanel = () => {};
+
+  assert.equal(context.restartGame(), true);
+  assert.equal(vm.runInContext('roomState.roomId', context), 'AWOO-1234');
+  assert.deepEqual(Array.from(vm.runInContext('roomState.players.map(p => p.name)', context)), ['Alice', 'Bob', 'Carol']);
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'LOBBY');
+  assert.equal(vm.runInContext('roomState.gameStarted', context), false);
+  assert.equal(vm.runInContext('roomState.gameOver', context), false);
+  assert.equal(vm.runInContext('gameState.currentDay', context), 1);
+  assert.equal(vm.runInContext('roomState.players.every(p => p.isAlive && p.role === "未發牌" && !p.isSheriff)', context), true);
+  assert.equal(vm.runInContext('roomState.actionHistory.length', context), 0);
+  assert.equal(vm.runInContext('roomState.pendingDawnHistory', context), null);
+  assert.equal(vm.runInContext('Object.keys(roomState.userVotes).length', context), 0);
+  assert.equal(vm.runInContext('roomState.deathSkillQueue.length', context), 0);
+});
+
+test('非房主或非遊戲結束狀態不能呼叫再開一局', () => {
+  const { context } = makeContext();
+  vm.runInContext(`
+    roomState.isHost = false;
+    roomState.currentPhase = 'GAME_OVER';
+    roomState.gameOver = true;
+  `, context);
+  assert.equal(context.restartGame(), false);
+  vm.runInContext('roomState.isHost = true; roomState.currentPhase = "NIGHT"; roomState.gameOver = false', context);
+  assert.equal(context.restartGame(), false);
+});

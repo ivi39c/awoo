@@ -5,9 +5,10 @@ Goal: move Awoo from a local browser prototype to a reliable public multiplayer 
 
 ## 1. Product constraints
 
-- A room supports 16–20 connected people total, including seated players and spectators.
-- The selected game mode determines the number of playable seats; maximum seated players is 13.
-- Remaining room members are spectators and cannot submit player actions.
+- Initial multiplayer implementation uses 13 seated players as a provisional first-stage baseline, not a permanent product limit.
+- The architecture should allow future game modes with up to 20 seated players without redesigning the room/membership system.
+- The final spectator limit and total room-member limit are undecided. Keep these as configurable capacity policies rather than hard-coding 16–20 total members.
+- Spectators are tracked separately from seated players and cannot submit player actions.
 - The current project is a plain HTML/CSS/JavaScript application. Preserve the existing game engine and UI where practical; do not rewrite the game wholesale.
 - Prefer free tiers for development and early testing. Free-tier availability, quotas, and production suitability must be rechecked before public launch.
 - Keep GitHub as the source of truth.
@@ -40,8 +41,8 @@ Goal: move Awoo from a local browser prototype to a reliable public multiplayer 
 
 ## 3. Room and seat model
 
-- `room.maxMembers`: configured to 16–20, counting seated players and spectators.
-- `room.seatCount`: selected game mode's seat count, never above 13.
+- `room.maxMembers`: configurable total member cap, with the final value still undecided.
+- `room.seatCount`: selected game mode's seat count. Use 13 as the provisional initial implementation cap, but design the schema and validation so the cap can later be raised to 20 through explicit configuration/policy changes.
 - A member has one server-controlled membership status: `seated` or `spectator`.
 - A seat can be occupied by at most one authenticated/identified member.
 - The host may configure the room in the lobby; after the game starts, seat changes are rejected unless a future explicit game rule permits them.
@@ -96,7 +97,7 @@ These rules need explicit decisions for exceptional cases (dead players, elimina
 - Add tests for unauthorized actions, stale phase commands, duplicate actions, hidden role privacy, host disconnect, and reconnect.
 
 ### Stage 3 — Multiplayer acceptance
-- Test 2, then 6, then 13 seated players with spectators, and finally 16–20 total room members.
+- Test 2, then 6, then the initial 13-seat baseline with spectators. After capacity policy is decided, test the configured total-member cap. Later, validate up to 20 seated players when that expansion is implemented.
 - Verify role privacy, vote/action consistency, host transfer or host-loss policy, reconnect, and room cleanup.
 - Measure database size, realtime messages, egress, and function usage.
 
@@ -113,7 +114,7 @@ These rules need explicit decisions for exceptional cases (dead players, elimina
 ## 7. Acceptance criteria for the first milestone
 
 1. Two separate browsers can create/join the same room and see the same member/seat/readiness state.
-2. Total membership is limited to the configured room cap (within 16–20), and seated players cannot exceed the selected mode or 13.
+2. Total membership is limited to the configured room cap; the final spectator/total-member cap remains undecided. Initial seated-player cap is 13, while the architecture supports a future expansion to 20.
 3. Spectators cannot occupy a seat or submit game actions.
 4. Refresh/reconnect restores the member's valid room identity and current public state.
 5. A user cannot impersonate the host or another seat by changing browser-side state.
@@ -150,8 +151,8 @@ This audit is based on the current default branch files, not on assumptions abou
 
 ### Product mismatch to resolve before Stage 1
 
-- The product decision is a maximum of 13 seated players, with 16–20 total room members including spectators.
-- The current `index.html` lobby offers standard configurations through 16 players, and `js/app.js` has a 16-player standard configuration. This is a real mismatch. Do not silently expose 14–16 seat modes in the multiplayer room skeleton. In Stage 1, enforce the server-side cap of 13 seats and align the multiplayer setup options with the product decision; preserve any legacy local test options only if clearly isolated from real rooms.
+- The current product decision is provisional: use 13 seated players as the initial multiplayer implementation baseline, but keep the architecture extensible to 20 seated players. The final spectator and total-member caps are still undecided.
+- The current `index.html` lobby offers standard configurations through 16 players, and `js/app.js` has a 16-player standard configuration. Before implementation, distinguish supported local/test configurations from the initial real-room capacity. Do not bake the provisional 13-seat cap into irreversible schema assumptions; enforce capacity through configurable server-side policy and raise it deliberately when larger modes are ready.
 
 ### Implementation consequence
 
@@ -163,7 +164,7 @@ Do not retrofit network calls throughout `app.js` in one pass. Introduce a narro
 
 Use the following as a proposed logical schema; exact SQL and provider-specific policy syntax must be reviewed before applying it.
 
-- `rooms`: internal ID, join code, host member ID, lifecycle status (`lobby` / `in_game` / `closed`), configured seat count (6–13), member cap (16–20), created/updated timestamps.
+- `rooms`: internal ID, join code, host member ID, lifecycle status (`lobby` / `in_game` / `closed`), configured seat count, configurable seat-cap policy (initially up to 13, future target up to 20), configurable total-member cap (final value undecided), created/updated timestamps.
 - `room_members`: room ID, authenticated or securely issued member ID, display name, membership status (`seated` / `spectator`), optional seat number, ready flag, connection/reconnect metadata, joined/last-seen timestamps.
 - Enforce unique room join code, unique membership per room/member, and unique seat number per room where seat number is not null. A transaction or server-side function must reserve seats atomically to prevent two people taking the same seat.
 - The room creator becomes host only through a server-validated create-room operation. A client-supplied `isHost` flag is not authorization.

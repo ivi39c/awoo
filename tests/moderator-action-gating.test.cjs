@@ -576,3 +576,31 @@ test('夜間死亡紀錄需等上帝完成天亮公告後才寫入公開紀錄',
   assert.equal(vm.runInContext('roomState.pendingDawnHistory', context), null);
   assert.match(elements.get('gameHistoryLog').innerHTML, /2號/);
 });
+
+
+test('正式模式不顯示可能洩漏隱藏角色資訊的主持備註，測試模式仍可檢視', () => {
+  const { context, elements } = makeContext();
+  vm.runInContext(`
+    roomState.gameStarted = true;
+    roomState.gameOver = false;
+    roomState.currentPhase = 'NIGHT';
+    roomState.isTestMode = false;
+    roomState.moderatorScript = [{
+      role: '預言家', text: '預言家請睜眼。',
+      speechText: '預言家請睜眼。',
+      note: '私密測試備註',
+      actionKey: null
+    }];
+    roomState.moderatorStepIndex = 0;
+    roomState.moderatorNotices = ['預言家：測試用隱藏角色備註'];
+    roomState.moderatorSpeechDone = true;
+  `, context);
+  context.renderGodFlowPanel();
+  assert.equal(elements.get('godFlowNote').textContent, '');
+  assert.equal(elements.get('godFlowNotices').textContent, '');
+
+  vm.runInContext('roomState.isTestMode = true', context);
+  context.renderGodFlowPanel();
+  assert.equal(elements.get('godFlowNote').textContent, '私密測試備註');
+  assert.match(elements.get('godFlowNotices').textContent, /預言家/);
+});

@@ -84,7 +84,14 @@ class Player {
       gameState.lastGuardedId = result.lastGuardedId;
       roomState.guardLastTarget = result.lastGuardedId;
       roomState.lastNightDeaths = result.deaths;
-      recordGameHistory({ phaseLabel: '夜晚結算', message: formatNightDeathSummary(result.deaths, '無人出局（平安夜）') });
+      // Keep the public death log pending until God finishes the dawn announcement.
+      roomState.pendingDawnHistory = {
+        visibility: 'public',
+        phaseLabel: '昨夜出局',
+        message: result.deaths.length
+          ? result.deaths.map(death => `${Number(death.id)}號`).join('、')
+          : '平安夜',
+      };
       if (result.warnings.length) console.warn('[Awoo] 夜晚結算提醒：', result.warnings);
       return result.deaths;
     }
@@ -129,9 +136,18 @@ class Player {
         || null;
     }
 
-    function speakGod(text) {
+    function flushPendingDawnHistory() {
+      const pending = roomState.pendingDawnHistory;
+      if (!pending) return false;
+      roomState.pendingDawnHistory = null;
+      recordGameHistory(pending);
+      return true;
+    }
+
+    function speakGod(text, onComplete = null) {
       if (!text || !('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
         console.warn('[Awoo] 上帝語音目前不可用；口白文字仍會正常顯示。');
+        if (typeof onComplete === 'function') onComplete();
         return false;
       }
       try {
@@ -149,8 +165,16 @@ class Player {
           // Use the selected voice's actual locale to avoid locale/voice mismatch.
           msg.lang = voice.lang || msg.lang;
         }
+        let completed = false;
+        const completeOnce = () => {
+          if (completed) return;
+          completed = true;
+          if (typeof onComplete === 'function') onComplete();
+        };
+        msg.onend = completeOnce;
         msg.onerror = event => {
           console.warn('[Awoo] 上帝語音播放失敗：', event && event.error ? event.error : 'unknown');
+          completeOnce();
         };
         synth.speak(msg);
         // Some browsers suspend synthesis after backgrounding or a prior interruption.
@@ -158,6 +182,7 @@ class Player {
         return true;
       } catch (error) {
         console.warn('[Awoo] 無法播放上帝語音；口白文字仍會正常顯示。', error);
+        if (typeof onComplete === 'function') onComplete();
         return false;
       }
     }
@@ -1728,8 +1753,12 @@ function showBgmPlayButton() {
         msg.lang = 'zh-TW';
         msg.rate = 0.95;
         const voices = window.speechSynthesis.getVoices();
-        const zhVoice = voices.find(v => v.lang.includes('zh') || v.lang.includes('TW') || v.lang.includes('HK'));
-        if (zhVoice) msg.voice = zhVoice;
+        if (voices.length) godVoiceCache = voices;
+        const zhVoice = getGodChineseVoice(godVoiceCache.length ? godVoiceCache : voices);
+        if (zhVoice) {
+          msg.voice = zhVoice;
+          msg.lang = zhVoice.lang || 'zh-TW';
+        }
         msg.onend = finishSpeech;
         msg.onerror = finishSpeech;
         window.speechSynthesis.speak(msg);
@@ -2029,14 +2058,14 @@ function showBgmPlayButton() {
       if (roomState.hasSheriffInGame) {
         if (!setCurrentPhase('DAY_DEATH')) return;
         updateBanner('【天亮死訊】', `天亮了！${text}`, '請警長指定白天發言方向');
-        speakGod(`天亮了。${text} 請警長選擇發言順序。`);
+        speakGod(`天亮了。${text} 請警長選擇發言順序。`, flushPendingDawnHistory);
         updateControlPanel();
       } else {
         if (!setCurrentPhase('DAY_DEATH')) return;
         const alivePlayers = roomState.players.filter(p => p.isAlive).map(p => p.id);
         if (!alivePlayers.length) { finishGame(checkWinCondition() || 'WEREWOLF_WIN'); return; }
         const randomStart = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
-        speakGod(`天亮了。${text} 本日由 ${randomStart} 號玩家開始發言。`);
+        speakGod(`天亮了。${text} 本日由 ${randomStart} 號玩家開始發言。`, flushPendingDawnHistory);
         startNoSheriffSpeech(randomStart);
       }
     }

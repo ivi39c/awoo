@@ -503,3 +503,49 @@ test('全局紀錄收合時只渲染最新兩筆，展開後才渲染完整紀�
     assert.match(elements.get('gameHistoryLog').innerHTML, new RegExp(message));
   }
 });
+
+
+test('獵人死亡技能面板列出座位目標與不開槍，選擇不開槍後可繼續流程', () => {
+  const { context, elements } = makeContext();
+  vm.runInContext(`
+    roomState.isTestMode = true;
+    roomState.gameStarted = true;
+    roomState.gameOver = false;
+    roomState.currentPhase = 'DEATH_SKILL';
+    roomState.currentPerspective = 1;
+    roomState.playerCount = 6;
+    roomState.sheriffMode = 'disabled';
+    roomState.ruleset = window.AwooRuleset.resolveRuleset({ winMode: 'edge' });
+    roomState.players = [
+      new Player(1, 'Hunter', '獵人'),
+      new Player(2, 'Wolf', '小狼'),
+      new Player(3, 'Civilian 1', '平民'),
+      new Player(4, 'Civilian 2', '平民'),
+      new Player(5, 'Seer', '預言家'),
+      new Player(6, 'Guard', '守衛')
+    ];
+    roomState.players[0].isAlive = false;
+    roomState.players[0].deathReason = 'KILLED_BY_WOLF';
+    gameState.players = roomState.players;
+    roomState.lastNightDeaths = [{ id: 1, reason: 'KILLED_BY_WOLF' }];
+    roomState.deathSkillQueue = [{ playerId: 1, deathReason: 'KILLED_BY_WOLF', skill: { type: 'hunter-shot', role: '獵人' } }];
+    roomState.deathSkillReturnPhase = 'DAY_DEATH';
+    roomState.deathSkillExecutedVictim = null;
+    roomState.deathSkillDeaths = [];
+  `, context);
+  context.updateBanner = () => {};
+  context.speakGod = () => {};
+  context.renderTable = () => {};
+  context.startNoSheriffSpeech = () => {};
+  context.updateControlPanel = () => {};
+
+  context.renderDeathSkillPanel(vm.runInContext('roomState.players[0]', context), elements.get('actionControls') || context.document.getElementById('actionControls'));
+  const html = context.document.getElementById('actionControls').innerHTML;
+  assert.match(html, /resolveCurrentDeathSkill\(2\)/);
+  assert.match(html, /resolveCurrentDeathSkill\(3\)/);
+  assert.match(html, /不開槍/);
+  assert.equal(context.declineCurrentDeathSkill(), true);
+  assert.equal(vm.runInContext('roomState.deathSkillQueue.length', context), 0);
+  assert.equal(vm.runInContext('roomState.players[0].deathSkillUsed', context), true);
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'DAY_DEATH');
+});

@@ -737,6 +737,7 @@ class Player {
       roomState.guardTargetId = null;
       roomState.seerTargetId = null;
       roomState.wolfActionDecided = false;
+      roomState.hunterNightShotUsed = false;
       roomState.witchSaveDecisionMade = false;
       roomState.witchPoisonDecisionMade = false;
       roomState.moderatorManualCompletedStepIndex = null;
@@ -1330,6 +1331,20 @@ function showBgmPlayButton() {
 
         `;
       }
+      else if (p.role === '獵人' || p.role === 'HUNTER') {
+        const wolfTargetedHunter = Number(roomState.nightVictim) === Number(p.id);
+        const canShootTonight = wolfTargetedHunter
+          && Number(roomState.guardTargetId) !== Number(p.id)
+          && Number(roomState.witchSaveTargetId) !== Number(p.id)
+          && Number(roomState.witchPoisonTargetId) !== Number(p.id)
+          && !roomState.hunterNightShotUsed;
+        const canAct = isModeratorActionStep('hunterNightShot') && roomState.moderatorSpeechDone;
+        const enabled = canShootTonight && canAct;
+        let html = `<p style="font-size:0.85rem;color:${enabled ? 'var(--gold-primary)' : '#999'};">今晚開槍手勢：${canShootTonight ? '可開槍' : '不可開槍'}</p>`;
+        html += renderPlayerTargetGrid({ onSelect: 'hunterNightShoot', isAllowed: t => t.isAlive && Number(t.id) !== Number(p.id), isDisabled: () => !enabled, showDead: true });
+        html += `<button type="button" class="btn-gothic" style="width:100%;margin-top:8px;" onclick="declineHunterNightShot()" ${!enabled ? 'disabled' : ''}>不開槍</button>`;
+        container.innerHTML = html;
+      }
       else if (p.role === '守衛' || p.role === 'GUARD') {
         const canGuardAct = isModeratorActionStep('guardProtect') && roomState.moderatorSpeechDone;
         let html = `<p style="font-size:0.8rem;">選擇守護目標（不可連守）：</p>`;
@@ -1352,6 +1367,35 @@ function showBgmPlayButton() {
           : '';
         container.innerHTML = `<p style="font-size:0.85rem; color:#aaa; text-align:center; padding:15px 0;">${baseMessage}</p>${testNotice}`;
       }
+    }
+
+    function hunterNightShoot(targetId) {
+      if (!canSubmitModeratorAction('hunterNightShot')) return false;
+      const hunter = roomState.players.find(player => Number(player.id) === Number(roomState.currentPerspective));
+      const canShootTonight = hunter && hunter.role === '獵人'
+        && Number(roomState.nightVictim) === Number(hunter.id)
+        && Number(roomState.guardTargetId) !== Number(hunter.id)
+        && Number(roomState.witchSaveTargetId) !== Number(hunter.id)
+        && Number(roomState.witchPoisonTargetId) !== Number(hunter.id)
+        && !roomState.hunterNightShotUsed;
+      const target = roomState.players.find(player => Number(player.id) === Number(targetId) && player.isAlive && Number(player.id) !== Number(hunter?.id));
+      if (!canShootTonight || !target) { alert('本夜獵人不可開槍或目標無效。'); return false; }
+      target.isAlive = false;
+      target.deathReason = 'HUNTER_SHOT';
+      roomState.hunterNightShotUsed = true;
+      hunter.deathSkillUsed = true;
+      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: hunter.id, roleActionLabel: `開槍 ${target.id}號`, message: `開槍 ${target.id}號` });
+      renderTable(); updateControlPanel(); notifyModeratorActionCompleted();
+      return true;
+    }
+
+    function declineHunterNightShot() {
+      if (!canSubmitModeratorAction('hunterNightShot')) return false;
+      const hunter = roomState.players.find(player => Number(player.id) === Number(roomState.currentPerspective));
+      if (!hunter || hunter.role !== '獵人' || Number(roomState.nightVictim) !== Number(hunter.id) || roomState.hunterNightShotUsed) return false;
+      roomState.hunterNightShotUsed = true;
+      updateControlPanel(); notifyModeratorActionCompleted();
+      return true;
     }
 
     function seerCheck(targetId) {

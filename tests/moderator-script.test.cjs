@@ -68,7 +68,8 @@ test('獵人夜間口白存在，但開槍技能仍保留死亡觸發限制', ()
   assert.ok(hunterSteps.some(step => step.text === '獵人請睜眼。'));
   const hunterActionStep = hunterSteps.find(step => step.actionKey === 'hunterNightShot');
   assert.ok(hunterActionStep, '獵人夜間行動仍需等待獵人完成選擇');
-  assert.equal(hunterActionStep.text, '', '可否開槍是獵人私密資訊，不應由上帝公開口白讀出');
+  assert.equal(hunterActionStep.text, '今晚開槍手勢……', '上帝應公開播報今晚開槍手勢提示');
+  assert.equal(hunterActionStep.speechText, '今晚開槍手勢……', '該提示必須實際播報');
   assert.equal(hunterSteps.some(step => /可開槍|不可開槍/.test(step.text)), false, '公開口白不得洩漏獵人能否開槍');
   assert.ok(hunterSteps.some(step => step.text === '獵人請閉眼。'));
 });

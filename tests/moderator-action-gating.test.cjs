@@ -549,3 +549,30 @@ test('獵人死亡技能面板列出座位目標與不開槍，選擇不開槍�
   assert.equal(vm.runInContext('roomState.players[0].deathSkillUsed', context), true);
   assert.equal(vm.runInContext('roomState.currentPhase', context), 'DAY_DEATH');
 });
+
+
+test('夜間死亡紀錄需等上帝完成天亮公告後才寫入公開紀錄', () => {
+  const { context, elements } = makeContext();
+  vm.runInContext(`
+    roomState.players = [
+      new Player(1, 'Wolf', '小狼'),
+      new Player(2, 'Target', '平民'),
+      new Player(3, 'Seer', '預言家')
+    ];
+    gameState.players = roomState.players;
+    gameState.currentDay = 2;
+    roomState.ruleset = window.AwooRuleset.resolveRuleset({ winMode: 'edge' });
+    roomState.guardLastTarget = null;
+    roomState.actionHistory = [];
+    roomState.pendingDawnHistory = null;
+  `, context);
+
+  context.settleNightActions(2, null, null, null);
+  assert.equal(vm.runInContext('roomState.actionHistory.filter(item => item.visibility !== "private").length', context), 0,
+    '結算死亡名單不應提前出現在全局紀錄');
+  assert.equal(vm.runInContext('roomState.pendingDawnHistory.message', context), '2號');
+
+  assert.equal(context.flushPendingDawnHistory(), true);
+  assert.equal(vm.runInContext('roomState.pendingDawnHistory', context), null);
+  assert.match(elements.get('gameHistoryLog').innerHTML, /2號/);
+});

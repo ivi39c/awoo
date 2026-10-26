@@ -276,9 +276,8 @@ test('狼人確認夜刀後，全局通知與行動紀錄不會提前洩漏目�
   context.alert = (message) => alerts.push(String(message));
 
   assert.equal(context.wolfKillTarget(2), true);
-  assert.ok(alerts.length > 0);
-  assert.doesNotMatch(alerts.join(' '), /2\s*號|2號/,
-    '狼刀目標不能透過全局 alert 提前曝光');
+  assert.equal(alerts.length, 0,
+    '確認狼刀後不應再顯示會中斷主持流程的行動已記錄通知');
   assert.match(elements.get('actionControls').innerHTML, /已完成狼人行動：2號/,
     '狼人自己的控制台仍應保留行動確認資訊');
 

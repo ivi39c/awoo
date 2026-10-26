@@ -663,3 +663,69 @@ test('非房主或非遊戲結束狀態不能呼叫再開一局', () => {
   vm.runInContext('roomState.isHost = true; roomState.currentPhase = "NIGHT"; roomState.gameOver = false', context);
   assert.equal(context.restartGame(), false);
 });
+
+
+test('返回大廳會清除上一局的技能、投票與玩家狀態', () => {
+  const { context } = makeContext();
+  vm.runInContext(`
+    roomState.isHost = true;
+    roomState.isSpectator = false;
+    roomState.mySeatId = 1;
+    roomState.playerCount = 2;
+    roomState.currentPhase = 'GAME_OVER';
+    roomState.gameOver = true;
+    roomState.players = [
+      new Player(1, 'Alice', '預言家'),
+      new Player(2, 'Bob', '小狼')
+    ];
+    roomState.players[1].isAlive = false;
+    roomState.players[1].deathReason = 'KILLED_BY_WOLF';
+    roomState.players[1].isSheriff = true;
+    roomState.actionHistory = [{ day: 2, message: '舊紀錄' }];
+    roomState.pendingDawnHistory = { message: '待公告' };
+    roomState.witchSaveTargetId = 2;
+    roomState.witchPoisonTargetId = 1;
+    roomState.guardTargetId = 2;
+    roomState.seerTargetId = 2;
+    roomState.userVotes = { 1: 2 };
+    roomState.sheriffCandidates = [2];
+    roomState.deathSkillQueue = [{ playerId: 2 }];
+    roomState.speechQueue = [{ playerId: 1 }];
+    roomState.activeSpeakerId = 1;
+    roomState.moderatorScript = [{ id: 'old' }];
+    gameState.players = roomState.players;
+    gameState.currentDay = 4;
+    gameState.witchAntidote = false;
+    gameState.witchPoison = false;
+  `, context);
+  context.initPlayers = (count) => {
+    vm.runInContext(`
+      roomState.players = Array.from({ length: ${count} }, (_, i) => new Player(i + 1, i === 0 ? 'Alice' : '玩家' + (i + 1), '未發牌'));
+      gameState.players = roomState.players;
+    `, context);
+  };
+  context.updatePerspectiveSelect = () => {};
+  context.updateSpectatorUI = () => {};
+  context.updateBanner = () => {};
+  context.renderTable = () => {};
+  context.renderGameHistory = () => {};
+  context.renderGodFlowPanel = () => {};
+  context.updateControlPanel = () => {};
+
+  assert.equal(context.returnToLobby(), true);
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'LOBBY');
+  assert.equal(vm.runInContext('roomState.gameOver', context), false);
+  assert.equal(vm.runInContext('gameState.currentDay', context), 1);
+  assert.equal(vm.runInContext('gameState.witchAntidote && gameState.witchPoison', context), true);
+  assert.equal(vm.runInContext('roomState.players.every(p => p.isAlive && p.role === "未發牌" && !p.isSheriff)', context), true);
+  assert.equal(vm.runInContext('roomState.actionHistory.length', context), 0);
+  assert.equal(vm.runInContext('roomState.pendingDawnHistory', context), null);
+  assert.equal(vm.runInContext('roomState.witchSaveTargetId', context), null);
+  assert.equal(vm.runInContext('roomState.witchPoisonTargetId', context), null);
+  assert.equal(vm.runInContext('roomState.guardTargetId', context), null);
+  assert.equal(vm.runInContext('roomState.seerTargetId', context), null);
+  assert.equal(vm.runInContext('Object.keys(roomState.userVotes).length', context), 0);
+  assert.equal(vm.runInContext('roomState.deathSkillQueue.length', context), 0);
+  assert.equal(vm.runInContext('roomState.speechQueue.length', context), 0);
+  assert.equal(vm.runInContext('roomState.activeSpeakerId', context), null);
+});

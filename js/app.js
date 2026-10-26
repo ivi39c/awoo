@@ -231,23 +231,75 @@ class Player {
       currentVoteTarget = null;
       gameState.currentDay = 1;
       gameState.currentPhase = 'LOBBY';
+      gameState.witchAntidote = true;
+      gameState.witchPoison = true;
+      gameState.lastGuardedId = null;
       gameState.sheriffId = null;
-      roomState.gameStarted = false;
-      roomState.gameOver = false;
-      roomState.currentPhase = 'LOBBY';
-      roomState.actionHistory = [];
-      roomState.pendingDawnHistory = null;
-      roomState.rolesInGame = [];
-      roomState.moderatorScript = [];
-      roomState.moderatorNotices = [];
-      roomState.sheriffCandidates = [];
-      roomState.sheriffVotes = {};
-      roomState.sheriffId = null;
-      roomState.hasSheriffInGame = false;
-      roomState.deathSkillQueue = [];
-      roomState.speechQueue = [];
-      roomState.userVotes = {};
+
+      Object.assign(roomState, {
+        gameStarted: false,
+        gameOver: false,
+        currentPhase: 'LOBBY',
+        currentPerspective: roomState.mySeatId || 1,
+        actionHistory: [],
+        pendingDawnHistory: null,
+        lastNightDeaths: [],
+        rolesInGame: [],
+        nightVictim: null,
+        executedVictim: null,
+        witchSaveTargetId: null,
+        witchPoisonTargetId: null,
+        guardTargetId: null,
+        guardLastTarget: null,
+        seerTargetId: null,
+        wolfActionDecided: false,
+        witchSaveDecisionMade: false,
+        witchPoisonDecisionMade: false,
+        witchElixirUsed: false,
+        witchPoisonUsed: false,
+        showWitchPoisonTargets: false,
+        witchPoisonDraftTargetId: null,
+        moderatorScript: [],
+        moderatorNotices: [],
+        moderatorStepIndex: 0,
+        moderatorSpeechDone: true,
+        moderatorManualCompletedStepIndex: null,
+        sheriffCandidates: [],
+        sheriffVotes: {},
+        sheriffElectionRound: 0,
+        sheriffId: null,
+        hasSheriffInGame: false,
+        deathSkillQueue: [],
+        deathSkillReturnPhase: null,
+        deathSkillExecutedVictim: null,
+        deathSkillDeaths: [],
+        sheriffBadgeReturnPhase: null,
+        sheriffBadgeExecutedVictim: null,
+        speechQueue: [],
+        currentQueueIndex: 0,
+        activeSpeakerId: null,
+        userVotes: {},
+      });
+      roomState.sheriffTimer = 30;
+      roomState.speechTimer = 60;
+      roomState.votingTimer = 15;
+      roomState.testedRoles = new Set();
+
+      roomState.players.forEach(player => {
+        player.role = '未發牌';
+        player.isAlive = true;
+        player.deathReason = null;
+        player.deathSkillUsed = false;
+        player.isProtected = false;
+        player.isAntidoteUsed = false;
+        player.canShoot = true;
+        player.isSheriff = false;
+      });
+
+      updateSpectatorUI();
+      updatePerspectiveSelect();
       updateBanner('【大廳】', '已返回新的大廳。', '目前為本機原型，尚未建立真正的多人房間服務。');
+      renderTable();
       renderGameHistory();
       renderGodFlowPanel();
       updateControlPanel();

@@ -1686,11 +1686,14 @@ function showBgmPlayButton() {
       if (step.condition === 'antidote-available' && roomState.nightVictim != null) {
         noteText = '操作提示：在女巫私密控制台顯示狼刀目標；不要透過公開語音或公共面板讀出號碼。';
       }
-      if (note) note.textContent = noteText;
+      // Detailed role notes/notices are useful in local QA, but must not leak hidden-role metadata in a live game.
+      if (note) note.textContent = roomState.isTestMode ? noteText : '';
       if (notices) {
-        notices.textContent = (roomState.moderatorNotices || []).length
-          ? `需核對的角色流程：${roomState.moderatorNotices.join('；')}`
-          : '本局配置角色都有對應的流程口白。';
+        notices.textContent = roomState.isTestMode
+          ? ((roomState.moderatorNotices || []).length
+            ? `需核對的角色流程：${roomState.moderatorNotices.join('；')}`
+            : '本局配置角色都有對應的流程口白。')
+          : '';
       }
       const speechReady = roomState.moderatorSpeechDone === true;
       const actionComplete = isModeratorStepActionComplete(step);

@@ -115,17 +115,56 @@ class Player {
       updateControlPanel();
     }
 
+    function getGodChineseVoice(voices) {
+      const available = Array.isArray(voices) ? voices : [];
+      // Prefer Traditional Chinese voices, then other Chinese voices. Prefer Google
+      // only when the browser actually exposes one; voice availability is device-dependent.
+      return available.find(v => /^zh[-_]TW$/i.test(v.lang) && /google/i.test(v.name))
+        || available.find(v => /^zh[-_]TW$/i.test(v.lang))
+        || available.find(v => /^zh[-_]/i.test(v.lang) && /google/i.test(v.name))
+        || available.find(v => /^zh[-_]/i.test(v.lang))
+        || available.find(v => /chinese|中文|mandarin/i.test(v.name))
+        || null;
+    }
+
     function speakGod(text) {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const msg = new SpeechSynthesisUtterance(text);
-        msg.lang = 'zh-TW';
-        msg.rate = 0.95;
-        const voices = window.speechSynthesis.getVoices();
-        const zhVoice = voices.find(v => v.lang.includes('zh') || v.lang.includes('TW') || v.lang.includes('HK'));
-        if (zhVoice) msg.voice = zhVoice;
-        window.speechSynthesis.speak(msg);
+      if (!text || !('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+        console.warn('[Awoo] 上帝語音目前不可用；口白文字仍會正常顯示。');
+        return false;
       }
+      try {
+        const synth = window.speechSynthesis;
+        synth.cancel();
+        const msg = new SpeechSynthesisUtterance(String(text));
+        msg.lang = 'zh-TW';
+        msg.rate = 0.92;
+        msg.pitch = 1.0;
+        const voices = synth.getVoices();
+        const voice = getGodChineseVoice(voices);
+        if (voice) {
+          msg.voice = voice;
+          // Use the selected voice's actual locale to avoid locale/voice mismatch.
+          msg.lang = voice.lang || msg.lang;
+        }
+        msg.onerror = event => {
+          console.warn('[Awoo] 上帝語音播放失敗：', event && event.error ? event.error : 'unknown');
+        };
+        synth.speak(msg);
+        // Some browsers suspend synthesis after backgrounding or a prior interruption.
+        if (synth.paused) synth.resume();
+        return true;
+      } catch (error) {
+        console.warn('[Awoo] 無法播放上帝語音；口白文字仍會正常顯示。', error);
+        return false;
+      }
+    }
+
+    // Voice lists can arrive asynchronously. Refreshing is intentionally automatic:
+    // players do not choose a voice and no separate voice-test button is needed.
+    if ('speechSynthesis' in window && typeof window.speechSynthesis.addEventListener === 'function') {
+      window.speechSynthesis.addEventListener('voiceschanged', () => {
+        window.speechSynthesis.getVoices();
+      });
     }
 
     let roomState = {

@@ -60,16 +60,12 @@ test('未實作的特殊角色選擇口白會標記手動確認，而不是允�
 });
 
 
-test('預女獵守板型包含獵人睜眼、開槍手勢與閉眼口白', () => {
+test('獵人是死亡觸發技能，不應在一般夜間主持腳本中提前提示開槍手勢', () => {
   const result = Moderator.buildNightScript(['小狼', '女巫', '預言家', '守衛', '獵人'], 2);
   const texts = result.steps.map(step => step.text).join('\n');
-  assert.match(texts, /獵人請睜眼/);
-  assert.match(texts, /今晚開槍請比手勢/);
-  assert.match(texts, /獵人請閉眼/);
-  const hunterSteps = result.steps.filter(step => step.role === '獵人');
-  assert.equal(hunterSteps.length, 3, '獵人應有睜眼、手勢提示、閉眼三句口白');
-  assert.ok(hunterSteps.every(step => !step.actionKey),
-    '手勢提示是主持口白，不得被誤判成夜間死亡技能行動或鎖住流程');
+  assert.doesNotMatch(texts, /獵人請睜眼/);
+  assert.doesNotMatch(texts, /今晚開槍請比手勢/);
+  assert.doesNotMatch(texts, /獵人請閉眼/);
 });
 
 

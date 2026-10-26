@@ -60,16 +60,9 @@ class Player {
       }).join('')}</div>`;
     }
     function formatNightDeathSummary(deaths, emptyText = '昨夜是平安夜，無人出局！') {
-      const causeLabels = {
-        POISONED_BY_WITCH: '女巫毒殺',
-        KILLED_BY_WOLF_AND_POISON: '狼刀＋女巫毒殺',
-        KILLED_BY_WOLF: '狼人襲擊',
-        HUNTER_SHOT: '獵人開槍',
-        WOLF_KING_SHOT: '狼王開槍',
-        WHITE_WOLF_KING_SHOT: '白狼王開槍',
-      };
       if (!Array.isArray(deaths) || deaths.length === 0) return emptyText;
-      return `昨夜出局：${deaths.map(death => `${Number(death.id)} 號${causeLabels[death.reason] ? `（${causeLabels[death.reason]}）` : ''}`).join('、')}。`;
+      // Public dawn narration must reveal seat numbers only, never the cause of death.
+      return `昨夜出局：${deaths.map(death => `${Number(death.id)} 號`).join('、')}。`;
     }
     function settleNightActions(wolfTargetId, witchSaveTargetId, witchPoisonTargetId, guardTargetId) {
       const result = AwooGameEngine.resolveNight({
@@ -1251,7 +1244,7 @@ function showBgmPlayButton() {
       roomState.nightVictim = Number(validation.target.id);
       recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, message: `狼人夜刀指定 ${roomState.nightVictim} 號。` });
       roomState.wolfActionDecided = true;
-      alert('狼隊夜間行動已記錄。');
+      // Avoid interrupting the God narration with a blocking browser alert.
       updateControlPanel();
       renderGodFlowPanel();
       notifyModeratorActionCompleted();

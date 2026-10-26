@@ -263,7 +263,8 @@
     const reason = String(deathReason || '');
     if (role === '獵人') {
       const poisonDeath = reason.includes('POISON') || reason === 'POISONED_BY_WITCH';
-      const eligibleCause = reason === 'KILLED_BY_WOLF' || reason === 'EXECUTED_BY_VOTE';
+      // Awoo rule: Hunter may shoot only after a confirmed nighttime wolf kill.
+      const eligibleCause = reason === 'KILLED_BY_WOLF';
       if (player.canShoot !== false && eligibleCause && !poisonDeath) {
         return { type: 'hunter-shot', role: '獵人', actorId: Number(player.id) };
       }

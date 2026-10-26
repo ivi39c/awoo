@@ -39,7 +39,7 @@ class Player {
       const expanded = document.getElementById('gameHistoryPanel')?.classList.contains('is-expanded');
       const visibleEntries = (expanded ? entries : entries.slice(-2)).slice().reverse();
       log.innerHTML = visibleEntries.length
-        ? visibleEntries.map(entry => `<li><b>第 ${AwooUI.escapeHtml(entry.day)} 天・${AwooUI.escapeHtml(entry.phaseLabel || '')}</b> ${AwooUI.escapeHtml(entry.message || '')}</li>`).join('')
+        ? visibleEntries.map(entry => `<li><b>[D${AwooUI.escapeHtml(entry.day)}, ${AwooUI.escapeHtml(entry.phaseLabel || '')} ${AwooUI.escapeHtml(entry.message || '')}]</b></li>`).join('')
         : '<li class="history-empty">尚無行動紀錄。</li>';
       const summary = document.getElementById('gameHistorySummaryText');
       if (summary) summary.textContent = entries.length ? entries[entries.length - 1].message : '尚無紀錄';
@@ -2353,11 +2353,11 @@ function showBgmPlayButton() {
       const victim = roomState.players.find(p => p.id === targetId);
       if (!victim || !victim.isAlive) { setTimeout(startNextNight, 1000); return; }
       roomState.executedVictim = targetId;
-      recordGameHistory({ phaseLabel: '白天處決', message: `${targetId} 號被公投處決。` });
+      recordGameHistory({ phaseLabel: '白天出局', message: `${targetId}號` });
       victim.isAlive = false;
       victim.deathReason = 'EXECUTED_BY_VOTE';
       renderTable();
-      speakGod(`公投結算結束，最高票數者為 ${targetId} 號玩家！此玩家處決出局。`);
+      speakGod(`${targetId}號出局，請發表遺言。`);
       if (startDeathSkillResolution([{ id: targetId, reason: 'EXECUTED_BY_VOTE' }], 'LAST_WORDS', targetId)) return;
       const winner = checkWinCondition();
       if (winner) {

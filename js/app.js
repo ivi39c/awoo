@@ -117,7 +117,7 @@ class Player {
       // GAME_OVER before players ever hear which seat was eliminated.
       const fullAnnouncement = precedingAnnouncement ? `${precedingAnnouncement}${message}` : message;
       updateBanner('【遊戲結束】', fullAnnouncement, `遊戲共進行 ${gameState.currentDay} 天`);
-      speakGod(precedingAnnouncement ? `天亮了。${fullAnnouncement}` : `遊戲結束，${message}`);
+      speakGod(precedingAnnouncement ? `天亮了。${fullAnnouncement}` : `遊戲結束，${message}`, flushPendingDawnHistory);
       renderTable();
       updateControlPanel();
     }

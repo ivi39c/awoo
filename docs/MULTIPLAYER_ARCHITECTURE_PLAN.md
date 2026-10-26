@@ -188,8 +188,8 @@ For a free-first prototype, compare Supabase anonymous authentication against a 
 ### Stage 1 acceptance tests
 
 1. Two separate browser profiles can create and join the same room and observe the same public member list.
-2. The server rejects member 21 when the room cap is 20.
-3. The server rejects a seat above the configured seat count or above 13.
+2. The server rejects joins when the configured total-member cap has been reached; the exact cap remains a product decision.
+3. The server rejects a seat above the selected game mode's seat count or the active seat-cap policy (initially 13, with a planned path to 20).
 4. Two concurrent seat claims for the same seat cannot both succeed.
 5. Spectators cannot claim a seat or submit readiness as a seated player.
 6. Non-host members cannot change host-only room settings.

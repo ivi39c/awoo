@@ -554,6 +554,13 @@ class Player {
       roomState.currentPhase = 'LOBBY';
       roomState.players = [];
       gameState.players = [];
+      // Ensure test-only perspective controls are hidden immediately on exit.
+      const perspectiveSelect = document.getElementById('perspectiveSelect');
+      if (perspectiveSelect) {
+        perspectiveSelect.style.display = 'none';
+        perspectiveSelect.disabled = true;
+        perspectiveSelect.setAttribute('aria-hidden', 'true');
+      }
       updateTestModeUI();
       document.getElementById('lobbyScreen').style.display = 'flex';
     }
@@ -982,6 +989,12 @@ function showBgmPlayButton() {
         gameState.sheriffId = null;
       }
 
+      recordGameHistory({
+        visibility: 'public',
+        phaseLabel: '白天出局',
+        message: `${result.actor.id}號`,
+      });
+
       renderTable();
       if (result.requiresTargetSelection) {
         if (startDeathSkillResolution([result.death], 'WHITE_WOLF_KING_SELF_DESTRUCT', null)) return;
@@ -1046,7 +1059,7 @@ function showBgmPlayButton() {
           ${poisonStatus}
           ${poisonSelection}
           ${witchHistoryPanel}
-          <div class="witch-day-summary">解藥：${roomState.witchSaveTargetId != null ? `${roomState.witchSaveTargetId}號` : roomState.witchElixirUsed ? '已使用（目標未記錄）' : '未使用'}；毒藥：${roomState.witchPoisonTargetId != null ? `${roomState.witchPoisonTargetId}號` : roomState.witchPoisonUsed ? '已使用（目標未記錄）' : '未使用'}</div>
+
           ${roomState.isTestMode && roomState.witchPoisonTargetId ? `<p class="test-action-confirmation">測試紀錄：女巫毒藥目標已保存為 ${roomState.witchPoisonTargetId}號。</p>` : ''}
         `;
       }

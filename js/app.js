@@ -45,7 +45,12 @@ class Player {
           }).join('')
         : '<li class="history-empty">尚無行動紀錄。</li>';
       const summary = document.getElementById('gameHistorySummaryText');
-      if (summary) summary.textContent = entries.length ? entries[entries.length - 1].message : '尚無紀錄';
+      if (summary) {
+        const latest = entries[entries.length - 1];
+        summary.textContent = latest
+          ? [latest.phaseLabel, latest.message].map(value => String(value || '').trim()).filter(Boolean).join(' ')
+          : '尚無紀錄';
+      }
     }
     function getPerspectiveActionHistory(playerId) {
       return (roomState.actionHistory || [])
@@ -155,6 +160,8 @@ class Player {
         rolesInGame: [],
         actionHistory: [],
         pendingDawnHistory: null,
+        isTieRunoff: false,
+        runoffCandidates: [],
         lastNightDeaths: [],
         nightVictim: null,
         executedVictim: null,

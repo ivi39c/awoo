@@ -62,11 +62,17 @@ class Player {
       const entries = getPerspectiveActionHistory(playerId);
       if (!entries.length) return '';
       const renderItems = items => items.map(item => `<li>${AwooUI.escapeHtml(item)}</li>`).join('');
+      const expanded = roomState.expandedPerspectiveHistoryFor === Number(playerId);
       const recent = entries.slice(-2).reverse();
       return `<div class="role-action-history">
-        <div class="role-action-history-heading" style="display:flex;align-items:center;justify-content:space-between;gap:12px;"><b>本局技能紀錄</b><details><summary>查看紀錄</summary><ul>${renderItems(entries.slice().reverse())}</ul></details></div>
-        <ul>${renderItems(recent)}</ul>
+        <div class="role-action-history-heading" style="display:flex;align-items:center;justify-content:space-between;gap:12px;"><b>本局技能紀錄</b><button type="button" class="history-inline-toggle" onclick="togglePerspectiveActionHistory(${Number(playerId)})" aria-expanded="${expanded ? 'true' : 'false'}">${expanded ? '收起紀錄' : '查看紀錄'}</button></div>
+        <ul>${renderItems(expanded ? entries.slice().reverse() : recent)}</ul>
       </div>`;
+    }
+    function togglePerspectiveActionHistory(playerId) {
+      roomState.expandedPerspectiveHistoryFor = roomState.expandedPerspectiveHistoryFor === Number(playerId) ? null : Number(playerId);
+      updateControlPanel();
+      return true;
     }
     function toggleGameHistory() {
       const panel = document.getElementById('gameHistoryPanel'), details = document.getElementById('gameHistoryLog'), button = document.getElementById('gameHistoryToggle');
@@ -2168,8 +2174,7 @@ function showBgmPlayButton() {
       roomState.sheriffId = null;
       gameState.sheriffId = null;
       roomState.players.forEach(player => { player.isSheriff = false; });
-      speakGod(message);
-      announceDayDeath();
+      speakGod('此局無警長。', announceDayDeath);
     }
 
     function electSheriff(winnerId) {
@@ -2183,8 +2188,7 @@ function showBgmPlayButton() {
       gameState.sheriffId = Number(winner.id);
       roomState.players.forEach(player => { player.isSheriff = Number(player.id) === Number(winner.id); });
       renderTable();
-      speakGod(`${winner.id} 號玩家當選警長！`);
-      announceDayDeath();
+      speakGod(`${winner.id}號當選警長。`, announceDayDeath);
     }
 
     function startSheriffVoting() {
@@ -2453,13 +2457,15 @@ function showBgmPlayButton() {
       victim.isAlive = false;
       victim.deathReason = 'EXECUTED_BY_VOTE';
       renderTable();
-      speakGod(`${targetId}號出局，請發表遺言。`);
+      speakGod(`公投處決 ${targetId}號。`, () => {
+        speakGod(`請 ${targetId}號玩家發表遺言。`, () => continueAfterPublicExecution(targetId));
+      });
+    }
+
+    function continueAfterPublicExecution(targetId) {
       if (startDeathSkillResolution([{ id: targetId, reason: 'EXECUTED_BY_VOTE' }], 'LAST_WORDS', targetId)) return;
       const winner = checkWinCondition();
-      if (winner) {
-        finishGame(winner, `${targetId} 號玩家已被處決。`);
-        return;
-      }
+      if (winner) { finishGame(winner, `${targetId} 號玩家已被處決。`); return; }
       if (startSheriffBadgeDecision('LAST_WORDS', targetId)) return;
       startLastWordsPhase(targetId);
     }

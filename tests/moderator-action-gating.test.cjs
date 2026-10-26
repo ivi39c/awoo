@@ -482,7 +482,7 @@ test('全局行動紀錄預設收合，點擊後可展開並再次收合', () =>
 
 test('全局紀錄收合時只渲染最新兩筆，展開後才渲染完整紀錄', () => {
   const { context, elements } = makeContext();
-  const panel = elements.get('gameHistoryPanel');
+  const panel = context.document.getElementById('gameHistoryPanel');
   panel.classList.contains = () => false;
   vm.runInContext(`
     roomState.actionHistory = [

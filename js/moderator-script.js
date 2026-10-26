@@ -176,9 +176,12 @@
     '長老': { order: 900, passive: true, lines: [] },
     '白痴': { order: 900, passive: true, lines: [] },
     '村長': { order: 900, passive: true, lines: [] },
-    // Hunter is a death-triggered skill, not a routine nightly role.
-    // The panel is shown only after a qualifying night wolf-kill death is confirmed.
-    '獵人': { order: 700, passive: true, lines: [] },
+    // Keep the expected nightly Hunter narration cue. The actual shot remains a
+    // death-triggered skill and is only offered after a qualifying night wolf-kill death.
+    '獵人': { order: 700, lines: [
+      ['獵人請睜眼。', '若獵人今晚因狼人夜刀出局，夜晚結算後會進入開槍選擇；否則不需操作。'],
+      ['獵人請閉眼。', '獵人夜間口白結束；開槍技能仍依死亡觸發條件處理。'],
+    ] },
     '吹笛者': { order: 600, lines: [
       ['吹笛者請睜眼。', '選擇本夜要迷惑的玩家；常見版本一次選兩人。'],
       ['吹笛者，請選擇兩名玩家進行迷惑。', '被迷惑狀態需累積到勝利條件滿足時才結算。'],

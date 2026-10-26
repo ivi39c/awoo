@@ -47,6 +47,18 @@ class Player {
     function getPerspectiveActionHistory(playerId) {
       return (roomState.actionHistory || []).filter(entry => entry.visibility === 'private' && Number(entry.actorId) === Number(playerId)).map(entry => `第 ${entry.day} 天・${entry.phaseLabel}：${entry.message}`);
     }
+
+    function renderPerspectiveActionHistory(playerId) {
+      const entries = getPerspectiveActionHistory(playerId);
+      if (!entries.length) return '';
+      const renderItems = items => items.map(item => `<li>${AwooUI.escapeHtml(item)}</li>`).join('');
+      const recent = entries.slice(-2).reverse();
+      return `<div class="role-action-history">
+        <b>本局技能紀錄</b>
+        <ul>${renderItems(recent)}</ul>
+        <details><summary>查看完整技能紀錄（${entries.length} 筆）</summary><ul>${renderItems(entries.slice().reverse())}</ul></details>
+      </div>`;
+    }
     function toggleGameHistory() {
       const panel = document.getElementById('gameHistoryPanel'), details = document.getElementById('gameHistoryLog'), button = document.getElementById('gameHistoryToggle');
       if (!panel || !details || !button) return false;
@@ -951,18 +963,12 @@ function showBgmPlayButton() {
         witchDaySummary.className = 'witch-day-summary';
         witchDaySummary.textContent = `本局藥劑紀錄｜解藥：${roomState.witchSaveTargetId != null ? `${roomState.witchSaveTargetId}號` : roomState.witchElixirUsed ? '已使用' : '未使用'}；毒藥：${roomState.witchPoisonTargetId != null ? `${roomState.witchPoisonTargetId}號` : roomState.witchPoisonUsed ? '已使用' : '未使用'}`;
         controls.appendChild(witchDaySummary);
-        const witchHistory = getPerspectiveActionHistory(p.id);
-        if (witchHistory.length) {
-          const history = document.createElement('div'); history.className = 'role-action-history';
-          history.innerHTML = `<b>本局技能紀錄</b><ul>${witchHistory.map(item => `<li>${AwooUI.escapeHtml(item)}</li>`).join('')}</ul>`;
-          controls.appendChild(history);
-        }
+        const witchHistory = renderPerspectiveActionHistory(p.id);
+        if (witchHistory) controls.insertAdjacentHTML('beforeend', witchHistory);
       }
-      const perspectiveHistory = getPerspectiveActionHistory(p.id);
-      if (perspectiveHistory.length && p.role !== '女巫' && p.role !== 'WITCH') {
-        const history = document.createElement('div'); history.className = 'role-action-history';
-        history.innerHTML = `<b>本局技能紀錄</b><ul>${perspectiveHistory.map(item => `<li>${AwooUI.escapeHtml(item)}</li>`).join('')}</ul>`;
-        controls.appendChild(history);
+      if (p.role !== '女巫' && p.role !== 'WITCH') {
+        const perspectiveHistory = renderPerspectiveActionHistory(p.id);
+        if (perspectiveHistory) controls.insertAdjacentHTML('beforeend', perspectiveHistory);
       }
       // The panel belongs to the selected player's perspective in the local prototype.
       // Perspective switching and role overrides are intentionally isolated to test mode.

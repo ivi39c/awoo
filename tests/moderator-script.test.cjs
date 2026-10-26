@@ -62,12 +62,13 @@ test('未實作的特殊角色選擇口白會標記手動確認，而不是允�
 });
 
 
-test('獵人是死亡觸發技能，不應在一般夜間主持腳本中提前提示開槍手勢', () => {
+test('獵人夜間口白存在，但開槍技能仍保留死亡觸發限制', () => {
   const result = Moderator.buildNightScript(['小狼', '女巫', '預言家', '守衛', '獵人'], 2);
-  const texts = result.steps.map(step => step.text).join('\n');
-  assert.doesNotMatch(texts, /獵人請睜眼/);
-  assert.doesNotMatch(texts, /今晚開槍請比手勢/);
-  assert.doesNotMatch(texts, /獵人請閉眼/);
+  const hunterSteps = result.steps.filter(step => step.role === '獵人');
+  assert.ok(hunterSteps.some(step => step.text === '獵人請睜眼。'));
+  assert.ok(hunterSteps.some(step => step.text === '今晚開槍請比手勢。'));
+  assert.ok(hunterSteps.some(step => step.text === '獵人請閉眼。'));
+  assert.equal(hunterSteps.some(step => step.actionKey), false, '一般夜間口白不應直接開放獵人開槍');
 });
 
 

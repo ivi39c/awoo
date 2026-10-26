@@ -478,3 +478,28 @@ test('全局行動紀錄預設收合，點擊後可展開並再次收合', () =>
   assert.equal(button.attributes['aria-expanded'], 'false');
   assert.equal(label.textContent, '查看紀錄');
 });
+
+
+test('全局紀錄收合時只渲染最新兩筆，展開後才渲染完整紀錄', () => {
+  const { context, elements } = makeContext();
+  const panel = elements.get('gameHistoryPanel');
+  panel.classList.contains = () => false;
+  vm.runInContext(`
+    roomState.actionHistory = [
+      { day: 1, visibility: 'public', phaseLabel: 'A', message: '紀錄一' },
+      { day: 1, visibility: 'public', phaseLabel: 'B', message: '紀錄二' },
+      { day: 2, visibility: 'public', phaseLabel: 'C', message: '紀錄三' },
+      { day: 2, visibility: 'public', phaseLabel: 'D', message: '紀錄四' }
+    ];
+  `, context);
+  context.renderGameHistory();
+  assert.doesNotMatch(elements.get('gameHistoryLog').innerHTML, /紀錄一|紀錄二/);
+  assert.match(elements.get('gameHistoryLog').innerHTML, /紀錄三/);
+  assert.match(elements.get('gameHistoryLog').innerHTML, /紀錄四/);
+
+  panel.classList.contains = () => true;
+  context.renderGameHistory();
+  for (const message of ['紀錄一', '紀錄二', '紀錄三', '紀錄四']) {
+    assert.match(elements.get('gameHistoryLog').innerHTML, new RegExp(message));
+  }
+});

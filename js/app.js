@@ -59,7 +59,7 @@ class Player {
       const renderItems = items => items.map(item => `<li>${AwooUI.escapeHtml(item)}</li>`).join('');
       const recent = entries.slice(-2).reverse();
       return `<div class="role-action-history">
-        <div class="role-action-history-heading"><b>本局技能紀錄</b><details><summary>查看紀錄</summary><ul>${renderItems(entries.slice().reverse())}</ul></details></div>
+        <div class="role-action-history-heading" style="display:flex;align-items:center;justify-content:space-between;gap:12px;"><b>本局技能紀錄</b><details><summary>查看紀錄</summary><ul>${renderItems(entries.slice().reverse())}</ul></details></div>
         <ul>${renderItems(recent)}</ul>
       </div>`;
     }

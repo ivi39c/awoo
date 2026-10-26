@@ -180,7 +180,7 @@
     // death-triggered skill and is only offered after a qualifying night wolf-kill death.
     '獵人': { order: 700, lines: [
       ['獵人請睜眼。', '若獵人今晚因狼人夜刀出局，夜晚結算後會進入開槍選擇；否則不需操作。'],
-      ['', '僅在獵人確定會因本夜狼刀出局時，於獵人自己的面板開放開槍選擇；可否開槍狀態不得透過上帝公開口白或其他玩家面板顯示。', '', 'hunterNightShot'],
+      ['今晚開槍手勢……', '僅獵人自己的面板顯示可否開槍；不可開槍時號碼與不開槍按鈕皆反灰，且自動繼續上帝流程。', '今晚開槍手勢……', 'call', 'hunterNightShot'],
       ['獵人請閉眼。', '獵人夜間口白結束；開槍技能仍依死亡觸發條件處理。'],
     ] },
     '吹笛者': { order: 600, lines: [

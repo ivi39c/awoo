@@ -1384,6 +1384,7 @@ function showBgmPlayButton() {
       target.deathReason = 'HUNTER_SHOT';
       roomState.hunterNightShotUsed = true;
       hunter.deathSkillUsed = true;
+      hunter.canShoot = false;
       recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: hunter.id, roleActionLabel: `開槍 ${target.id}號`, message: `開槍 ${target.id}號` });
       renderTable(); updateControlPanel(); notifyModeratorActionCompleted();
       return true;
@@ -1394,6 +1395,7 @@ function showBgmPlayButton() {
       const hunter = roomState.players.find(player => Number(player.id) === Number(roomState.currentPerspective));
       if (!hunter || hunter.role !== '獵人' || Number(roomState.nightVictim) !== Number(hunter.id) || roomState.hunterNightShotUsed) return false;
       roomState.hunterNightShotUsed = true;
+      hunter.canShoot = false;
       updateControlPanel(); notifyModeratorActionCompleted();
       return true;
     }

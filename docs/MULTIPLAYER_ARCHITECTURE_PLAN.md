@@ -127,3 +127,78 @@ These rules need explicit decisions for exceptional cases (dead players, elimina
 - Supabase Realtime is a transport/presence capability, not by itself a secure authoritative game server.
 - This document is a proposed plan, not evidence that multiplayer, authentication, WebRTC, or deployment has already been implemented.
 - Large UI redesign and adding more role skills are out of scope for the first multiplayer room milestone.
+
+
+## 9. Baseline audit of current `main` (2026-10-26)
+
+This audit is based on the current default branch files, not on assumptions about a deployed backend.
+
+### Confirmed reusable foundations
+
+- `js/game-engine.js` is intentionally written as pure/domain logic and can be imported by Node.js tests. This is the strongest candidate to preserve as shared game-rule logic.
+- `js/game-flow.js` centralizes legal phase transitions and speaking order.
+- `js/ruleset.js` and `js/role-database.js` already separate rule configuration and role metadata from the browser controller.
+- `package.json` has dependency-free Node test and syntax-check scripts. These should remain available throughout multiplayer work.
+
+### Confirmed local-only boundaries
+
+- `js/app.js` owns `roomState` in browser memory, including room ID, host flag, players, spectators, phase, votes, history, and timers. This is not shared between browsers and is lost on refresh unless separately reconstructed.
+- The room ID is generated in the browser. Existing create/join interactions are prototype flows, not server-validated membership.
+- The `Player` model has local media flags and a `stream` reference, but no authoritative server identity or readiness field.
+- The current media controls call `navigator.mediaDevices.getUserMedia` for local capture. A browser-local `MediaStream` does not establish remote media transport; WebRTC signaling/peer lifecycle still needs implementation.
+- `isHost` and perspective state are browser-controlled in the prototype and must never be trusted for multiplayer authorization.
+
+### Product mismatch to resolve before Stage 1
+
+- The product decision is a maximum of 13 seated players, with 16–20 total room members including spectators.
+- The current `index.html` lobby offers standard configurations through 16 players, and `js/app.js` has a 16-player standard configuration. This is a real mismatch. Do not silently expose 14–16 seat modes in the multiplayer room skeleton. In Stage 1, enforce the server-side cap of 13 seats and align the multiplayer setup options with the product decision; preserve any legacy local test options only if clearly isolated from real rooms.
+
+### Implementation consequence
+
+Do not retrofit network calls throughout `app.js` in one pass. Introduce a narrow room-service adapter for create/join/leave, member list, seat/spectator status, readiness, and reconnect. Keep local test mode on its current local path. Stage 1 must not deal roles or start authoritative matches yet.
+
+## 10. Stage 1: concrete room-skeleton contract
+
+### Minimum data model
+
+Use the following as a proposed logical schema; exact SQL and provider-specific policy syntax must be reviewed before applying it.
+
+- `rooms`: internal ID, join code, host member ID, lifecycle status (`lobby` / `in_game` / `closed`), configured seat count (6–13), member cap (16–20), created/updated timestamps.
+- `room_members`: room ID, authenticated or securely issued member ID, display name, membership status (`seated` / `spectator`), optional seat number, ready flag, connection/reconnect metadata, joined/last-seen timestamps.
+- Enforce unique room join code, unique membership per room/member, and unique seat number per room where seat number is not null. A transaction or server-side function must reserve seats atomically to prevent two people taking the same seat.
+- The room creator becomes host only through a server-validated create-room operation. A client-supplied `isHost` flag is not authorization.
+- Keep role assignments, votes, night actions, and private results out of Stage 1 tables and public room broadcasts.
+
+### Minimum server operations
+
+- `create_room(seat_count, member_cap, display_name)`
+- `join_room(join_code, display_name)`
+- `set_ready(ready)`
+- `claim_seat(seat_number)` and `become_spectator()`, lobby only
+- `leave_room()`
+- `get_public_room_snapshot()`
+
+These are logical operations, not implemented API names. Each operation must derive the caller identity from the authenticated session or a server-validated guest identity, check membership and lifecycle, and return only public room data. Do not accept a client-provided member ID as proof of identity.
+
+### Guest identity decision
+
+For a free-first prototype, compare Supabase anonymous authentication against a short-lived server-issued guest token before implementation. Do not rely on a display name or room code alone to prevent identity spoofing. Document the chosen reconnect behavior before building it.
+
+### Stage 1 acceptance tests
+
+1. Two separate browser profiles can create and join the same room and observe the same public member list.
+2. The server rejects member 21 when the room cap is 20.
+3. The server rejects a seat above the configured seat count or above 13.
+4. Two concurrent seat claims for the same seat cannot both succeed.
+5. Spectators cannot claim a seat or submit readiness as a seated player.
+6. Non-host members cannot change host-only room settings.
+7. Refresh/reconnect restores the same member identity within the documented reconnect window.
+8. Public snapshots contain no roles, private actions, or private role results.
+9. Existing local test mode and `npm run check` remain functional.
+
+### Stage 1 non-goals
+
+- No role dealing, night actions, voting, win resolution, or server-authoritative game loop.
+- No microphone/camera transport or WebRTC.
+- No full UI redesign.
+- No production promise of permanent zero-cost hosting.

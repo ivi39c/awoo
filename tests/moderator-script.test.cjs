@@ -13,13 +13,15 @@ test('首夜角色只在第一夜叫醒；第二夜不再出现盜賊或邱比�
   assert.doesNotMatch(nightTwo, /邱比特請睜眼/);
 });
 
-test('標準房規未指定順序時預設守衛先行，之後才是狼人、女巫與預言家', () => {
-  const result = Moderator.buildNightScript(['小狼', '女巫', '預言家', '守衛'], 2);
-  const texts = result.steps.map(step => step.text);
-  const indexOf = (phrase) => texts.findIndex(text => text.includes(phrase));
-  assert.ok(indexOf('守衛請睜眼') < indexOf('狼人現身，請睜眼'));
-  assert.ok(indexOf('狼人現身，請睜眼') < indexOf('女巫請睜眼'));
-  assert.ok(indexOf('女巫請睜眼') < indexOf('預言家請睜眼'));
+test('第二晚與後續夜晚均維持守衛 → 狼人 → 女巫 → 預言家', () => {
+  for (const day of [2, 3, 4]) {
+    const result = Moderator.buildNightScript(['小狼', '女巫', '預言家', '守衛'], day);
+    const texts = result.steps.map(step => step.text);
+    const indexOf = (phrase) => texts.findIndex(text => text.includes(phrase));
+    assert.ok(indexOf('守衛請睜眼') < indexOf('狼人現身，請睜眼'), `第 ${day} 夜：守衛必須先於狼人`);
+    assert.ok(indexOf('狼人現身，請睜眼') < indexOf('女巫請睜眼'), `第 ${day} 夜：狼人必須先於女巫`);
+    assert.ok(indexOf('女巫請睜眼') < indexOf('預言家請睜眼'), `第 ${day} 夜：女巫必須先於預言家`);
+  }
 });
 
 test('標準房規固定守衛優先；特別角色會有專屬或明確標示的佔位口白', () => {
@@ -60,16 +62,12 @@ test('未實作的特殊角色選擇口白會標記手動確認，而不是允�
 });
 
 
-test('預女獵守板型包含獵人睜眼、開槍手勢與閉眼口白', () => {
+test('獵人是死亡觸發技能，不應在一般夜間主持腳本中提前提示開槍手勢', () => {
   const result = Moderator.buildNightScript(['小狼', '女巫', '預言家', '守衛', '獵人'], 2);
   const texts = result.steps.map(step => step.text).join('\n');
-  assert.match(texts, /獵人請睜眼/);
-  assert.match(texts, /今晚開槍請比手勢/);
-  assert.match(texts, /獵人請閉眼/);
-  const hunterSteps = result.steps.filter(step => step.role === '獵人');
-  assert.equal(hunterSteps.length, 3, '獵人應有睜眼、手勢提示、閉眼三句口白');
-  assert.ok(hunterSteps.every(step => !step.actionKey),
-    '手勢提示是主持口白，不得被誤判成夜間死亡技能行動或鎖住流程');
+  assert.doesNotMatch(texts, /獵人請睜眼/);
+  assert.doesNotMatch(texts, /今晚開槍請比手勢/);
+  assert.doesNotMatch(texts, /獵人請閉眼/);
 });
 
 

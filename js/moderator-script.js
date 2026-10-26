@@ -176,13 +176,9 @@
     '長老': { order: 900, passive: true, lines: [] },
     '白痴': { order: 900, passive: true, lines: [] },
     '村長': { order: 900, passive: true, lines: [] },
-    // Requested by the Awoo 预女猎守 board: nightly wake and hand-signal narration only.
-    // The actual Hunter shot is still governed by the death-skill engine.
-    '獵人': { order: 700, lines: [
-      ['獵人請睜眼。', '獵人依本局主持約定確認狀態。'],
-      ['今晚開槍請比手勢。', '此句是主持手勢提示，不會在夜間直接消耗死亡技能。'],
-      ['獵人請閉眼。', '實際開槍資格仍由死亡原因判定。'],
-    ]},
+    // Hunter is a death-triggered skill, not a routine nightly role.
+    // The panel is shown only after a qualifying night wolf-kill death is confirmed.
+    '獵人': { order: 700, passive: true, lines: [] },
     '吹笛者': { order: 600, lines: [
       ['吹笛者請睜眼。', '選擇本夜要迷惑的玩家；常見版本一次選兩人。'],
       ['吹笛者，請選擇兩名玩家進行迷惑。', '被迷惑狀態需累積到勝利條件滿足時才結算。'],

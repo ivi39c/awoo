@@ -130,7 +130,9 @@ test('每晚保留已出局神職的主持提示，但略過技能行動', () =>
   context.refreshModeratorScriptForCurrentNight();
   const scriptText = vm.runInContext('roomState.moderatorScript.map(step => step.text).join("\\n")', context);
   assert.match(scriptText, /預言家請睜眼/);
-  assert.match(scriptText, /預言家已出局，本夜略過行動/);
+  assert.match(scriptText, /今天晚上你要驗誰/);
+  assert.doesNotMatch(scriptText, /預言家已出局|已出局，本夜略過行動/,
+    '公開主持口白不可洩漏神職已出局');
   assert.match(scriptText, /狼人現身，請睜眼/);
   const deadSeerSteps = vm.runInContext('roomState.moderatorScript.filter(step => step.role === \'預言家\')', context);
   assert.equal(deadSeerSteps.some(step => step.actionKey), false, '已出局角色不得保留可提交技能的 actionKey');
@@ -276,9 +278,8 @@ test('狼人確認夜刀後，全局通知與行動紀錄不會提前洩漏目�
   context.alert = (message) => alerts.push(String(message));
 
   assert.equal(context.wolfKillTarget(2), true);
-  assert.ok(alerts.length > 0);
-  assert.doesNotMatch(alerts.join(' '), /2\s*號|2號/,
-    '狼刀目標不能透過全局 alert 提前曝光');
+  assert.equal(alerts.length, 0,
+    '確認狼刀後不應再顯示會中斷主持流程的行動已記錄通知');
   assert.match(elements.get('actionControls').innerHTML, /已完成狼人行動：2號/,
     '狼人自己的控制台仍應保留行動確認資訊');
 
@@ -476,4 +477,255 @@ test('全局行動紀錄預設收合，點擊後可展開並再次收合', () =>
   assert.equal(details.hidden, true);
   assert.equal(button.attributes['aria-expanded'], 'false');
   assert.equal(label.textContent, '查看紀錄');
+});
+
+
+test('全局紀錄收合時只渲染最新兩筆，展開後才渲染完整紀錄', () => {
+  const { context, elements } = makeContext();
+  const panel = context.document.getElementById('gameHistoryPanel');
+  panel.classList.contains = () => false;
+  vm.runInContext(`
+    roomState.actionHistory = [
+      { day: 1, visibility: 'public', phaseLabel: 'A', message: '紀錄一' },
+      { day: 1, visibility: 'public', phaseLabel: 'B', message: '紀錄二' },
+      { day: 2, visibility: 'public', phaseLabel: 'C', message: '紀錄三' },
+      { day: 2, visibility: 'public', phaseLabel: 'D', message: '紀錄四' }
+    ];
+  `, context);
+  context.renderGameHistory();
+  assert.doesNotMatch(elements.get('gameHistoryLog').innerHTML, /紀錄一|紀錄二/);
+  assert.match(elements.get('gameHistoryLog').innerHTML, /紀錄三/);
+  assert.match(elements.get('gameHistoryLog').innerHTML, /紀錄四/);
+
+  panel.classList.contains = () => true;
+  context.renderGameHistory();
+  for (const message of ['紀錄一', '紀錄二', '紀錄三', '紀錄四']) {
+    assert.match(elements.get('gameHistoryLog').innerHTML, new RegExp(message));
+  }
+});
+
+
+test('獵人死亡技能面板列出座位目標與不開槍，選擇不開槍後可繼續流程', () => {
+  const { context, elements } = makeContext();
+  vm.runInContext(`
+    roomState.isTestMode = true;
+    roomState.gameStarted = true;
+    roomState.gameOver = false;
+    roomState.currentPhase = 'DEATH_SKILL';
+    roomState.currentPerspective = 1;
+    roomState.playerCount = 6;
+    roomState.sheriffMode = 'disabled';
+    roomState.ruleset = window.AwooRuleset.resolveRuleset({ winMode: 'edge' });
+    roomState.players = [
+      new Player(1, 'Hunter', '獵人'),
+      new Player(2, 'Wolf', '小狼'),
+      new Player(3, 'Civilian 1', '平民'),
+      new Player(4, 'Civilian 2', '平民'),
+      new Player(5, 'Seer', '預言家'),
+      new Player(6, 'Guard', '守衛')
+    ];
+    roomState.players[0].isAlive = false;
+    roomState.players[0].deathReason = 'KILLED_BY_WOLF';
+    gameState.players = roomState.players;
+    roomState.lastNightDeaths = [{ id: 1, reason: 'KILLED_BY_WOLF' }];
+    roomState.deathSkillQueue = [{ playerId: 1, deathReason: 'KILLED_BY_WOLF', skill: { type: 'hunter-shot', role: '獵人' } }];
+    roomState.deathSkillReturnPhase = 'DAY_DEATH';
+    roomState.deathSkillExecutedVictim = null;
+    roomState.deathSkillDeaths = [];
+  `, context);
+  context.updateBanner = () => {};
+  context.speakGod = () => {};
+  context.renderTable = () => {};
+  context.startNoSheriffSpeech = () => {};
+  context.updateControlPanel = () => {};
+
+  context.renderDeathSkillPanel(vm.runInContext('roomState.players[0]', context), elements.get('actionControls') || context.document.getElementById('actionControls'));
+  const html = context.document.getElementById('actionControls').innerHTML;
+  assert.match(html, /resolveCurrentDeathSkill\(2\)/);
+  assert.match(html, /resolveCurrentDeathSkill\(3\)/);
+  assert.match(html, /不開槍/);
+  assert.equal(context.declineCurrentDeathSkill(), true);
+  assert.equal(vm.runInContext('roomState.deathSkillQueue.length', context), 0);
+  assert.equal(vm.runInContext('roomState.players[0].deathSkillUsed', context), true);
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'DAY_DEATH');
+});
+
+
+test('夜間死亡紀錄需等上帝完成天亮公告後才寫入公開紀錄', () => {
+  const { context, elements } = makeContext();
+  vm.runInContext(`
+    roomState.players = [
+      new Player(1, 'Wolf', '小狼'),
+      new Player(2, 'Target', '平民'),
+      new Player(3, 'Seer', '預言家')
+    ];
+    gameState.players = roomState.players;
+    gameState.currentDay = 2;
+    roomState.ruleset = window.AwooRuleset.resolveRuleset({ winMode: 'edge' });
+    roomState.guardLastTarget = null;
+    roomState.actionHistory = [];
+    roomState.pendingDawnHistory = null;
+  `, context);
+
+  context.settleNightActions(2, null, null, null);
+  assert.equal(vm.runInContext('roomState.actionHistory.filter(item => item.visibility !== "private").length', context), 0,
+    '結算死亡名單不應提前出現在全局紀錄');
+  assert.equal(vm.runInContext('roomState.pendingDawnHistory.message', context), '2號');
+
+  assert.equal(context.flushPendingDawnHistory(), true);
+  assert.equal(vm.runInContext('roomState.pendingDawnHistory', context), null);
+  assert.match(elements.get('gameHistoryLog').innerHTML, /2號/);
+});
+
+
+test('正式模式不顯示可能洩漏隱藏角色資訊的主持備註，測試模式仍可檢視', () => {
+  const { context, elements } = makeContext();
+  vm.runInContext(`
+    roomState.gameStarted = true;
+    roomState.gameOver = false;
+    roomState.currentPhase = 'NIGHT';
+    roomState.isTestMode = false;
+    roomState.moderatorScript = [{
+      role: '預言家', text: '預言家請睜眼。',
+      speechText: '預言家請睜眼。',
+      note: '私密測試備註',
+      actionKey: null
+    }];
+    roomState.moderatorStepIndex = 0;
+    roomState.moderatorNotices = ['預言家：測試用隱藏角色備註'];
+    roomState.moderatorSpeechDone = true;
+  `, context);
+  context.renderGodFlowPanel();
+  assert.equal(elements.get('godFlowNote').textContent, '');
+  assert.equal(elements.get('godFlowNotices').textContent, '');
+
+  vm.runInContext('roomState.isTestMode = true', context);
+  context.renderGodFlowPanel();
+  assert.equal(elements.get('godFlowNote').textContent, '私密測試備註');
+  assert.match(elements.get('godFlowNotices').textContent, /預言家/);
+});
+
+
+test('遊戲結束後再開一局會保留房間與玩家，並清除上一局狀態', () => {
+  const { context, elements } = makeContext();
+  vm.runInContext(`
+    roomState.isHost = true;
+    roomState.roomId = 'AWOO-1234';
+    roomState.playerCount = 3;
+    roomState.currentPhase = 'GAME_OVER';
+    roomState.gameStarted = true;
+    roomState.gameOver = true;
+    roomState.players = [
+      new Player(1, 'Alice', '預言家'),
+      new Player(2, 'Bob', '小狼'),
+      new Player(3, 'Carol', '女巫')
+    ];
+    roomState.players[1].isAlive = false;
+    roomState.players[1].deathReason = 'KILLED_BY_WOLF';
+    roomState.players[2].isSheriff = true;
+    roomState.actionHistory = [{ day: 1, visibility: 'public', phaseLabel: '白天出局', message: '2號' }];
+    roomState.pendingDawnHistory = { message: '2號' };
+    roomState.userVotes = { 1: 2 };
+    roomState.sheriffCandidates = [3];
+    roomState.deathSkillQueue = [{ playerId: 2 }];
+    gameState.players = roomState.players;
+    gameState.currentDay = 3;
+  `, context);
+  context.updatePerspectiveSelect = () => {};
+  context.updateBanner = () => {};
+  context.renderTable = () => {};
+  context.renderGameHistory = () => {};
+  context.renderGodFlowPanel = () => {};
+  context.updateControlPanel = () => {};
+
+  assert.equal(context.restartGame(), true);
+  assert.equal(vm.runInContext('roomState.roomId', context), 'AWOO-1234');
+  assert.deepEqual(Array.from(vm.runInContext('roomState.players.map(p => p.name)', context)), ['Alice', 'Bob', 'Carol']);
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'LOBBY');
+  assert.equal(vm.runInContext('roomState.gameStarted', context), false);
+  assert.equal(vm.runInContext('roomState.gameOver', context), false);
+  assert.equal(vm.runInContext('gameState.currentDay', context), 1);
+  assert.equal(vm.runInContext('roomState.players.every(p => p.isAlive && p.role === "未發牌" && !p.isSheriff)', context), true);
+  assert.equal(vm.runInContext('roomState.actionHistory.length', context), 0);
+  assert.equal(vm.runInContext('roomState.pendingDawnHistory', context), null);
+  assert.equal(vm.runInContext('Object.keys(roomState.userVotes).length', context), 0);
+  assert.equal(vm.runInContext('roomState.deathSkillQueue.length', context), 0);
+});
+
+test('非房主或非遊戲結束狀態不能呼叫再開一局', () => {
+  const { context } = makeContext();
+  vm.runInContext(`
+    roomState.isHost = false;
+    roomState.currentPhase = 'GAME_OVER';
+    roomState.gameOver = true;
+  `, context);
+  assert.equal(context.restartGame(), false);
+  vm.runInContext('roomState.isHost = true; roomState.currentPhase = "NIGHT"; roomState.gameOver = false', context);
+  assert.equal(context.restartGame(), false);
+});
+
+
+test('返回大廳會清除上一局的技能、投票與玩家狀態', () => {
+  const { context } = makeContext();
+  vm.runInContext(`
+    roomState.isHost = true;
+    roomState.isSpectator = false;
+    roomState.mySeatId = 1;
+    roomState.playerCount = 2;
+    roomState.currentPhase = 'GAME_OVER';
+    roomState.gameOver = true;
+    roomState.players = [
+      new Player(1, 'Alice', '預言家'),
+      new Player(2, 'Bob', '小狼')
+    ];
+    roomState.players[1].isAlive = false;
+    roomState.players[1].deathReason = 'KILLED_BY_WOLF';
+    roomState.players[1].isSheriff = true;
+    roomState.actionHistory = [{ day: 2, message: '舊紀錄' }];
+    roomState.pendingDawnHistory = { message: '待公告' };
+    roomState.witchSaveTargetId = 2;
+    roomState.witchPoisonTargetId = 1;
+    roomState.guardTargetId = 2;
+    roomState.seerTargetId = 2;
+    roomState.userVotes = { 1: 2 };
+    roomState.sheriffCandidates = [2];
+    roomState.deathSkillQueue = [{ playerId: 2 }];
+    roomState.speechQueue = [{ playerId: 1 }];
+    roomState.activeSpeakerId = 1;
+    roomState.moderatorScript = [{ id: 'old' }];
+    gameState.players = roomState.players;
+    gameState.currentDay = 4;
+    gameState.witchAntidote = false;
+    gameState.witchPoison = false;
+  `, context);
+  context.initPlayers = (count) => {
+    vm.runInContext(`
+      roomState.players = Array.from({ length: ${count} }, (_, i) => new Player(i + 1, i === 0 ? 'Alice' : '玩家' + (i + 1), '未發牌'));
+      gameState.players = roomState.players;
+    `, context);
+  };
+  context.updatePerspectiveSelect = () => {};
+  context.updateSpectatorUI = () => {};
+  context.updateBanner = () => {};
+  context.renderTable = () => {};
+  context.renderGameHistory = () => {};
+  context.renderGodFlowPanel = () => {};
+  context.updateControlPanel = () => {};
+
+  assert.equal(context.returnToLobby(), true);
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'LOBBY');
+  assert.equal(vm.runInContext('roomState.gameOver', context), false);
+  assert.equal(vm.runInContext('gameState.currentDay', context), 1);
+  assert.equal(vm.runInContext('gameState.witchAntidote && gameState.witchPoison', context), true);
+  assert.equal(vm.runInContext('roomState.players.every(p => p.isAlive && p.role === "未發牌" && !p.isSheriff)', context), true);
+  assert.equal(vm.runInContext('roomState.actionHistory.length', context), 0);
+  assert.equal(vm.runInContext('roomState.pendingDawnHistory', context), null);
+  assert.equal(vm.runInContext('roomState.witchSaveTargetId', context), null);
+  assert.equal(vm.runInContext('roomState.witchPoisonTargetId', context), null);
+  assert.equal(vm.runInContext('roomState.guardTargetId', context), null);
+  assert.equal(vm.runInContext('roomState.seerTargetId', context), null);
+  assert.equal(vm.runInContext('Object.keys(roomState.userVotes).length', context), 0);
+  assert.equal(vm.runInContext('roomState.deathSkillQueue.length', context), 0);
+  assert.equal(vm.runInContext('roomState.speechQueue.length', context), 0);
+  assert.equal(vm.runInContext('roomState.activeSpeakerId', context), null);
 });

@@ -33,19 +33,38 @@ class Player {
       updateControlPanel();
     }
     function renderGameHistory() {
-      const log = document.getElementById('gameHistoryLog'); if (!log) return;
+      const log = document.getElementById('gameHistoryLog');
+      if (!log) return;
       const entries = (roomState.actionHistory || []).filter(entry => entry.visibility !== 'private');
-      log.innerHTML = entries.length ? entries.slice().reverse().map(entry => `<li><b>第 ${AwooUI.escapeHtml(entry.day)} 天・${AwooUI.escapeHtml(entry.phaseLabel || '')}</b> ${AwooUI.escapeHtml(entry.message || '')}</li>`).join('') : '<li class="history-empty">尚無行動紀錄。</li>';
+      const expanded = document.getElementById('gameHistoryPanel')?.classList.contains('is-expanded');
+      const visibleEntries = (expanded ? entries : entries.slice(-2)).slice().reverse();
+      log.innerHTML = visibleEntries.length
+        ? visibleEntries.map(entry => `<li><b>[D${AwooUI.escapeHtml(entry.day)}, ${AwooUI.escapeHtml(entry.phaseLabel || '')} ${AwooUI.escapeHtml(entry.message || '')}]</b></li>`).join('')
+        : '<li class="history-empty">尚無行動紀錄。</li>';
       const summary = document.getElementById('gameHistorySummaryText');
       if (summary) summary.textContent = entries.length ? entries[entries.length - 1].message : '尚無紀錄';
     }
     function getPerspectiveActionHistory(playerId) {
       return (roomState.actionHistory || []).filter(entry => entry.visibility === 'private' && Number(entry.actorId) === Number(playerId)).map(entry => `第 ${entry.day} 天・${entry.phaseLabel}：${entry.message}`);
     }
+
+    function renderPerspectiveActionHistory(playerId) {
+      const entries = getPerspectiveActionHistory(playerId);
+      if (!entries.length) return '';
+      const renderItems = items => items.map(item => `<li>${AwooUI.escapeHtml(item)}</li>`).join('');
+      const recent = entries.slice(-2).reverse();
+      return `<div class="role-action-history">
+        <b>本局技能紀錄</b>
+        <ul>${renderItems(recent)}</ul>
+        <details><summary>查看完整技能紀錄（${entries.length} 筆）</summary><ul>${renderItems(entries.slice().reverse())}</ul></details>
+      </div>`;
+    }
     function toggleGameHistory() {
       const panel = document.getElementById('gameHistoryPanel'), details = document.getElementById('gameHistoryLog'), button = document.getElementById('gameHistoryToggle');
       if (!panel || !details || !button) return false;
-      const expanded = panel.classList.toggle('is-expanded'); details.hidden = !expanded;
+      const expanded = panel.classList.toggle('is-expanded');
+      details.hidden = !expanded;
+      renderGameHistory();
       button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
       const label = button.querySelector ? button.querySelector('.history-toggle-label') : null;
       if (label) label.textContent = expanded ? '收起紀錄' : '查看紀錄';
@@ -60,16 +79,9 @@ class Player {
       }).join('')}</div>`;
     }
     function formatNightDeathSummary(deaths, emptyText = '昨夜是平安夜，無人出局！') {
-      const causeLabels = {
-        POISONED_BY_WITCH: '女巫毒殺',
-        KILLED_BY_WOLF_AND_POISON: '狼刀＋女巫毒殺',
-        KILLED_BY_WOLF: '狼人襲擊',
-        HUNTER_SHOT: '獵人開槍',
-        WOLF_KING_SHOT: '狼王開槍',
-        WHITE_WOLF_KING_SHOT: '白狼王開槍',
-      };
       if (!Array.isArray(deaths) || deaths.length === 0) return emptyText;
-      return `昨夜出局：${deaths.map(death => `${Number(death.id)} 號${causeLabels[death.reason] ? `（${causeLabels[death.reason]}）` : ''}`).join('、')}。`;
+      // Public dawn narration must reveal seat numbers only, never the cause of death.
+      return `昨夜出局：${deaths.map(death => `${Number(death.id)} 號`).join('、')}。`;
     }
     function settleNightActions(wolfTargetId, witchSaveTargetId, witchPoisonTargetId, guardTargetId) {
       const result = AwooGameEngine.resolveNight({
@@ -84,7 +96,14 @@ class Player {
       gameState.lastGuardedId = result.lastGuardedId;
       roomState.guardLastTarget = result.lastGuardedId;
       roomState.lastNightDeaths = result.deaths;
-      recordGameHistory({ phaseLabel: '夜晚結算', message: formatNightDeathSummary(result.deaths, '無人出局（平安夜）') });
+      // Keep the public death log pending until God finishes the dawn announcement.
+      roomState.pendingDawnHistory = {
+        visibility: 'public',
+        phaseLabel: '昨夜出局',
+        message: result.deaths.length
+          ? result.deaths.map(death => `${Number(death.id)}號`).join('、')
+          : '平安夜',
+      };
       if (result.warnings.length) console.warn('[Awoo] 夜晚結算提醒：', result.warnings);
       return result.deaths;
     }
@@ -94,6 +113,197 @@ class Player {
 
     function checkWinCondition() {
       return AwooGameEngine.checkWinCondition(gameState.players, { winMode: roomState.ruleset.winMode || roomState.winMode || 'edge' });
+    }
+
+    function restartGame() {
+      if (!roomState.isHost || roomState.currentPhase !== 'GAME_OVER' || !roomState.gameOver) {
+        return false;
+      }
+      clearModeratorAutoAdvance();
+      clearInterval(roomState.timerInterval);
+      roomState.timerInterval = null;
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      currentVoteTarget = null;
+
+      // Keep the current room, seats, player names, spectators and media streams.
+      // Reset only match-specific state before the host deals a fresh game.
+      roomState.players.forEach(player => {
+        player.role = '未發牌';
+        player.isAlive = true;
+        player.deathReason = null;
+        player.deathSkillUsed = false;
+        player.isProtected = false;
+        player.isAntidoteUsed = false;
+        player.canShoot = true;
+        player.isSheriff = false;
+      });
+      gameState.players = roomState.players;
+      gameState.currentDay = 1;
+      gameState.currentPhase = 'LOBBY';
+      gameState.witchAntidote = true;
+      gameState.witchPoison = true;
+      gameState.lastGuardedId = null;
+      gameState.sheriffId = null;
+
+      Object.assign(roomState, {
+        currentPhase: 'LOBBY',
+        gameStarted: false,
+        gameOver: false,
+        currentPerspective: roomState.mySeatId || roomState.currentPerspective || 1,
+        rolesInGame: [],
+        actionHistory: [],
+        pendingDawnHistory: null,
+        lastNightDeaths: [],
+        nightVictim: null,
+        executedVictim: null,
+        witchSaveTargetId: null,
+        witchPoisonTargetId: null,
+        guardTargetId: null,
+        seerTargetId: null,
+        wolfActionDecided: false,
+        witchSaveDecisionMade: false,
+        witchPoisonDecisionMade: false,
+        witchElixirUsed: false,
+        witchPoisonUsed: false,
+        showWitchPoisonTargets: false,
+        witchPoisonDraftTargetId: null,
+        sheriffCandidates: [],
+        sheriffVotes: {},
+        sheriffElectionRound: 0,
+        sheriffId: null,
+        hasSheriffInGame: false,
+        deathSkillQueue: [],
+        deathSkillReturnPhase: null,
+        deathSkillExecutedVictim: null,
+        deathSkillDeaths: [],
+        sheriffBadgeReturnPhase: null,
+        sheriffBadgeExecutedVictim: null,
+        speechQueue: [],
+        currentQueueIndex: 0,
+        activeSpeakerId: null,
+        userVotes: {},
+        moderatorScript: [],
+        moderatorNotices: [],
+        moderatorStepIndex: 0,
+        moderatorSpeechDone: true,
+        moderatorManualCompletedStepIndex: null,
+        guardLastTarget: null,
+      });
+      roomState.sheriffTimer = 30;
+      roomState.speechTimer = 60;
+      roomState.votingTimer = 15;
+      roomState.testedRoles = new Set();
+
+      updatePerspectiveSelect();
+      updateBanner('【等待開局】', '上一局已重置，房間與玩家保留。', '房主可重新開始遊戲並發牌。');
+      renderTable();
+      renderGameHistory();
+      renderGodFlowPanel();
+      updateControlPanel();
+      return true;
+    }
+
+    function returnToLobby() {
+      if (roomState.currentPhase !== 'GAME_OVER' || !roomState.gameOver) return false;
+      // The current prototype has no server-side room membership, so this only resets
+      // the local client to a fresh lobby state; it cannot remotely remove other players.
+      clearModeratorAutoAdvance();
+      clearInterval(roomState.timerInterval);
+      roomState.timerInterval = null;
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      roomState.players.forEach(player => {
+        if (player.stream && typeof player.stream.getTracks === 'function') {
+          player.stream.getTracks().forEach(track => track.stop());
+        }
+      });
+      roomState.roomId = 'AWOO-' + Math.floor(1000 + Math.random() * 9000);
+      roomState.isSpectator = false;
+      roomState.isHost = true;
+      roomState.mySeatId = 1;
+      roomState.spectators = [];
+      roomState.players = [];
+      gameState.players = [];
+      initPlayers(roomState.playerCount || 12);
+      return restartLobbyState();
+    }
+
+    function restartLobbyState() {
+      currentVoteTarget = null;
+      gameState.currentDay = 1;
+      gameState.currentPhase = 'LOBBY';
+      gameState.witchAntidote = true;
+      gameState.witchPoison = true;
+      gameState.lastGuardedId = null;
+      gameState.sheriffId = null;
+
+      Object.assign(roomState, {
+        gameStarted: false,
+        gameOver: false,
+        currentPhase: 'LOBBY',
+        currentPerspective: roomState.mySeatId || 1,
+        actionHistory: [],
+        pendingDawnHistory: null,
+        lastNightDeaths: [],
+        rolesInGame: [],
+        nightVictim: null,
+        executedVictim: null,
+        witchSaveTargetId: null,
+        witchPoisonTargetId: null,
+        guardTargetId: null,
+        guardLastTarget: null,
+        seerTargetId: null,
+        wolfActionDecided: false,
+        witchSaveDecisionMade: false,
+        witchPoisonDecisionMade: false,
+        witchElixirUsed: false,
+        witchPoisonUsed: false,
+        showWitchPoisonTargets: false,
+        witchPoisonDraftTargetId: null,
+        moderatorScript: [],
+        moderatorNotices: [],
+        moderatorStepIndex: 0,
+        moderatorSpeechDone: true,
+        moderatorManualCompletedStepIndex: null,
+        sheriffCandidates: [],
+        sheriffVotes: {},
+        sheriffElectionRound: 0,
+        sheriffId: null,
+        hasSheriffInGame: false,
+        deathSkillQueue: [],
+        deathSkillReturnPhase: null,
+        deathSkillExecutedVictim: null,
+        deathSkillDeaths: [],
+        sheriffBadgeReturnPhase: null,
+        sheriffBadgeExecutedVictim: null,
+        speechQueue: [],
+        currentQueueIndex: 0,
+        activeSpeakerId: null,
+        userVotes: {},
+      });
+      roomState.sheriffTimer = 30;
+      roomState.speechTimer = 60;
+      roomState.votingTimer = 15;
+      roomState.testedRoles = new Set();
+
+      roomState.players.forEach(player => {
+        player.role = '未發牌';
+        player.isAlive = true;
+        player.deathReason = null;
+        player.deathSkillUsed = false;
+        player.isProtected = false;
+        player.isAntidoteUsed = false;
+        player.canShoot = true;
+        player.isSheriff = false;
+      });
+
+      updateSpectatorUI();
+      updatePerspectiveSelect();
+      updateBanner('【大廳】', '已返回新的大廳。', '目前為本機原型，尚未建立真正的多人房間服務。');
+      renderTable();
+      renderGameHistory();
+      renderGodFlowPanel();
+      updateControlPanel();
+      return true;
     }
 
     function finishGame(winner, precedingAnnouncement = '') {
@@ -110,21 +320,88 @@ class Player {
       // GAME_OVER before players ever hear which seat was eliminated.
       const fullAnnouncement = precedingAnnouncement ? `${precedingAnnouncement}${message}` : message;
       updateBanner('【遊戲結束】', fullAnnouncement, `遊戲共進行 ${gameState.currentDay} 天`);
-      speakGod(precedingAnnouncement ? `天亮了。${fullAnnouncement}` : `遊戲結束，${message}`);
+      speakGod(precedingAnnouncement ? `天亮了。${fullAnnouncement}` : `遊戲結束，${message}`, flushPendingDawnHistory);
       renderTable();
       updateControlPanel();
     }
 
-    function speakGod(text) {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const msg = new SpeechSynthesisUtterance(text);
+    let godVoiceCache = [];
+
+    function getGodChineseVoice(voices) {
+      const available = Array.isArray(voices) ? voices : [];
+      // Prefer Traditional Chinese voices, then other Chinese voices. Prefer Google
+      // only when the browser actually exposes one; voice availability is device-dependent.
+      return available.find(v => /^zh[-_]TW$/i.test(v.lang) && /google/i.test(v.name))
+        || available.find(v => /^zh[-_]TW$/i.test(v.lang))
+        || available.find(v => /^zh[-_]/i.test(v.lang) && /google/i.test(v.name))
+        || available.find(v => /^zh[-_]/i.test(v.lang))
+        || available.find(v => /chinese|中文|mandarin/i.test(v.name))
+        || null;
+    }
+
+    function flushPendingDawnHistory() {
+      const pending = roomState.pendingDawnHistory;
+      if (!pending) return false;
+      roomState.pendingDawnHistory = null;
+      recordGameHistory(pending);
+      return true;
+    }
+
+    function speakGod(text, onComplete = null) {
+      if (!text || !('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+        console.warn('[Awoo] 上帝語音目前不可用；口白文字仍會正常顯示。');
+        if (typeof onComplete === 'function') onComplete();
+        return false;
+      }
+      try {
+        const synth = window.speechSynthesis;
+        synth.cancel();
+        const msg = new SpeechSynthesisUtterance(String(text));
         msg.lang = 'zh-TW';
-        msg.rate = 0.95;
+        msg.rate = 0.92;
+        msg.pitch = 1.0;
+        const voices = synth.getVoices();
+        if (voices.length) godVoiceCache = voices;
+        const voice = getGodChineseVoice(godVoiceCache.length ? godVoiceCache : voices);
+        if (voice) {
+          msg.voice = voice;
+          // Use the selected voice's actual locale to avoid locale/voice mismatch.
+          msg.lang = voice.lang || msg.lang;
+        }
+        let completed = false;
+        const completeOnce = () => {
+          if (completed) return;
+          completed = true;
+          if (typeof onComplete === 'function') onComplete();
+        };
+        msg.onend = completeOnce;
+        msg.onerror = event => {
+          console.warn('[Awoo] 上帝語音播放失敗：', event && event.error ? event.error : 'unknown');
+          completeOnce();
+        };
+        synth.speak(msg);
+        // Some browsers suspend synthesis after backgrounding or a prior interruption.
+        if (synth.paused) synth.resume();
+        return true;
+      } catch (error) {
+        console.warn('[Awoo] 無法播放上帝語音；口白文字仍會正常顯示。', error);
+        if (typeof onComplete === 'function') onComplete();
+        return false;
+      }
+    }
+
+    // Voice lists can arrive asynchronously. Refreshing is intentionally automatic:
+    // players do not choose a voice and no separate voice-test button is needed.
+    if ('speechSynthesis' in window) {
+      const refreshGodVoices = () => {
         const voices = window.speechSynthesis.getVoices();
-        const zhVoice = voices.find(v => v.lang.includes('zh') || v.lang.includes('TW') || v.lang.includes('HK'));
-        if (zhVoice) msg.voice = zhVoice;
-        window.speechSynthesis.speak(msg);
+        if (voices.length) godVoiceCache = voices;
+      };
+      refreshGodVoices();
+      if (typeof window.speechSynthesis.addEventListener === 'function') {
+        window.speechSynthesis.addEventListener('voiceschanged', refreshGodVoices);
+      } else {
+        window.speechSynthesis.onvoiceschanged = refreshGodVoices;
       }
     }
 
@@ -522,6 +799,13 @@ class Player {
       roomState.currentPhase = 'LOBBY';
       roomState.players = [];
       gameState.players = [];
+      // Ensure test-only perspective controls are hidden immediately on exit.
+      const perspectiveSelect = document.getElementById('perspectiveSelect');
+      if (perspectiveSelect) {
+        perspectiveSelect.style.display = 'none';
+        perspectiveSelect.disabled = true;
+        perspectiveSelect.setAttribute('aria-hidden', 'true');
+      }
       updateTestModeUI();
       document.getElementById('lobbyScreen').style.display = 'flex';
     }
@@ -758,7 +1042,11 @@ function showBgmPlayButton() {
       controls.innerHTML = '';
 
       if (roomState.currentPhase === 'GAME_OVER') {
-        controls.innerHTML = `<p style="text-align:center; color:var(--gold-primary);">本局已結束。重新開局功能將在後續階段加入。</p>`;
+        controls.innerHTML = `
+          <p style="text-align:center; color:var(--gold-primary);">本局已結束。</p>
+          ${roomState.isHost ? '<button class="btn-gothic btn-crimson" style="width:100%;margin-bottom:8px;" onclick="restartGame()">再開一局</button>' : ''}
+          <button class="btn-gothic" style="width:100%;" onclick="returnToLobby()">返回大廳</button>
+        `;
       }
       else if (roomState.currentPhase === 'LOBBY') {
         let actionButtons = '';
@@ -870,18 +1158,20 @@ function showBgmPlayButton() {
         witchDaySummary.className = 'witch-day-summary';
         witchDaySummary.textContent = `本局藥劑紀錄｜解藥：${roomState.witchSaveTargetId != null ? `${roomState.witchSaveTargetId}號` : roomState.witchElixirUsed ? '已使用' : '未使用'}；毒藥：${roomState.witchPoisonTargetId != null ? `${roomState.witchPoisonTargetId}號` : roomState.witchPoisonUsed ? '已使用' : '未使用'}`;
         controls.appendChild(witchDaySummary);
-        const witchHistory = getPerspectiveActionHistory(p.id);
-        if (witchHistory.length) {
-          const history = document.createElement('div'); history.className = 'role-action-history';
-          history.innerHTML = `<b>本局技能紀錄</b><ul>${witchHistory.map(item => `<li>${AwooUI.escapeHtml(item)}</li>`).join('')}</ul>`;
+        const witchHistory = renderPerspectiveActionHistory(p.id);
+        if (witchHistory) {
+          const history = document.createElement('div');
+          history.innerHTML = witchHistory;
           controls.appendChild(history);
         }
       }
-      const perspectiveHistory = getPerspectiveActionHistory(p.id);
-      if (perspectiveHistory.length && p.role !== '女巫' && p.role !== 'WITCH') {
-        const history = document.createElement('div'); history.className = 'role-action-history';
-        history.innerHTML = `<b>本局技能紀錄</b><ul>${perspectiveHistory.map(item => `<li>${AwooUI.escapeHtml(item)}</li>`).join('')}</ul>`;
-        controls.appendChild(history);
+      if (p.role !== '女巫' && p.role !== 'WITCH') {
+        const perspectiveHistory = renderPerspectiveActionHistory(p.id);
+        if (perspectiveHistory) {
+          const history = document.createElement('div');
+          history.innerHTML = perspectiveHistory;
+          controls.appendChild(history);
+        }
       }
       // The panel belongs to the selected player's perspective in the local prototype.
       // Perspective switching and role overrides are intentionally isolated to test mode.
@@ -950,6 +1240,12 @@ function showBgmPlayButton() {
         gameState.sheriffId = null;
       }
 
+      recordGameHistory({
+        visibility: 'public',
+        phaseLabel: '白天出局',
+        message: `${result.actor.id}號`,
+      });
+
       renderTable();
       if (result.requiresTargetSelection) {
         if (startDeathSkillResolution([result.death], 'WHITE_WOLF_KING_SELF_DESTRUCT', null)) return;
@@ -1014,7 +1310,7 @@ function showBgmPlayButton() {
           ${poisonStatus}
           ${poisonSelection}
           ${witchHistoryPanel}
-          <div class="witch-day-summary">解藥：${roomState.witchSaveTargetId != null ? `${roomState.witchSaveTargetId}號` : roomState.witchElixirUsed ? '已使用（目標未記錄）' : '未使用'}；毒藥：${roomState.witchPoisonTargetId != null ? `${roomState.witchPoisonTargetId}號` : roomState.witchPoisonUsed ? '已使用（目標未記錄）' : '未使用'}</div>
+
           ${roomState.isTestMode && roomState.witchPoisonTargetId ? `<p class="test-action-confirmation">測試紀錄：女巫毒藥目標已保存為 ${roomState.witchPoisonTargetId}號。</p>` : ''}
         `;
       }
@@ -1212,7 +1508,7 @@ function showBgmPlayButton() {
       roomState.nightVictim = Number(validation.target.id);
       recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, message: `狼人夜刀指定 ${roomState.nightVictim} 號。` });
       roomState.wolfActionDecided = true;
-      alert('狼隊夜間行動已記錄。');
+      // Avoid interrupting the God narration with a blocking browser alert.
       updateControlPanel();
       renderGodFlowPanel();
       notifyModeratorActionCompleted();
@@ -1461,14 +1757,9 @@ function showBgmPlayButton() {
       const result = AwooModeratorScript.buildNightScript(configuredRoleNames, gameState.currentDay, roomState.ruleset);
       roomState.moderatorScript = result.steps.map(step => {
         if (!step.role || step.role === '全體' || step.role === '狼人陣營' || livingRoleNames.has(step.role) || !step.actionKey) return step;
-        return {
-          ...step,
-          text: `${step.role}已出局，本夜略過行動。`,
-          speechText: `${step.role}已出局，本夜略過行動。`,
-          note: '角色已出局：保留主持流程提示，但不允許提交技能行動。',
-          actionKey: null,
-          kind: 'call',
-        };
+        // Keep the role's normal narration line, but never announce that the role is eliminated.
+        // Removing the action key prevents a dead role from submitting an action.
+        return { ...step, actionKey: null };
       });
       roomState.moderatorNotices = result.notices;
       roomState.moderatorStepIndex = 0;
@@ -1590,11 +1881,14 @@ function showBgmPlayButton() {
       if (step.condition === 'antidote-available' && roomState.nightVictim != null) {
         noteText = '操作提示：在女巫私密控制台顯示狼刀目標；不要透過公開語音或公共面板讀出號碼。';
       }
-      if (note) note.textContent = noteText;
+      // Detailed role notes/notices are useful in local QA, but must not leak hidden-role metadata in a live game.
+      if (note) note.textContent = roomState.isTestMode ? noteText : '';
       if (notices) {
-        notices.textContent = (roomState.moderatorNotices || []).length
-          ? `需核對的角色流程：${roomState.moderatorNotices.join('；')}`
-          : '本局配置角色都有對應的流程口白。';
+        notices.textContent = roomState.isTestMode
+          ? ((roomState.moderatorNotices || []).length
+            ? `需核對的角色流程：${roomState.moderatorNotices.join('；')}`
+            : '本局配置角色都有對應的流程口白。')
+          : '';
       }
       const speechReady = roomState.moderatorSpeechDone === true;
       const actionComplete = isModeratorStepActionComplete(step);
@@ -1671,8 +1965,12 @@ function showBgmPlayButton() {
         msg.lang = 'zh-TW';
         msg.rate = 0.95;
         const voices = window.speechSynthesis.getVoices();
-        const zhVoice = voices.find(v => v.lang.includes('zh') || v.lang.includes('TW') || v.lang.includes('HK'));
-        if (zhVoice) msg.voice = zhVoice;
+        if (voices.length) godVoiceCache = voices;
+        const zhVoice = getGodChineseVoice(godVoiceCache.length ? godVoiceCache : voices);
+        if (zhVoice) {
+          msg.voice = zhVoice;
+          msg.lang = zhVoice.lang || 'zh-TW';
+        }
         msg.onend = finishSpeech;
         msg.onerror = finishSpeech;
         window.speechSynthesis.speak(msg);
@@ -1972,14 +2270,14 @@ function showBgmPlayButton() {
       if (roomState.hasSheriffInGame) {
         if (!setCurrentPhase('DAY_DEATH')) return;
         updateBanner('【天亮死訊】', `天亮了！${text}`, '請警長指定白天發言方向');
-        speakGod(`天亮了。${text} 請警長選擇發言順序。`);
+        speakGod(`天亮了。${text} 請警長選擇發言順序。`, flushPendingDawnHistory);
         updateControlPanel();
       } else {
         if (!setCurrentPhase('DAY_DEATH')) return;
         const alivePlayers = roomState.players.filter(p => p.isAlive).map(p => p.id);
         if (!alivePlayers.length) { finishGame(checkWinCondition() || 'WEREWOLF_WIN'); return; }
         const randomStart = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
-        speakGod(`天亮了。${text} 本日由 ${randomStart} 號玩家開始發言。`);
+        speakGod(`天亮了。${text} 本日由 ${randomStart} 號玩家開始發言。`, flushPendingDawnHistory);
         startNoSheriffSpeech(randomStart);
       }
     }
@@ -2107,11 +2405,11 @@ function showBgmPlayButton() {
       const victim = roomState.players.find(p => p.id === targetId);
       if (!victim || !victim.isAlive) { setTimeout(startNextNight, 1000); return; }
       roomState.executedVictim = targetId;
-      recordGameHistory({ phaseLabel: '白天處決', message: `${targetId} 號被公投處決。` });
+      recordGameHistory({ phaseLabel: '白天出局', message: `${targetId}號` });
       victim.isAlive = false;
       victim.deathReason = 'EXECUTED_BY_VOTE';
       renderTable();
-      speakGod(`公投結算結束，最高票數者為 ${targetId} 號玩家！此玩家處決出局。`);
+      speakGod(`${targetId}號出局，請發表遺言。`);
       if (startDeathSkillResolution([{ id: targetId, reason: 'EXECUTED_BY_VOTE' }], 'LAST_WORDS', targetId)) return;
       const winner = checkWinCondition();
       if (winner) {
@@ -2157,6 +2455,7 @@ function showBgmPlayButton() {
       container.innerHTML = `
         <p style="color:var(--gold-primary);">${current.playerId} 號 ${current.skill.role}：選擇一名存活玩家發動技能。</p>
         ${renderPlayerTargetGrid({ onSelect: 'resolveCurrentDeathSkill', isAllowed: target => target.isAlive && Number(target.id) !== Number(player.id), showDead: true })}
+        ${current.skill.type === 'hunter-shot' ? '<button type="button" class="btn-gothic" style="width:100%;margin-top:8px;" onclick="declineCurrentDeathSkill()">不開槍</button>' : ''}
       `;
     }
 
@@ -2178,18 +2477,40 @@ function showBgmPlayButton() {
         alert(result.reason);
         return false;
       }
-      roomState.deathSkillQueue.shift();
-      roomState.deathSkillDeaths.push(result.death);
-      if (roomState.deathSkillReturnPhase === 'DAY_DEATH') {
-        roomState.lastNightDeaths.push(result.death);
+      return completeCurrentDeathSkill(result);
+    }
+
+    function declineCurrentDeathSkill() {
+      if (roomState.currentPhase !== 'DEATH_SKILL') return false;
+      const current = roomState.deathSkillQueue[0];
+      if (!current || current.skill.type !== 'hunter-shot') return false;
+      if (Number(roomState.currentPerspective) !== Number(current.playerId)) {
+        alert(`請先切換到 ${current.playerId} 號座位。`);
+        return false;
       }
-      const chainedSkill = AwooGameEngine.getDeathSkill(result.target, result.death.reason);
-      if (chainedSkill) {
-        roomState.deathSkillQueue.push({
-          playerId: Number(result.target.id),
-          deathReason: result.death.reason,
-          skill: chainedSkill,
-        });
+      const player = roomState.players.find(item => Number(item.id) === Number(current.playerId));
+      if (!player || player.isAlive || player.deathSkillUsed === true) return false;
+      player.deathSkillUsed = true;
+      return completeCurrentDeathSkill(null);
+    }
+
+    function completeCurrentDeathSkill(result) {
+      const current = roomState.deathSkillQueue[0];
+      if (!current) return false;
+      roomState.deathSkillQueue.shift();
+      if (result && result.death) {
+        roomState.deathSkillDeaths.push(result.death);
+        if (roomState.deathSkillReturnPhase === 'DAY_DEATH') {
+          roomState.lastNightDeaths.push(result.death);
+        }
+        const chainedSkill = AwooGameEngine.getDeathSkill(result.target, result.death.reason);
+        if (chainedSkill) {
+          roomState.deathSkillQueue.push({
+            playerId: Number(result.target.id),
+            deathReason: result.death.reason,
+            skill: chainedSkill,
+          });
+        }
       }
       renderTable();
       if (roomState.deathSkillQueue.length) {

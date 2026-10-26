@@ -122,7 +122,7 @@ test('從女巫選擇座位到夜晚結算的整條鏈會將 1 號列入死亡�
     { id: 1, reason: 'POISONED_BY_WITCH' },
   ]);
   assert.ok(spoken.some(line => line.includes('昨夜出局：1 號')), '天亮口白必须依据实际结算死亡名册');
-  assert.ok(spoken.some(line => line.includes('1 號（女巫毒殺）')), '天亮口白要說明 1 號是女巫毒殺出局');
+  assert.ok(spoken.every(line => !line.includes('女巫毒殺')), '天亮口白不可公開死亡原因');
 });
 
 test('確認毒藥時會再次檢查首夜雙藥限制，不能沿用過期的選擇驗證', () => {
@@ -193,8 +193,9 @@ test('若夜間投毒直接觸發勝負，結束公告仍會說明 1 號已出�
   assert.equal(vm.runInContext('roomState.players.find(p => p.id === 1).isAlive', context), false);
   assert.ok(banners.some(banner => String(banner.announcement).includes('昨夜出局：1 號')));
   assert.ok(spoken.some(line => line.includes('昨夜出局：1 號')), '終局語音不可漏掉實際夜間出局名單');
-  assert.ok(banners.some(banner => String(banner.announcement).includes('1 號（女巫毒殺）')));
-  assert.ok(spoken.some(line => line.includes('1 號（女巫毒殺）')), '夜間毒殺直接結束遊戲時也要播報毒殺原因');
+  assert.ok(banners.some(banner => String(banner.announcement).includes('1 號')));
+  assert.ok(banners.every(banner => !String(banner.announcement).includes('女巫毒殺')), '結束公告不可公開死亡原因');
+  assert.ok(spoken.every(line => !line.includes('女巫毒殺')), '終局語音不可公開死亡原因');
 });
 
 

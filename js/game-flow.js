@@ -24,7 +24,8 @@
     SHERIFF_BADGE: new Set(['DAY_DEATH', 'LAST_WORDS', 'NIGHT']),
     DAY_DEATH: new Set(['DAY_SPEECH', 'NIGHT']),
     DAY_SPEECH: new Set(['VOTING', 'DEATH_SKILL', 'NIGHT']),
-    VOTING: new Set(['DEATH_SKILL', 'SHERIFF_BADGE', 'LAST_WORDS', 'NIGHT']),
+    // VOTING -> DAY_SPEECH is reserved for a tied-vote runoff.
+    VOTING: new Set(['DAY_SPEECH', 'DEATH_SKILL', 'SHERIFF_BADGE', 'LAST_WORDS', 'NIGHT']),
     LAST_WORDS: new Set(['NIGHT']),
     GAME_OVER: new Set()
   });

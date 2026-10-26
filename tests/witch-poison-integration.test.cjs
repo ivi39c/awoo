@@ -121,7 +121,7 @@ test('從女巫選擇座位到夜晚結算的整條鏈會將 1 號列入死亡�
   assert.deepEqual(JSON.parse(JSON.stringify(vm.runInContext('roomState.lastNightDeaths.map(d => ({id:d.id, reason:d.reason}))', context))), [
     { id: 1, reason: 'POISONED_BY_WITCH' },
   ]);
-  assert.ok(spoken.some(line => line.includes('昨夜出局：1 號')), '天亮口白必须依据实际结算死亡名册');
+  assert.ok(spoken.some(line => line.includes('昨夜出局 1號')), '天亮口白必须依据实际结算死亡名册');
   assert.ok(spoken.every(line => !line.includes('女巫毒殺')), '天亮口白不可公開死亡原因');
 });
 
@@ -191,9 +191,9 @@ test('若夜間投毒直接觸發勝負，結束公告仍會說明 1 號已出�
   assert.equal(context.resolveNightNow(), true);
   assert.equal(vm.runInContext('roomState.gameOver', context), true);
   assert.equal(vm.runInContext('roomState.players.find(p => p.id === 1).isAlive', context), false);
-  assert.ok(banners.some(banner => String(banner.announcement).includes('昨夜出局：1 號')));
-  assert.ok(spoken.some(line => line.includes('昨夜出局：1 號')), '終局語音不可漏掉實際夜間出局名單');
-  assert.ok(banners.some(banner => String(banner.announcement).includes('1 號')));
+  assert.ok(banners.some(banner => String(banner.announcement).includes('昨夜出局 1號')));
+  assert.ok(spoken.some(line => line.includes('昨夜出局 1號')), '終局語音不可漏掉實際夜間出局名單');
+  assert.ok(banners.some(banner => String(banner.announcement).includes('1號')));
   assert.ok(banners.every(banner => !String(banner.announcement).includes('女巫毒殺')), '結束公告不可公開死亡原因');
   assert.ok(spoken.every(line => !line.includes('女巫毒殺')), '終局語音不可公開死亡原因');
 });

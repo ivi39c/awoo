@@ -130,7 +130,9 @@ test('每晚保留已出局神職的主持提示，但略過技能行動', () =>
   context.refreshModeratorScriptForCurrentNight();
   const scriptText = vm.runInContext('roomState.moderatorScript.map(step => step.text).join("\\n")', context);
   assert.match(scriptText, /預言家請睜眼/);
-  assert.match(scriptText, /預言家已出局，本夜略過行動/);
+  assert.match(scriptText, /今天晚上你要驗誰/);
+  assert.doesNotMatch(scriptText, /預言家已出局|已出局，本夜略過行動/,
+    '公開主持口白不可洩漏神職已出局');
   assert.match(scriptText, /狼人現身，請睜眼/);
   const deadSeerSteps = vm.runInContext('roomState.moderatorScript.filter(step => step.role === \'預言家\')', context);
   assert.equal(deadSeerSteps.some(step => step.actionKey), false, '已出局角色不得保留可提交技能的 actionKey');

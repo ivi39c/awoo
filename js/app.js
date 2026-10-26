@@ -1332,18 +1332,16 @@ function showBgmPlayButton() {
         `;
       }
       else if (p.role === '獵人' || p.role === 'HUNTER') {
-        const wolfTargetedHunter = Number(roomState.nightVictim) === Number(p.id);
-        const guarded = Number(roomState.guardTargetId) === Number(p.id);
-        const saved = Number(roomState.witchSaveTargetId) === Number(p.id);
-        const guardAndSaveSameTargetDies = roomState.ruleset?.guardAndSaveSameTargetDies !== false;
-        const canShootTonight = wolfTargetedHunter
-          && ((guarded && saved && guardAndSaveSameTargetDies) || (!guarded && !saved))
-          && Number(roomState.witchPoisonTargetId) !== Number(p.id)
-          && !roomState.hunterNightShotUsed;
+        const canShootTonight = isHunterEligibleToShoot(p);
         const canAct = isModeratorActionStep('hunterNightShot') && roomState.moderatorSpeechDone;
         const enabled = canShootTonight && canAct;
-        let html = `<p style="font-size:0.85rem;color:${enabled ? 'var(--gold-primary)' : '#999'};">今晚開槍手勢：${canShootTonight ? '可開槍' : '不可開槍'}</p>`;
-        html += renderPlayerTargetGrid({ onSelect: 'hunterNightShoot', isAllowed: t => t.isAlive && Number(t.id) !== Number(p.id), isDisabled: () => !enabled, showDead: true });
+        let html = `<p style="font-size:0.85rem;color:${canShootTonight ? 'var(--gold-primary)' : '#999'};">今晚開槍手勢：${canShootTonight ? '可開槍' : '不可開槍'}</p>`;
+        html += renderPlayerTargetGrid({
+          onSelect: 'hunterNightShoot',
+          isAllowed: t => t.isAlive && Number(t.id) !== Number(p.id),
+          isDisabled: () => !enabled,
+          showDead: true
+        });
         html += `<button type="button" class="btn-gothic" style="width:100%;margin-top:8px;" onclick="declineHunterNightShot()" ${!enabled ? 'disabled' : ''}>不開槍</button>`;
         container.innerHTML = html;
       }
@@ -1371,19 +1369,22 @@ function showBgmPlayButton() {
       }
     }
 
+    function isHunterEligibleToShoot(hunter) {
+      if (!hunter || !hunter.isAlive || !['獵人', 'HUNTER'].includes(hunter.role) || roomState.hunterNightShotUsed) return false;
+      const wolfTargetedHunter = Number(roomState.nightVictim) === Number(hunter.id);
+      const guarded = Number(roomState.guardTargetId) === Number(hunter.id);
+      const saved = Number(roomState.witchSaveTargetId) === Number(hunter.id);
+      const guardAndSaveSameTargetDies = roomState.ruleset?.guardAndSaveSameTargetDies !== false;
+      return wolfTargetedHunter
+        && ((guarded && saved && guardAndSaveSameTargetDies) || (!guarded && !saved))
+        && Number(roomState.witchPoisonTargetId) !== Number(hunter.id);
+    }
+
     function hunterNightShoot(targetId) {
       if (!canSubmitModeratorAction('hunterNightShot')) return false;
       const hunter = roomState.players.find(player => Number(player.id) === Number(roomState.currentPerspective));
-      const guarded = hunter && Number(roomState.guardTargetId) === Number(hunter.id);
-      const saved = hunter && Number(roomState.witchSaveTargetId) === Number(hunter.id);
-      const guardAndSaveSameTargetDies = roomState.ruleset?.guardAndSaveSameTargetDies !== false;
-      const canShootTonight = hunter && hunter.role === '獵人'
-        && Number(roomState.nightVictim) === Number(hunter.id)
-        && ((guarded && saved && guardAndSaveSameTargetDies) || (!guarded && !saved))
-        && Number(roomState.witchPoisonTargetId) !== Number(hunter.id)
-        && !roomState.hunterNightShotUsed;
       const target = roomState.players.find(player => Number(player.id) === Number(targetId) && player.isAlive && Number(player.id) !== Number(hunter?.id));
-      if (!canShootTonight || !target) { alert('本夜獵人不可開槍或目標無效。'); return false; }
+      if (!isHunterEligibleToShoot(hunter) || !target) { alert('本夜獵人不可開槍或目標無效。'); return false; }
       target.isAlive = false;
       target.deathReason = 'HUNTER_SHOT';
       roomState.hunterNightShotUsed = true;
@@ -1397,7 +1398,7 @@ function showBgmPlayButton() {
     function declineHunterNightShot() {
       if (!canSubmitModeratorAction('hunterNightShot')) return false;
       const hunter = roomState.players.find(player => Number(player.id) === Number(roomState.currentPerspective));
-      if (!hunter || hunter.role !== '獵人' || Number(roomState.nightVictim) !== Number(hunter.id) || roomState.hunterNightShotUsed) return false;
+      if (!isHunterEligibleToShoot(hunter)) return false;
       roomState.hunterNightShotUsed = true;
       hunter.canShoot = false;
       updateControlPanel(); notifyModeratorActionCompleted();
@@ -1774,6 +1775,10 @@ function showBgmPlayButton() {
 
     function getModeratorAutoAdvanceDelay(step = getCurrentModeratorStep()) {
       const configured = step && Number(step.postSpeechPauseMs);
+      if (step && step.actionKey === 'hunterNightShot') {
+        const hunter = roomState.players.find(player => getRoleDefinition(player.role)?.name === '獵人' && player.isAlive);
+        if (!isHunterEligibleToShoot(hunter)) return 2200;
+      }
       return Number.isFinite(configured) && configured >= 0 ? configured : 700;
     }
 
@@ -1897,6 +1902,12 @@ function showBgmPlayButton() {
           return roomState.seerTargetId != null;
         case 'guardProtect':
           return roomState.guardTargetId != null;
+        case 'hunterNightShot': {
+          const hunter = roomState.players.find(player => getRoleDefinition(player.role)?.name === '獵人' && player.isAlive);
+          // If no living Hunter is guaranteed to die to the resolved wolf attack, this
+          // narration cue is informational only and must not block the night sequence.
+          return !isHunterEligibleToShoot(hunter) || roomState.hunterNightShotUsed === true;
+        }
         default:
           if (step.actionKey.startsWith('manual:')) {
             return roomState.moderatorManualCompletedStepIndex === Number(roomState.moderatorStepIndex);

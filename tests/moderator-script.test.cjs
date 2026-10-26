@@ -66,7 +66,8 @@ test('獵人夜間口白存在，但開槍技能仍保留死亡觸發限制', ()
   const result = Moderator.buildNightScript(['小狼', '女巫', '預言家', '守衛', '獵人'], 2);
   const hunterSteps = result.steps.filter(step => step.role === '獵人');
   assert.ok(hunterSteps.some(step => step.text === '獵人請睜眼。'));
-  assert.ok(hunterSteps.some(step => step.text === '今晚開槍請比手勢。'));
+  assert.ok(hunterSteps.some(step => step.text === '今晚開槍手勢：可開槍／不可開槍。'));
+  assert.equal(hunterSteps.find(step => step.text === '今晚開槍手勢：可開槍／不可開槍。').actionKey, 'hunterNightShot');
   assert.ok(hunterSteps.some(step => step.text === '獵人請閉眼。'));
   assert.equal(hunterSteps.some(step => step.actionKey), false, '一般夜間口白不應直接開放獵人開槍');
 });

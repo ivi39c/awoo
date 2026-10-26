@@ -964,11 +964,19 @@ function showBgmPlayButton() {
         witchDaySummary.textContent = `本局藥劑紀錄｜解藥：${roomState.witchSaveTargetId != null ? `${roomState.witchSaveTargetId}號` : roomState.witchElixirUsed ? '已使用' : '未使用'}；毒藥：${roomState.witchPoisonTargetId != null ? `${roomState.witchPoisonTargetId}號` : roomState.witchPoisonUsed ? '已使用' : '未使用'}`;
         controls.appendChild(witchDaySummary);
         const witchHistory = renderPerspectiveActionHistory(p.id);
-        if (witchHistory) controls.insertAdjacentHTML('beforeend', witchHistory);
+        if (witchHistory) {
+          const history = document.createElement('div');
+          history.innerHTML = witchHistory;
+          controls.appendChild(history);
+        }
       }
       if (p.role !== '女巫' && p.role !== 'WITCH') {
         const perspectiveHistory = renderPerspectiveActionHistory(p.id);
-        if (perspectiveHistory) controls.insertAdjacentHTML('beforeend', perspectiveHistory);
+        if (perspectiveHistory) {
+          const history = document.createElement('div');
+          history.innerHTML = perspectiveHistory;
+          controls.appendChild(history);
+        }
       }
       // The panel belongs to the selected player's perspective in the local prototype.
       // Perspective switching and role overrides are intentionally isolated to test mode.

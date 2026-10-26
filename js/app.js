@@ -33,9 +33,14 @@ class Player {
       updateControlPanel();
     }
     function renderGameHistory() {
-      const log = document.getElementById('gameHistoryLog'); if (!log) return;
+      const log = document.getElementById('gameHistoryLog');
+      if (!log) return;
       const entries = (roomState.actionHistory || []).filter(entry => entry.visibility !== 'private');
-      log.innerHTML = entries.length ? entries.slice().reverse().map(entry => `<li><b>第 ${AwooUI.escapeHtml(entry.day)} 天・${AwooUI.escapeHtml(entry.phaseLabel || '')}</b> ${AwooUI.escapeHtml(entry.message || '')}</li>`).join('') : '<li class="history-empty">尚無行動紀錄。</li>';
+      const expanded = document.getElementById('gameHistoryPanel')?.classList.contains('is-expanded');
+      const visibleEntries = (expanded ? entries : entries.slice(-2)).slice().reverse();
+      log.innerHTML = visibleEntries.length
+        ? visibleEntries.map(entry => `<li><b>第 ${AwooUI.escapeHtml(entry.day)} 天・${AwooUI.escapeHtml(entry.phaseLabel || '')}</b> ${AwooUI.escapeHtml(entry.message || '')}</li>`).join('')
+        : '<li class="history-empty">尚無行動紀錄。</li>';
       const summary = document.getElementById('gameHistorySummaryText');
       if (summary) summary.textContent = entries.length ? entries[entries.length - 1].message : '尚無紀錄';
     }
@@ -45,7 +50,9 @@ class Player {
     function toggleGameHistory() {
       const panel = document.getElementById('gameHistoryPanel'), details = document.getElementById('gameHistoryLog'), button = document.getElementById('gameHistoryToggle');
       if (!panel || !details || !button) return false;
-      const expanded = panel.classList.toggle('is-expanded'); details.hidden = !expanded;
+      const expanded = panel.classList.toggle('is-expanded');
+      details.hidden = !expanded;
+      renderGameHistory();
       button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
       const label = button.querySelector ? button.querySelector('.history-toggle-label') : null;
       if (label) label.textContent = expanded ? '收起紀錄' : '查看紀錄';
@@ -108,6 +115,8 @@ class Player {
       updateControlPanel();
     }
 
+    let godVoiceCache = [];
+
     function getGodChineseVoice(voices) {
       const available = Array.isArray(voices) ? voices : [];
       // Prefer Traditional Chinese voices, then other Chinese voices. Prefer Google
@@ -133,7 +142,8 @@ class Player {
         msg.rate = 0.92;
         msg.pitch = 1.0;
         const voices = synth.getVoices();
-        const voice = getGodChineseVoice(voices);
+        if (voices.length) godVoiceCache = voices;
+        const voice = getGodChineseVoice(godVoiceCache.length ? godVoiceCache : voices);
         if (voice) {
           msg.voice = voice;
           // Use the selected voice's actual locale to avoid locale/voice mismatch.
@@ -154,10 +164,17 @@ class Player {
 
     // Voice lists can arrive asynchronously. Refreshing is intentionally automatic:
     // players do not choose a voice and no separate voice-test button is needed.
-    if ('speechSynthesis' in window && typeof window.speechSynthesis.addEventListener === 'function') {
-      window.speechSynthesis.addEventListener('voiceschanged', () => {
-        window.speechSynthesis.getVoices();
-      });
+    if ('speechSynthesis' in window) {
+      const refreshGodVoices = () => {
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length) godVoiceCache = voices;
+      };
+      refreshGodVoices();
+      if (typeof window.speechSynthesis.addEventListener === 'function') {
+        window.speechSynthesis.addEventListener('voiceschanged', refreshGodVoices);
+      } else {
+        window.speechSynthesis.onvoiceschanged = refreshGodVoices;
+      }
     }
 
     let roomState = {
@@ -1506,14 +1523,9 @@ function showBgmPlayButton() {
       const result = AwooModeratorScript.buildNightScript(configuredRoleNames, gameState.currentDay, roomState.ruleset);
       roomState.moderatorScript = result.steps.map(step => {
         if (!step.role || step.role === '全體' || step.role === '狼人陣營' || livingRoleNames.has(step.role) || !step.actionKey) return step;
-        return {
-          ...step,
-          text: `${step.role}已出局，本夜略過行動。`,
-          speechText: `${step.role}已出局，本夜略過行動。`,
-          note: '角色已出局：保留主持流程提示，但不允許提交技能行動。',
-          actionKey: null,
-          kind: 'call',
-        };
+        // Keep the role's normal narration line, but never announce that the role is eliminated.
+        // Removing the action key prevents a dead role from submitting an action.
+        return { ...step, actionKey: null };
       });
       roomState.moderatorNotices = result.notices;
       roomState.moderatorStepIndex = 0;

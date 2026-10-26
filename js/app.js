@@ -115,6 +115,145 @@ class Player {
       return AwooGameEngine.checkWinCondition(gameState.players, { winMode: roomState.ruleset.winMode || roomState.winMode || 'edge' });
     }
 
+    function restartGame() {
+      if (!roomState.isHost || roomState.currentPhase !== 'GAME_OVER' || !roomState.gameOver) {
+        return false;
+      }
+      clearModeratorAutoAdvance();
+      clearInterval(roomState.timerInterval);
+      roomState.timerInterval = null;
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      currentVoteTarget = null;
+
+      // Keep the current room, seats, player names, spectators and media streams.
+      // Reset only match-specific state before the host deals a fresh game.
+      roomState.players.forEach(player => {
+        player.role = '未發牌';
+        player.isAlive = true;
+        player.deathReason = null;
+        player.deathSkillUsed = false;
+        player.isProtected = false;
+        player.isAntidoteUsed = false;
+        player.canShoot = true;
+        player.isSheriff = false;
+      });
+      gameState.players = roomState.players;
+      gameState.currentDay = 1;
+      gameState.currentPhase = 'LOBBY';
+      gameState.witchAntidote = true;
+      gameState.witchPoison = true;
+      gameState.lastGuardedId = null;
+      gameState.sheriffId = null;
+
+      Object.assign(roomState, {
+        currentPhase: 'LOBBY',
+        gameStarted: false,
+        gameOver: false,
+        currentPerspective: roomState.mySeatId || roomState.currentPerspective || 1,
+        rolesInGame: [],
+        actionHistory: [],
+        pendingDawnHistory: null,
+        lastNightDeaths: [],
+        nightVictim: null,
+        executedVictim: null,
+        witchSaveTargetId: null,
+        witchPoisonTargetId: null,
+        guardTargetId: null,
+        seerTargetId: null,
+        wolfActionDecided: false,
+        witchSaveDecisionMade: false,
+        witchPoisonDecisionMade: false,
+        witchElixirUsed: false,
+        witchPoisonUsed: false,
+        showWitchPoisonTargets: false,
+        witchPoisonDraftTargetId: null,
+        sheriffCandidates: [],
+        sheriffVotes: {},
+        sheriffElectionRound: 0,
+        sheriffId: null,
+        hasSheriffInGame: false,
+        deathSkillQueue: [],
+        deathSkillReturnPhase: null,
+        deathSkillExecutedVictim: null,
+        deathSkillDeaths: [],
+        sheriffBadgeReturnPhase: null,
+        sheriffBadgeExecutedVictim: null,
+        speechQueue: [],
+        currentQueueIndex: 0,
+        activeSpeakerId: null,
+        userVotes: {},
+        moderatorScript: [],
+        moderatorNotices: [],
+        moderatorStepIndex: 0,
+        moderatorSpeechDone: true,
+        moderatorManualCompletedStepIndex: null,
+        guardLastTarget: null,
+      });
+      roomState.sheriffTimer = 30;
+      roomState.speechTimer = 60;
+      roomState.votingTimer = 15;
+      roomState.testedRoles = new Set();
+
+      updatePerspectiveSelect();
+      updateBanner('【等待開局】', '上一局已重置，房間與玩家保留。', '房主可重新開始遊戲並發牌。');
+      renderTable();
+      renderGameHistory();
+      renderGodFlowPanel();
+      updateControlPanel();
+      return true;
+    }
+
+    function returnToLobby() {
+      if (roomState.currentPhase !== 'GAME_OVER' || !roomState.gameOver) return false;
+      // The current prototype has no server-side room membership, so this only resets
+      // the local client to a fresh lobby state; it cannot remotely remove other players.
+      clearModeratorAutoAdvance();
+      clearInterval(roomState.timerInterval);
+      roomState.timerInterval = null;
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      roomState.players.forEach(player => {
+        if (player.stream && typeof player.stream.getTracks === 'function') {
+          player.stream.getTracks().forEach(track => track.stop());
+        }
+      });
+      roomState.roomId = 'AWOO-' + Math.floor(1000 + Math.random() * 9000);
+      roomState.isSpectator = false;
+      roomState.isHost = true;
+      roomState.mySeatId = 1;
+      roomState.spectators = [];
+      roomState.players = [];
+      gameState.players = [];
+      initPlayers(roomState.playerCount || 12);
+      return restartLobbyState();
+    }
+
+    function restartLobbyState() {
+      currentVoteTarget = null;
+      gameState.currentDay = 1;
+      gameState.currentPhase = 'LOBBY';
+      gameState.sheriffId = null;
+      roomState.gameStarted = false;
+      roomState.gameOver = false;
+      roomState.currentPhase = 'LOBBY';
+      roomState.actionHistory = [];
+      roomState.pendingDawnHistory = null;
+      roomState.rolesInGame = [];
+      roomState.moderatorScript = [];
+      roomState.moderatorNotices = [];
+      roomState.sheriffCandidates = [];
+      roomState.sheriffVotes = {};
+      roomState.sheriffId = null;
+      roomState.hasSheriffInGame = false;
+      roomState.deathSkillQueue = [];
+      roomState.speechQueue = [];
+      roomState.userVotes = {};
+      updateBanner('【大廳】', '已返回新的大廳。', '目前為本機原型，尚未建立真正的多人房間服務。');
+      renderGameHistory();
+      renderGodFlowPanel();
+      updateControlPanel();
+      return true;
+    }
+
     function finishGame(winner, precedingAnnouncement = '') {
       if (roomState.gameOver) return;
       clearModeratorAutoAdvance();
@@ -851,7 +990,11 @@ function showBgmPlayButton() {
       controls.innerHTML = '';
 
       if (roomState.currentPhase === 'GAME_OVER') {
-        controls.innerHTML = `<p style="text-align:center; color:var(--gold-primary);">本局已結束。重新開局功能將在後續階段加入。</p>`;
+        controls.innerHTML = `
+          <p style="text-align:center; color:var(--gold-primary);">本局已結束。</p>
+          ${roomState.isHost ? '<button class="btn-gothic btn-crimson" style="width:100%;margin-bottom:8px;" onclick="restartGame()">再開一局</button>' : ''}
+          <button class="btn-gothic" style="width:100%;" onclick="returnToLobby()">返回大廳</button>
+        `;
       }
       else if (roomState.currentPhase === 'LOBBY') {
         let actionButtons = '';

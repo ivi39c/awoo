@@ -467,6 +467,8 @@ class Player {
       speechQueue: [],
       currentQueueIndex: 0,
       userVotes: {},
+      isTieRunoff: false,
+      runoffCandidates: [],
       customRolePool: []
     };
 
@@ -1533,9 +1535,12 @@ function showBgmPlayButton() {
         return;
       }
 
-      let html = `<p style="font-size:0.8rem; color:var(--gold-light);">請選擇公投處決目標 (倒數 ${roomState.votingTimer}s)：</p><div class="target-grid">`;
+      const runoff = roomState.isTieRunoff === true && Array.isArray(roomState.runoffCandidates) && roomState.runoffCandidates.length > 0;
+      const prompt = runoff ? '平票加賽：只能選擇平票玩家或棄票' : '請選擇公投處決目標';
+      let html = `<p style="font-size:0.8rem; color:var(--gold-light);">${prompt} (倒數 ${roomState.votingTimer}s)：</p><div class="target-grid">`;
       roomState.players.forEach(t => {
-        html += `<button class="target-btn" id="voteBtn-${t.id}" ${!t.isAlive ? 'disabled' : ''} onclick="selectVoteTarget(${t.id})">${t.id}號</button>`;
+        const blockedByRunoff = runoff && !roomState.runoffCandidates.includes(Number(t.id));
+        html += `<button class="target-btn" id="voteBtn-${t.id}" ${!t.isAlive || blockedByRunoff ? 'disabled' : ''} onclick="selectVoteTarget(${t.id})">${t.id}號</button>`;
       });
       html += `</div>
         <button class="target-btn" id="voteBtn-0" style="width:100%; margin-top:8px;" onclick="selectVoteTarget(0)">棄票 (不投票)</button>
@@ -1546,7 +1551,9 @@ function showBgmPlayButton() {
 
     let currentVoteTarget = null;
     function selectVoteTarget(id) {
-      currentVoteTarget = id;
+      const targetId = Number(id);
+      if (roomState.isTieRunoff && targetId !== 0 && !roomState.runoffCandidates.includes(targetId)) return false;
+      currentVoteTarget = targetId;
       document.querySelectorAll('.target-btn').forEach(b => b.classList.remove('selected'));
       const btn = document.getElementById(`voteBtn-${id}`);
       if (btn) btn.classList.add('selected');
@@ -2393,6 +2400,10 @@ function showBgmPlayButton() {
 
       if (voteResult.status === 'no-votes') {
         roomState.executedVictim = null;
+        if (roomState.isTieRunoff) {
+          roomState.isTieRunoff = false;
+          roomState.runoffCandidates = [];
+        }
         speakGod('公投結束，本輪無有效票，無人出局。準備進入下一夜。');
         updateBanner('【公投結束】', '本輪無有效票，無人出局。', '4 秒後進入下一夜');
         setTimeout(startNextNight, 4000);
@@ -2401,12 +2412,32 @@ function showBgmPlayButton() {
 
       if (voteResult.status === 'tie') {
         roomState.executedVictim = null;
-        speakGod('公投最高票平票，依目前測試規則本輪無人出局。');
-        updateBanner('【公投平票】', '最高票平票，本輪無人出局。', '4 秒後進入下一夜');
-        setTimeout(startNextNight, 4000);
+        if (roomState.isTieRunoff) {
+          roomState.isTieRunoff = false;
+          roomState.runoffCandidates = [];
+          speakGod('再次公投仍然平票，本輪無人出局。準備進入下一夜。');
+          updateBanner('【再次公投平票】', '再次平票，本輪無人出局。', '4 秒後進入下一夜');
+          setTimeout(startNextNight, 4000);
+          return;
+        }
+        roomState.isTieRunoff = true;
+        roomState.runoffCandidates = voteResult.leaders.map(Number);
+        roomState.userVotes = {};
+        roomState.speechQueue = roomState.runoffCandidates.slice();
+        roomState.currentQueueIndex = -1;
+        roomState.activeSpeakerId = null;
+        const tiedSeats = roomState.runoffCandidates.map(id => `${id}號`).join('、');
+        const announcement = `${tiedSeats}平票，請以上玩家再次發表，每人60秒。`;
+        updateBanner('【公投平票】', announcement, '平票玩家依序各有 60 秒發言，結束後重新投票');
+        speakGod(announcement);
+        renderTable();
+        updateControlPanel();
+        startNextSpeaker();
         return;
       }
 
+      roomState.isTieRunoff = false;
+      roomState.runoffCandidates = [];
       const targetId = voteResult.targetId;
       const victim = roomState.players.find(p => p.id === targetId);
       if (!victim || !victim.isAlive) { setTimeout(startNextNight, 1000); return; }

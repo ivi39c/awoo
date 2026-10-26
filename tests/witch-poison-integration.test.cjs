@@ -192,7 +192,7 @@ test('若夜間投毒直接觸發勝負，結束公告仍會說明 1 號已出�
   assert.equal(vm.runInContext('roomState.gameOver', context), true);
   assert.equal(vm.runInContext('roomState.players.find(p => p.id === 1).isAlive', context), false);
   assert.ok(banners.some(banner => String(banner.announcement).includes('昨夜出局 1號')));
-  assert.ok(spoken.some(line => line.includes('昨夜出局：1 號')), '終局語音不可漏掉實際夜間出局名單');
+  assert.ok(spoken.some(line => line.includes('昨夜出局 1號')), '終局語音不可漏掉實際夜間出局名單');
   assert.ok(banners.some(banner => String(banner.announcement).includes('1 號')));
   assert.ok(banners.every(banner => !String(banner.announcement).includes('女巫毒殺')), '結束公告不可公開死亡原因');
   assert.ok(spoken.every(line => !line.includes('女巫毒殺')), '終局語音不可公開死亡原因');

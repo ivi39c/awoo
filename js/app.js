@@ -1332,7 +1332,8 @@ function showBgmPlayButton() {
         `;
       }
       else if (p.role === '獵人' || p.role === 'HUNTER') {
-        const canShootTonight = isHunterEligibleToShoot(p);
+        // Keep the eligibility label stable after the Hunter fires; action availability is separate.
+        const canShootTonight = isHunterEligibleToShoot(p, true);
         const canAct = isModeratorActionStep('hunterNightShot') && roomState.moderatorSpeechDone;
         const enabled = canShootTonight && canAct;
         let html = `<p style="font-size:0.85rem;color:${canShootTonight ? 'var(--gold-primary)' : '#999'};">今晚開槍手勢：${canShootTonight ? '可開槍' : '不可開槍'}</p>`;
@@ -1355,7 +1356,7 @@ function showBgmPlayButton() {
         const canWolfAct = isModeratorActionStep('wolfAttack') && roomState.moderatorSpeechDone;
         const teammates = roomState.players.filter(t => getRoleCamp(t.role) === '狼人' && Number(t.id) !== Number(p.id));
         let html = `<p style="font-size:0.8rem; color:var(--crimson-bright);">狼隊隊友：<b>${teammates.length ? teammates.map(t => `${t.id}號${t.isAlive ? '' : '（已出局）'}`).join('、') : '沒有其他隊友'}</b></p><p style="font-size:0.8rem; color:var(--crimson-bright);">狼隊討論夜刀標靶：</p>`;
-        html += renderPlayerTargetGrid({ onSelect: 'wolfKillTarget', isAllowed: t => t.isAlive && getRoleCamp(t.role) !== '狼人', isDisabled: t => !canWolfAct || roomState.wolfActionDecided || getRoleCamp(t.role) === '狼人', showDead: true });
+        html += renderPlayerTargetGrid({ onSelect: 'wolfKillTarget', isAllowed: t => t.isAlive, isDisabled: t => !canWolfAct || roomState.wolfActionDecided, showDead: true });
         html += `<button type="button" class="btn-gothic" style="width:100%; margin-top:8px;" onclick="confirmWolfNoKill()" ${!canWolfAct || roomState.wolfActionDecided ? 'disabled' : ''}>確認空刀（本夜不襲擊）</button>`;
         if (roomState.wolfActionDecided) html += `<p class="test-action-confirmation">已完成狼人行動${roomState.nightVictim != null ? `：${roomState.nightVictim}號` : '：空刀'}，可繼續上帝流程。</p>`;
         container.innerHTML = html;
@@ -1369,8 +1370,9 @@ function showBgmPlayButton() {
       }
     }
 
-    function isHunterEligibleToShoot(hunter) {
-      if (!hunter || !hunter.isAlive || !['獵人', 'HUNTER'].includes(hunter.role) || roomState.hunterNightShotUsed) return false;
+    function isHunterEligibleToShoot(hunter, includeAlreadyUsed = false) {
+      if (!hunter || !hunter.isAlive || !['獵人', 'HUNTER'].includes(hunter.role)) return false;
+      if (roomState.hunterNightShotUsed && !includeAlreadyUsed) return false;
       const wolfTargetedHunter = Number(roomState.nightVictim) === Number(hunter.id);
       const guarded = Number(roomState.guardTargetId) === Number(hunter.id);
       const saved = Number(roomState.witchSaveTargetId) === Number(hunter.id);
@@ -2546,8 +2548,8 @@ function showBgmPlayButton() {
       clearInterval(roomState.timerInterval);
       roomState.timerInterval = null;
       const current = queue[0];
-      updateBanner('【死亡技能】', `${current.playerId} 號 ${current.skill.role} 可以發動死亡技能。`, '請切換到該座位選擇目標。');
-      speakGod(`${current.playerId} 號 ${current.skill.role} 發動死亡技能，請選擇目標。`);
+      updateBanner('【死亡技能】', `${current.playerId} 號玩家可以發動技能。`, '請切換到該座位選擇目標。');
+      speakGod(`${current.playerId} 號玩家，請發動技能。`);
       renderTable();
       updateControlPanel();
       return true;
@@ -2626,8 +2628,8 @@ function showBgmPlayButton() {
       renderTable();
       if (roomState.deathSkillQueue.length) {
         const next = roomState.deathSkillQueue[0];
-        updateBanner('【死亡技能】', `${next.playerId} 號 ${next.skill.role} 可以發動死亡技能。`, '請切換到該座位選擇目標。');
-        speakGod(`${next.playerId} 號 ${next.skill.role} 發動死亡技能，請選擇目標。`);
+        updateBanner('【死亡技能】', `${next.playerId} 號玩家可以發動技能。`, '請切換到該座位選擇目標。');
+        speakGod(`${next.playerId} 號玩家，請發動技能。`);
         updateControlPanel();
         return true;
       }

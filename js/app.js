@@ -2158,15 +2158,9 @@ function showBgmPlayButton() {
         roomState.witchPoisonTargetId,
         roomState.guardTargetId
       );
-      if (startDeathSkillResolution(roomState.lastNightDeaths, 'DAY_DEATH', null)) return true;
-      const winner = checkWinCondition();
-      if (winner) {
-        const deaths = Array.isArray(roomState.lastNightDeaths) ? roomState.lastNightDeaths : [];
-        finishGame(winner, formatNightDeathSummary(deaths));
-        return true;
-      }
-      if (startSheriffBadgeDecision('DAY_DEATH')) return true;
 
+      // The first-night Sheriff election happens before any dawn death announcement.
+      // Night death skills are queued by announceDayDeath() after the public death list.
       if (roomState.sheriffMode === 'enabled' && gameState.currentDay === 1 && !roomState.hasSheriffInGame) {
         if (!setCurrentPhase('SHERIFF_ELECTION')) return false;
         startSheriffCountdown();
@@ -2176,7 +2170,7 @@ function showBgmPlayButton() {
       return true;
     }
 
-    function startNextNight(entry = {}) {
+        function startNextNight(entry = {}) {
       if (roomState.gameOver) return;
       gameState.currentDay += 1;
       beginNight(entry);
@@ -2354,22 +2348,42 @@ function showBgmPlayButton() {
       }
 
       renderTable();
-      if (roomState.hasSheriffInGame) {
-        if (!setCurrentPhase('DAY_DEATH')) return;
-        updateBanner('【天亮死訊】', `天亮了！${text}`, '請警長指定白天發言方向');
-        speakGod(`天亮了。${text} 請警長選擇發言順序。`, flushPendingDawnHistory);
-        updateControlPanel();
-      } else {
-        if (!setCurrentPhase('DAY_DEATH')) return;
-        const alivePlayers = roomState.players.filter(p => p.isAlive).map(p => p.id);
-        if (!alivePlayers.length) { finishGame(checkWinCondition() || 'WEREWOLF_WIN'); return; }
-        const randomStart = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
-        speakGod(`天亮了。${text} 本日由 ${randomStart} 號玩家開始發言。`, flushPendingDawnHistory);
-        startNoSheriffSpeech(randomStart);
-      }
+      if (!setCurrentPhase('DAY_DEATH')) return;
+      updateBanner('【天亮死訊】', `天亮了！${text}`, roomState.hasSheriffInGame ? '等待死亡技能結算後，由警長指定發言方向' : '等待死亡技能結算後開始白天發言');
+      speakGod(`天亮了。${text}`, () => {
+        flushPendingDawnHistory();
+        if (startDeathSkillResolution(deaths, 'AFTER_DAWN', null)) return;
+        continueDayAfterDawn();
+      });
+      updateControlPanel();
     }
 
-    function chooseSpeechDirection(dir) {
+    function continueDayAfterDawn() {
+      const winner = checkWinCondition();
+      if (winner) {
+        const deaths = Array.isArray(roomState.lastNightDeaths) ? roomState.lastNightDeaths : [];
+        finishGame(winner, formatNightDeathSummary(deaths));
+        return;
+      }
+      if (startSheriffBadgeDecision('DAY_DEATH')) return;
+
+      if (roomState.hasSheriffInGame) {
+        updateBanner('【天亮死訊】', '昨夜死亡技能已結算。', '請警長指定白天發言方向');
+        speakGod('請警長選擇發言順序。');
+        updateControlPanel();
+        return;
+      }
+
+      const alivePlayers = roomState.players.filter(p => p.isAlive).map(p => p.id);
+      if (!alivePlayers.length) {
+        finishGame(checkWinCondition() || 'WEREWOLF_WIN');
+        return;
+      }
+      const randomStart = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+      startNoSheriffSpeech(randomStart);
+    }
+
+        function chooseSpeechDirection(dir) {
       updateBanner("【白天輪流發言】", `警長指定發言順序：【${dir}】`, "每人發言 60s，自動跳過出局玩家");
       speakGod(`警長指定發言順序為 ${dir}。`);
       
@@ -2648,7 +2662,19 @@ function showBgmPlayButton() {
         return true;
       }
       if (startSheriffBadgeDecision(returnPhase, executedVictimId)) return true;
-      if (returnPhase === 'WHITE_WOLF_KING_SELF_DESTRUCT') {
+      if (returnPhase === 'AFTER_DAWN') {
+        if (roomState.deathSkillDeaths.length) {
+          const extraDeaths = roomState.deathSkillDeaths.map(item => Number(item.id));
+          recordGameHistory({
+            visibility: 'public',
+            phaseLabel: '死亡技能額外出局',
+            message: extraDeaths.map(id => `${id}號`).join('、')
+          });
+          speakGod(`死亡技能造成額外出局：${extraDeaths.map(id => `${id}號`).join('、')}。`, continueDayAfterDawn);
+        } else {
+          continueDayAfterDawn();
+        }
+      } else if (returnPhase === 'WHITE_WOLF_KING_SELF_DESTRUCT') {
         startNextNight({
           announcement: '白狼王自爆並帶走一名玩家，白天流程立即中止。',
           voiceMessage: '白狼王自爆，並帶走一名玩家。天黑請閉眼。',

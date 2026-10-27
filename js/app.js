@@ -2371,6 +2371,23 @@ function showBgmPlayButton() {
       updateControlPanel();
     }
 
+    function finishAfterDawnDeathSkillChain() {
+      const extraDeaths = Array.isArray(roomState.deathSkillDeaths) ? roomState.deathSkillDeaths.map(item => Number(item.id)) : [];
+      roomState.deathSkillReturnPhase = null;
+      roomState.deathSkillExecutedVictim = null;
+      roomState.deathSkillQueue = [];
+      if (extraDeaths.length) {
+        recordGameHistory({
+          visibility: 'public',
+          phaseLabel: '死亡技能額外出局',
+          message: extraDeaths.map(id => `${id}號`).join('、')
+        });
+        speakGod(`死亡技能造成額外出局：${extraDeaths.map(id => `${id}號`).join('、')}。`, continueDayAfterDawn);
+      } else {
+        continueDayAfterDawn();
+      }
+    }
+
     function continueDayAfterDawn() {
       const winner = checkWinCondition();
       if (winner) {
@@ -2640,7 +2657,7 @@ function showBgmPlayButton() {
       roomState.deathSkillQueue.shift();
       if (result && result.death) {
         roomState.deathSkillDeaths.push(result.death);
-        if (roomState.deathSkillReturnPhase === 'DAY_DEATH') {
+        if (roomState.deathSkillReturnPhase === 'DAY_DEATH' || roomState.deathSkillReturnPhase === 'AFTER_DAWN') {
           roomState.lastNightDeaths.push(result.death);
         }
         const chainedSkill = AwooGameEngine.getDeathSkill(result.target, result.death.reason);
@@ -2662,6 +2679,12 @@ function showBgmPlayButton() {
       }
       const returnPhase = roomState.deathSkillReturnPhase;
       const executedVictimId = roomState.deathSkillExecutedVictim;
+      if (returnPhase === 'AFTER_DAWN') {
+        // The last death-skill actor gets time for last words before extra deaths are announced.
+        roomState.deathSkillLastWordsReturn = 'AFTER_DAWN';
+        startLastWordsPhase(current.playerId);
+        return true;
+      }
       roomState.deathSkillReturnPhase = null;
       roomState.deathSkillExecutedVictim = null;
       roomState.deathSkillQueue = [];
@@ -2678,17 +2701,7 @@ function showBgmPlayButton() {
         if (startSheriffBadgeDecision(returnPhase, executedVictimId)) return true;
       }
       if (returnPhase === 'AFTER_DAWN') {
-        if (roomState.deathSkillDeaths.length) {
-          const extraDeaths = roomState.deathSkillDeaths.map(item => Number(item.id));
-          recordGameHistory({
-            visibility: 'public',
-            phaseLabel: '死亡技能額外出局',
-            message: extraDeaths.map(id => `${id}號`).join('、')
-          });
-          speakGod(`死亡技能造成額外出局：${extraDeaths.map(id => `${id}號`).join('、')}。`, continueDayAfterDawn);
-        } else {
-          continueDayAfterDawn();
-        }
+        finishAfterDawnDeathSkillChain();
       } else if (returnPhase === 'WHITE_WOLF_KING_SELF_DESTRUCT') {
         startNextNight({
           announcement: '白狼王自爆並帶走一名玩家，白天流程立即中止。',
@@ -2808,6 +2821,11 @@ function showBgmPlayButton() {
     function endLastWords() {
       clearInterval(roomState.timerInterval);
       roomState.timerInterval = null;
+      if (roomState.deathSkillLastWordsReturn === 'AFTER_DAWN') {
+        roomState.deathSkillLastWordsReturn = null;
+        speakGod('遺言發表結束。', finishAfterDawnDeathSkillChain);
+        return;
+      }
       const winner = checkWinCondition();
       if (winner) { finishGame(winner); return; }
       speakGod('遺言發表結束，天黑請閉眼。');

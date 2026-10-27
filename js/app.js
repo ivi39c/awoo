@@ -2371,6 +2371,25 @@ function showBgmPlayButton() {
       updateControlPanel();
     }
 
+    function finishAfterDayExecutionDeathSkills() {
+      const victimId = Number(roomState.deathSkillLastWordsVictimId);
+      roomState.deathSkillLastWordsVictimId = null;
+      const ids = [...new Set([victimId, ...(Array.isArray(roomState.deathSkillDeaths) ? roomState.deathSkillDeaths.map(item => Number(item.id)) : [])].filter(Number.isFinite))];
+      recordGameHistory({
+        visibility: 'public',
+        phaseLabel: '白天出局',
+        message: ids.map(id => `${id}號`).join('、')
+      });
+      speakGod(`白天出局：${ids.map(id => `${id}號`).join('、')}。天黑請閉眼。`, () => {
+        const winner = checkWinCondition();
+        if (winner) {
+          finishGame(winner, `白天出局：${ids.map(id => `${id}號`).join('、')}。`);
+          return;
+        }
+        setTimeout(startNextNight, 3000);
+      });
+    }
+
     function finishAfterDawnDeathSkillChain() {
       const extraDeaths = Array.isArray(roomState.deathSkillDeaths) ? roomState.deathSkillDeaths.map(item => Number(item.id)) : [];
       roomState.deathSkillReturnPhase = null;
@@ -2565,7 +2584,7 @@ function showBgmPlayButton() {
       victim.deathReason = 'EXECUTED_BY_VOTE';
       renderTable();
       speakGod(`公投處決 ${targetId}號。`, () => {
-        speakGod(`請 ${targetId}號玩家發表遺言。`, () => continueAfterPublicExecution(targetId));
+        speakGod(`請 ${targetId}號玩家發動技能與發表遺言。`, () => continueAfterPublicExecution(targetId));
       });
     }
 
@@ -2688,7 +2707,7 @@ function showBgmPlayButton() {
       roomState.deathSkillReturnPhase = null;
       roomState.deathSkillExecutedVictim = null;
       roomState.deathSkillQueue = [];
-      if (returnPhase !== 'AFTER_DAWN') {
+      if (returnPhase !== 'AFTER_DAWN' && returnPhase !== 'LAST_WORDS') {
         const winner = checkWinCondition();
         if (winner) {
           const deaths = returnPhase === 'DAY_DEATH'
@@ -2708,6 +2727,8 @@ function showBgmPlayButton() {
           voiceMessage: '白狼王自爆，並帶走一名玩家。天黑請閉眼。',
         });
       } else if (returnPhase === 'LAST_WORDS') {
+        roomState.deathSkillLastWordsReturn = 'AFTER_DAY_EXECUTION';
+        roomState.deathSkillLastWordsVictimId = executedVictimId;
         startLastWordsPhase(executedVictimId);
       } else {
         if (roomState.sheriffMode === 'enabled' && gameState.currentDay === 1 && !roomState.hasSheriffInGame) {
@@ -2824,6 +2845,11 @@ function showBgmPlayButton() {
       if (roomState.deathSkillLastWordsReturn === 'AFTER_DAWN') {
         roomState.deathSkillLastWordsReturn = null;
         speakGod('遺言發表結束。', finishAfterDawnDeathSkillChain);
+        return;
+      }
+      if (roomState.deathSkillLastWordsReturn === 'AFTER_DAY_EXECUTION') {
+        roomState.deathSkillLastWordsReturn = null;
+        finishAfterDayExecutionDeathSkills();
         return;
       }
       const winner = checkWinCondition();

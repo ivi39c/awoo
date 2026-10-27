@@ -1332,7 +1332,8 @@ function showBgmPlayButton() {
         `;
       }
       else if (p.role === '獵人' || p.role === 'HUNTER') {
-        const canShootTonight = isHunterEligibleToShoot(p);
+        // Keep the eligibility label stable after the Hunter fires; action availability is separate.
+        const canShootTonight = isHunterEligibleToShoot(p, true);
         const canAct = isModeratorActionStep('hunterNightShot') && roomState.moderatorSpeechDone;
         const enabled = canShootTonight && canAct;
         let html = `<p style="font-size:0.85rem;color:${canShootTonight ? 'var(--gold-primary)' : '#999'};">今晚開槍手勢：${canShootTonight ? '可開槍' : '不可開槍'}</p>`;
@@ -1355,7 +1356,7 @@ function showBgmPlayButton() {
         const canWolfAct = isModeratorActionStep('wolfAttack') && roomState.moderatorSpeechDone;
         const teammates = roomState.players.filter(t => getRoleCamp(t.role) === '狼人' && Number(t.id) !== Number(p.id));
         let html = `<p style="font-size:0.8rem; color:var(--crimson-bright);">狼隊隊友：<b>${teammates.length ? teammates.map(t => `${t.id}號${t.isAlive ? '' : '（已出局）'}`).join('、') : '沒有其他隊友'}</b></p><p style="font-size:0.8rem; color:var(--crimson-bright);">狼隊討論夜刀標靶：</p>`;
-        html += renderPlayerTargetGrid({ onSelect: 'wolfKillTarget', isAllowed: t => t.isAlive && getRoleCamp(t.role) !== '狼人', isDisabled: t => !canWolfAct || roomState.wolfActionDecided || getRoleCamp(t.role) === '狼人', showDead: true });
+        html += renderPlayerTargetGrid({ onSelect: 'wolfKillTarget', isAllowed: t => t.isAlive, isDisabled: t => !canWolfAct || roomState.wolfActionDecided, showDead: true });
         html += `<button type="button" class="btn-gothic" style="width:100%; margin-top:8px;" onclick="confirmWolfNoKill()" ${!canWolfAct || roomState.wolfActionDecided ? 'disabled' : ''}>確認空刀（本夜不襲擊）</button>`;
         if (roomState.wolfActionDecided) html += `<p class="test-action-confirmation">已完成狼人行動${roomState.nightVictim != null ? `：${roomState.nightVictim}號` : '：空刀'}，可繼續上帝流程。</p>`;
         container.innerHTML = html;
@@ -1369,8 +1370,9 @@ function showBgmPlayButton() {
       }
     }
 
-    function isHunterEligibleToShoot(hunter) {
-      if (!hunter || !hunter.isAlive || !['獵人', 'HUNTER'].includes(hunter.role) || roomState.hunterNightShotUsed) return false;
+    function isHunterEligibleToShoot(hunter, includeAlreadyUsed = false) {
+      if (!hunter || !hunter.isAlive || !['獵人', 'HUNTER'].includes(hunter.role)) return false;
+      if (roomState.hunterNightShotUsed && !includeAlreadyUsed) return false;
       const wolfTargetedHunter = Number(roomState.nightVictim) === Number(hunter.id);
       const guarded = Number(roomState.guardTargetId) === Number(hunter.id);
       const saved = Number(roomState.witchSaveTargetId) === Number(hunter.id);
@@ -2156,15 +2158,22 @@ function showBgmPlayButton() {
         roomState.witchPoisonTargetId,
         roomState.guardTargetId
       );
-      if (startDeathSkillResolution(roomState.lastNightDeaths, 'DAY_DEATH', null)) return true;
-      const winner = checkWinCondition();
-      if (winner) {
-        const deaths = Array.isArray(roomState.lastNightDeaths) ? roomState.lastNightDeaths : [];
-        finishGame(winner, formatNightDeathSummary(deaths));
+
+      // If no death skill can change the result, preserve the direct terminal-game
+      // announcement path. Otherwise defer the win check until the skill chain resolves.
+      const nightDeaths = Array.isArray(roomState.lastNightDeaths) ? roomState.lastNightDeaths : [];
+      const hasNightDeathSkill = nightDeaths.some(death => {
+        const player = roomState.players.find(item => Number(item.id) === Number(death.id));
+        return player && AwooGameEngine.getDeathSkill(player, death.reason || player.deathReason);
+      });
+      const immediateWinner = checkWinCondition();
+      if (immediateWinner && !hasNightDeathSkill) {
+        finishGame(immediateWinner, formatNightDeathSummary(nightDeaths));
         return true;
       }
-      if (startSheriffBadgeDecision('DAY_DEATH')) return true;
 
+      // The first-night Sheriff election happens before any dawn death announcement.
+      // Night death skills are queued by announceDayDeath() after the public death list.
       if (roomState.sheriffMode === 'enabled' && gameState.currentDay === 1 && !roomState.hasSheriffInGame) {
         if (!setCurrentPhase('SHERIFF_ELECTION')) return false;
         startSheriffCountdown();
@@ -2174,7 +2183,7 @@ function showBgmPlayButton() {
       return true;
     }
 
-    function startNextNight(entry = {}) {
+        function startNextNight(entry = {}) {
       if (roomState.gameOver) return;
       gameState.currentDay += 1;
       beginNight(entry);
@@ -2352,22 +2361,78 @@ function showBgmPlayButton() {
       }
 
       renderTable();
-      if (roomState.hasSheriffInGame) {
-        if (!setCurrentPhase('DAY_DEATH')) return;
-        updateBanner('【天亮死訊】', `天亮了！${text}`, '請警長指定白天發言方向');
-        speakGod(`天亮了。${text} 請警長選擇發言順序。`, flushPendingDawnHistory);
-        updateControlPanel();
+      if (!setCurrentPhase('DAY_DEATH')) return;
+      updateBanner('【天亮死訊】', `天亮了！${text}`, roomState.hasSheriffInGame ? '等待死亡技能結算後，由警長指定發言方向' : '等待死亡技能結算後開始白天發言');
+      speakGod(`天亮了。${text}`, () => {
+        flushPendingDawnHistory();
+        if (startDeathSkillResolution(deaths, 'AFTER_DAWN', null)) return;
+        continueDayAfterDawn();
+      });
+      updateControlPanel();
+    }
+
+    function finishAfterDayExecutionDeathSkills() {
+      const victimId = Number(roomState.deathSkillLastWordsVictimId);
+      roomState.deathSkillLastWordsVictimId = null;
+      const ids = [...new Set([victimId, ...(Array.isArray(roomState.deathSkillDeaths) ? roomState.deathSkillDeaths.map(item => Number(item.id)) : [])].filter(Number.isFinite))];
+      recordGameHistory({
+        visibility: 'public',
+        phaseLabel: '白天出局',
+        message: ids.map(id => `${id}號`).join('、')
+      });
+      speakGod(`白天出局：${ids.map(id => `${id}號`).join('、')}。天黑請閉眼。`, () => {
+        const winner = checkWinCondition();
+        if (winner) {
+          finishGame(winner, `白天出局：${ids.map(id => `${id}號`).join('、')}。`);
+          return;
+        }
+        setTimeout(startNextNight, 3000);
+      });
+    }
+
+    function finishAfterDawnDeathSkillChain() {
+      const extraDeaths = Array.isArray(roomState.deathSkillDeaths) ? roomState.deathSkillDeaths.map(item => Number(item.id)) : [];
+      roomState.deathSkillReturnPhase = null;
+      roomState.deathSkillExecutedVictim = null;
+      roomState.deathSkillQueue = [];
+      if (extraDeaths.length) {
+        recordGameHistory({
+          visibility: 'public',
+          phaseLabel: '死亡技能額外出局',
+          message: extraDeaths.map(id => `${id}號`).join('、')
+        });
+        speakGod(`死亡技能造成額外出局：${extraDeaths.map(id => `${id}號`).join('、')}。`, continueDayAfterDawn);
       } else {
-        if (!setCurrentPhase('DAY_DEATH')) return;
-        const alivePlayers = roomState.players.filter(p => p.isAlive).map(p => p.id);
-        if (!alivePlayers.length) { finishGame(checkWinCondition() || 'WEREWOLF_WIN'); return; }
-        const randomStart = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
-        speakGod(`天亮了。${text} 本日由 ${randomStart} 號玩家開始發言。`, flushPendingDawnHistory);
-        startNoSheriffSpeech(randomStart);
+        continueDayAfterDawn();
       }
     }
 
-    function chooseSpeechDirection(dir) {
+    function continueDayAfterDawn() {
+      const winner = checkWinCondition();
+      if (winner) {
+        const deaths = Array.isArray(roomState.lastNightDeaths) ? roomState.lastNightDeaths : [];
+        finishGame(winner, formatNightDeathSummary(deaths));
+        return;
+      }
+      if (startSheriffBadgeDecision('DAY_DEATH')) return;
+
+      if (roomState.hasSheriffInGame) {
+        updateBanner('【天亮死訊】', '昨夜死亡技能已結算。', '請警長指定白天發言方向');
+        speakGod('請警長選擇發言順序。');
+        updateControlPanel();
+        return;
+      }
+
+      const alivePlayers = roomState.players.filter(p => p.isAlive).map(p => p.id);
+      if (!alivePlayers.length) {
+        finishGame(checkWinCondition() || 'WEREWOLF_WIN');
+        return;
+      }
+      const randomStart = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+      startNoSheriffSpeech(randomStart);
+    }
+
+        function chooseSpeechDirection(dir) {
       updateBanner("【白天輪流發言】", `警長指定發言順序：【${dir}】`, "每人發言 60s，自動跳過出局玩家");
       speakGod(`警長指定發言順序為 ${dir}。`);
       
@@ -2519,7 +2584,7 @@ function showBgmPlayButton() {
       victim.deathReason = 'EXECUTED_BY_VOTE';
       renderTable();
       speakGod(`公投處決 ${targetId}號。`, () => {
-        speakGod(`請 ${targetId}號玩家發表遺言。`, () => continueAfterPublicExecution(targetId));
+        speakGod(`請 ${targetId}號玩家發動技能與發表遺言。`, () => continueAfterPublicExecution(targetId));
       });
     }
 
@@ -2546,8 +2611,8 @@ function showBgmPlayButton() {
       clearInterval(roomState.timerInterval);
       roomState.timerInterval = null;
       const current = queue[0];
-      updateBanner('【死亡技能】', `${current.playerId} 號 ${current.skill.role} 可以發動死亡技能。`, '請切換到該座位選擇目標。');
-      speakGod(`${current.playerId} 號 ${current.skill.role} 發動死亡技能，請選擇目標。`);
+      updateBanner('【死亡技能】', `${current.playerId} 號玩家可以發動技能。`, '請切換到該座位選擇目標。');
+      speakGod(`${current.playerId} 號玩家，請發動技能。`);
       renderTable();
       updateControlPanel();
       return true;
@@ -2611,7 +2676,7 @@ function showBgmPlayButton() {
       roomState.deathSkillQueue.shift();
       if (result && result.death) {
         roomState.deathSkillDeaths.push(result.death);
-        if (roomState.deathSkillReturnPhase === 'DAY_DEATH') {
+        if (roomState.deathSkillReturnPhase === 'DAY_DEATH' || roomState.deathSkillReturnPhase === 'AFTER_DAWN') {
           roomState.lastNightDeaths.push(result.death);
         }
         const chainedSkill = AwooGameEngine.getDeathSkill(result.target, result.death.reason);
@@ -2626,32 +2691,44 @@ function showBgmPlayButton() {
       renderTable();
       if (roomState.deathSkillQueue.length) {
         const next = roomState.deathSkillQueue[0];
-        updateBanner('【死亡技能】', `${next.playerId} 號 ${next.skill.role} 可以發動死亡技能。`, '請切換到該座位選擇目標。');
-        speakGod(`${next.playerId} 號 ${next.skill.role} 發動死亡技能，請選擇目標。`);
+        updateBanner('【死亡技能】', `${next.playerId} 號玩家可以發動技能。`, '請切換到該座位選擇目標。');
+        speakGod(`${next.playerId} 號玩家，請發動技能。`);
         updateControlPanel();
         return true;
       }
       const returnPhase = roomState.deathSkillReturnPhase;
       const executedVictimId = roomState.deathSkillExecutedVictim;
+      if (returnPhase === 'AFTER_DAWN') {
+        // The last death-skill actor gets time for last words before extra deaths are announced.
+        roomState.deathSkillLastWordsReturn = 'AFTER_DAWN';
+        startLastWordsPhase(current.playerId);
+        return true;
+      }
       roomState.deathSkillReturnPhase = null;
       roomState.deathSkillExecutedVictim = null;
       roomState.deathSkillQueue = [];
-      const winner = checkWinCondition();
-      if (winner) {
-        const deaths = returnPhase === 'DAY_DEATH'
-          ? roomState.lastNightDeaths
-          : roomState.deathSkillDeaths;
-        const summary = deaths.length ? `出局玩家：${deaths.map(item => `${item.id} 號`).join('、')}。` : '';
-        finishGame(winner, summary);
-        return true;
+      if (returnPhase !== 'AFTER_DAWN' && returnPhase !== 'LAST_WORDS') {
+        const winner = checkWinCondition();
+        if (winner) {
+          const deaths = returnPhase === 'DAY_DEATH'
+            ? roomState.lastNightDeaths
+            : roomState.deathSkillDeaths;
+          const summary = deaths.length ? `出局玩家：${deaths.map(item => `${item.id} 號`).join('、')}。` : '';
+          finishGame(winner, summary);
+          return true;
+        }
+        if (startSheriffBadgeDecision(returnPhase, executedVictimId)) return true;
       }
-      if (startSheriffBadgeDecision(returnPhase, executedVictimId)) return true;
-      if (returnPhase === 'WHITE_WOLF_KING_SELF_DESTRUCT') {
+      if (returnPhase === 'AFTER_DAWN') {
+        finishAfterDawnDeathSkillChain();
+      } else if (returnPhase === 'WHITE_WOLF_KING_SELF_DESTRUCT') {
         startNextNight({
           announcement: '白狼王自爆並帶走一名玩家，白天流程立即中止。',
           voiceMessage: '白狼王自爆，並帶走一名玩家。天黑請閉眼。',
         });
       } else if (returnPhase === 'LAST_WORDS') {
+        roomState.deathSkillLastWordsReturn = 'AFTER_DAY_EXECUTION';
+        roomState.deathSkillLastWordsVictimId = executedVictimId;
         startLastWordsPhase(executedVictimId);
       } else {
         if (roomState.sheriffMode === 'enabled' && gameState.currentDay === 1 && !roomState.hasSheriffInGame) {
@@ -2765,6 +2842,16 @@ function showBgmPlayButton() {
     function endLastWords() {
       clearInterval(roomState.timerInterval);
       roomState.timerInterval = null;
+      if (roomState.deathSkillLastWordsReturn === 'AFTER_DAWN') {
+        roomState.deathSkillLastWordsReturn = null;
+        speakGod('遺言發表結束。', finishAfterDawnDeathSkillChain);
+        return;
+      }
+      if (roomState.deathSkillLastWordsReturn === 'AFTER_DAY_EXECUTION') {
+        roomState.deathSkillLastWordsReturn = null;
+        finishAfterDayExecutionDeathSkills();
+        return;
+      }
       const winner = checkWinCondition();
       if (winner) { finishGame(winner); return; }
       speakGod('遺言發表結束，天黑請閉眼。');

@@ -2159,6 +2159,19 @@ function showBgmPlayButton() {
         roomState.guardTargetId
       );
 
+      // If no death skill can change the result, preserve the direct terminal-game
+      // announcement path. Otherwise defer the win check until the skill chain resolves.
+      const nightDeaths = Array.isArray(roomState.lastNightDeaths) ? roomState.lastNightDeaths : [];
+      const hasNightDeathSkill = nightDeaths.some(death => {
+        const player = roomState.players.find(item => Number(item.id) === Number(death.id));
+        return player && AwooGameEngine.getDeathSkill(player, death.reason || player.deathReason);
+      });
+      const immediateWinner = checkWinCondition();
+      if (immediateWinner && !hasNightDeathSkill) {
+        finishGame(immediateWinner, formatNightDeathSummary(nightDeaths));
+        return true;
+      }
+
       // The first-night Sheriff election happens before any dawn death announcement.
       // Night death skills are queued by announceDayDeath() after the public death list.
       if (roomState.sheriffMode === 'enabled' && gameState.currentDay === 1 && !roomState.hasSheriffInGame) {

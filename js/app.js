@@ -2652,16 +2652,18 @@ function showBgmPlayButton() {
       roomState.deathSkillReturnPhase = null;
       roomState.deathSkillExecutedVictim = null;
       roomState.deathSkillQueue = [];
-      const winner = checkWinCondition();
-      if (winner) {
-        const deaths = returnPhase === 'DAY_DEATH'
-          ? roomState.lastNightDeaths
-          : roomState.deathSkillDeaths;
-        const summary = deaths.length ? `出局玩家：${deaths.map(item => `${item.id} 號`).join('、')}。` : '';
-        finishGame(winner, summary);
-        return true;
+      if (returnPhase !== 'AFTER_DAWN') {
+        const winner = checkWinCondition();
+        if (winner) {
+          const deaths = returnPhase === 'DAY_DEATH'
+            ? roomState.lastNightDeaths
+            : roomState.deathSkillDeaths;
+          const summary = deaths.length ? `出局玩家：${deaths.map(item => `${item.id} 號`).join('、')}。` : '';
+          finishGame(winner, summary);
+          return true;
+        }
+        if (startSheriffBadgeDecision(returnPhase, executedVictimId)) return true;
       }
-      if (startSheriffBadgeDecision(returnPhase, executedVictimId)) return true;
       if (returnPhase === 'AFTER_DAWN') {
         if (roomState.deathSkillDeaths.length) {
           const extraDeaths = roomState.deathSkillDeaths.map(item => Number(item.id));

@@ -48,7 +48,7 @@ test('首頁顯示與 package.json、CHANGELOG 同步的測試版本號', () => 
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
   const changelog = fs.readFileSync(path.join(root, 'CHANGELOG.md'), 'utf8');
-  assert.match(html, /class="app-version"[^>]*>版本\s*<span id="appVersion">0\.9\.4-alpha\.1<\\/span>/);
+  assert.match(html, /class="app-version"[^>]*>版本\s*<span id="appVersion">0\.9\.4-alpha\.1<\/span>/);
   assert.equal(pkg.version, '0.9.4-alpha.1');
   assert.match(changelog, /## 0\.9\.4-alpha\.1 — 2026-10-30/);
 });

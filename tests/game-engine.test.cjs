@@ -328,12 +328,14 @@ test('自爆需要存活玩家且可由 ruleset 關閉', () => {
 });
 
 
-test('死亡技能資格依角色與死因判定：獵人僅被夜間狼刀出局可開槍；狼王僅放逐可開槍', () => {
+test('死亡技能資格依角色與死因判定：獵人僅被夜間狼刀出局可開槍；狼王被處決或遭獵人開槍帶走可開槍', () => {
   assert.equal(Engine.getDeathSkill(player(1, '獵人', { isAlive: false }), 'KILLED_BY_WOLF').type, 'hunter-shot');
   assert.equal(Engine.getDeathSkill(player(1, '獵人', { isAlive: false }), 'EXECUTED_BY_VOTE'), null);
   assert.equal(Engine.getDeathSkill(player(1, '獵人', { isAlive: false }), 'POISONED_BY_WITCH'), null);
   assert.equal(Engine.getDeathSkill(player(1, '獵人', { isAlive: false, canShoot: false }), 'KILLED_BY_WOLF'), null);
   assert.equal(Engine.getDeathSkill(player(1, '狼王', { isAlive: false }), 'EXECUTED_BY_VOTE').type, 'wolf-king-shot');
+  assert.equal(Engine.getDeathSkill(player(1, '狼王', { isAlive: false }), 'HUNTER_SHOT').type, 'wolf-king-shot',
+    '狼王被獵人夜間開槍帶走，應在天亮公布出局後進入死亡技能流程');
   assert.equal(Engine.getDeathSkill(player(1, '狼王', { isAlive: false }), 'KILLED_BY_WOLF'), null);
 });
 

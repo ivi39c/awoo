@@ -2393,7 +2393,14 @@ function showBgmPlayButton() {
       }
       const text = formatNightDeathSummary(deaths);
 
-      // Preserve a dead Sheriff's identity until the badge-resolution step can offer transfer/destruction.
+      const sheriff = roomState.players.find(player => Number(player.id) === Number(roomState.sheriffId));
+      // Preserve a dead Sheriff's identity for badge resolution, but recover safely if the sheriff reference is missing.
+      if (roomState.hasSheriffInGame && !sheriff) {
+        roomState.hasSheriffInGame = false;
+        roomState.sheriffId = null;
+        gameState.sheriffId = null;
+      }
+
       renderTable();
       if (!setCurrentPhase('DAY_DEATH')) return;
       updateBanner('【天亮死訊】', `天亮了！${text}`, roomState.hasSheriffInGame ? '等待死亡技能結算後，由警長指定發言方向' : '等待死亡技能結算後開始白天發言');

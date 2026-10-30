@@ -110,15 +110,31 @@ class Player {
       });
       gameState.lastGuardedId = result.lastGuardedId;
       roomState.guardLastTarget = result.lastGuardedId;
-      roomState.lastNightDeaths = result.deaths;
+      const nightDeaths = result.deaths.map(death => ({ ...death }));
+      const hunterShotTargetId = roomState.hunterNightShotTargetId == null ? null : Number(roomState.hunterNightShotTargetId);
+      if (hunterShotTargetId != null) {
+        const target = roomState.players.find(player => Number(player.id) === hunterShotTargetId);
+        if (target) {
+          const existingDeath = nightDeaths.find(death => Number(death.id) === hunterShotTargetId);
+          if (!existingDeath) {
+            target.isAlive = false;
+            target.deathReason = 'HUNTER_SHOT';
+            nightDeaths.push({ id: hunterShotTargetId, reason: 'HUNTER_SHOT' });
+          }
+          // If another night action already killed this target, retain its primary death reason
+          // so cause-specific rules (such as Hunter poison immunity) remain deterministic.
+        }
+      }
+      roomState.lastNightDeaths = nightDeaths;
+      roomState.hunterNightShotTargetId = null;
       // Keep the public death log pending until God finishes the dawn announcement.
       roomState.pendingDawnHistory = {
         visibility: 'public',
-        phaseLabel: result.deaths.length ? '昨夜出局' : '平安夜',
-        message: result.deaths.length ? result.deaths.map(death => `${Number(death.id)}號`).join('、') : '',
+        phaseLabel: nightDeaths.length ? '昨夜出局' : '平安夜',
+        message: nightDeaths.length ? nightDeaths.map(death => `${Number(death.id)}號`).join('、') : '',
       };
       if (result.warnings.length) console.warn('[Awoo] 夜晚結算提醒：', result.warnings);
-      return result.deaths;
+      return nightDeaths;
     }
 
     // Role data and alias/camp helpers live in js/role-database.js.
@@ -448,6 +464,8 @@ class Player {
       gameStarted: false,
       gameOver: false,
       lastNightDeaths: [],
+      hunterNightShotTargetId: null,
+      firstNightDeathsHiddenUntilDawn: false,
       actionHistory: [],
       witchSaveTargetId: null,
       witchPoisonTargetId: null,
@@ -738,6 +756,8 @@ class Player {
       roomState.seerTargetId = null;
       roomState.wolfActionDecided = false;
       roomState.hunterNightShotUsed = false;
+      roomState.hunterNightShotTargetId = null;
+      roomState.firstNightDeathsHiddenUntilDawn = false;
       roomState.witchSaveDecisionMade = false;
       roomState.witchPoisonDecisionMade = false;
       roomState.moderatorManualCompletedStepIndex = null;
@@ -1050,10 +1070,12 @@ function showBgmPlayButton() {
       const p = roomState.players.find(x => x.id === roomState.currentPerspective);
       if (!p) return;
       recordTestedRole(p.role);
+      const hideDeathStatus = roomState.firstNightDeathsHiddenUntilDawn && roomState.currentPhase === 'SHERIFF_ELECTION';
+      const deathStatus = hideDeathStatus ? '' : ` (${p.isAlive ? '存活' : '已出局'})`;
 
       document.getElementById('roleIdentityInfo').innerHTML = `
         當前檢視：<b>${AwooUI.escapeHtml(p.id)}號 ${AwooUI.escapeHtml(p.name)}</b> ${roomState.isSpectator ? '<span style="color:var(--gold-primary);">[觀眾席]</span>' : ''}<br>
-        身分牌：<b style="color:var(--gold-primary);">${AwooUI.escapeHtml(p.role)}</b> (${p.isAlive ? '存活' : '已出局'})
+        身分牌：<b style="color:var(--gold-primary);">${AwooUI.escapeHtml(p.role)}</b>${deathStatus}
       `;
 
       const controls = document.getElementById('actionControls');
@@ -1387,8 +1409,7 @@ function showBgmPlayButton() {
       const hunter = roomState.players.find(player => Number(player.id) === Number(roomState.currentPerspective));
       const target = roomState.players.find(player => Number(player.id) === Number(targetId) && player.isAlive && Number(player.id) !== Number(hunter?.id));
       if (!isHunterEligibleToShoot(hunter) || !target) { alert('本夜獵人不可開槍或目標無效。'); return false; }
-      target.isAlive = false;
-      target.deathReason = 'HUNTER_SHOT';
+      roomState.hunterNightShotTargetId = Number(target.id);
       roomState.hunterNightShotUsed = true;
       hunter.deathSkillUsed = true;
       hunter.canShoot = false;
@@ -1728,6 +1749,8 @@ function showBgmPlayButton() {
       roomState.timerInterval = null;
       if (!setCurrentPhase('NIGHT')) return;
       AwooGameEngine.resetNightActions(roomState);
+      roomState.hunterNightShotTargetId = null;
+      roomState.firstNightDeathsHiddenUntilDawn = false;
       roomState.wolfActionDecided = false;
       roomState.witchSaveDecisionMade = false;
       roomState.witchPoisonDecisionMade = false;
@@ -2159,9 +2182,23 @@ function showBgmPlayButton() {
         roomState.guardTargetId
       );
 
+      const nightDeaths = Array.isArray(roomState.lastNightDeaths) ? roomState.lastNightDeaths : [];
+      const firstNightElection = roomState.sheriffMode === 'enabled' && gameState.currentDay === 1 && !roomState.hasSheriffInGame;
+      if (firstNightElection) {
+        roomState.firstNightDeathsHiddenUntilDawn = true;
+        nightDeaths.forEach(death => {
+          const player = roomState.players.find(item => Number(item.id) === Number(death.id));
+          if (player) player.isAlive = true;
+        });
+        renderTable();
+        if (!setCurrentPhase('SHERIFF_ELECTION')) return false;
+        startSheriffCountdown();
+        updateControlPanel();
+        return true;
+      }
+
       // If no death skill can change the result, preserve the direct terminal-game
       // announcement path. Otherwise defer the win check until the skill chain resolves.
-      const nightDeaths = Array.isArray(roomState.lastNightDeaths) ? roomState.lastNightDeaths : [];
       const hasNightDeathSkill = nightDeaths.some(death => {
         const player = roomState.players.find(item => Number(item.id) === Number(death.id));
         return player && AwooGameEngine.getDeathSkill(player, death.reason || player.deathReason);
@@ -2172,14 +2209,7 @@ function showBgmPlayButton() {
         return true;
       }
 
-      // The first-night Sheriff election happens before any dawn death announcement.
-      // Night death skills are queued by announceDayDeath() after the public death list.
-      if (roomState.sheriffMode === 'enabled' && gameState.currentDay === 1 && !roomState.hasSheriffInGame) {
-        if (!setCurrentPhase('SHERIFF_ELECTION')) return false;
-        startSheriffCountdown();
-      } else {
-        announceDayDeath();
-      }
+      announceDayDeath();
       return true;
     }
 
@@ -2351,15 +2381,19 @@ function showBgmPlayButton() {
     function announceDayDeath() {
       renderGodFlowPanel();
       const deaths = Array.isArray(roomState.lastNightDeaths) ? roomState.lastNightDeaths : [];
+      if (roomState.firstNightDeathsHiddenUntilDawn) {
+        deaths.forEach(death => {
+          const player = roomState.players.find(item => Number(item.id) === Number(death.id));
+          if (player) {
+            player.isAlive = false;
+            player.deathReason = death.reason || player.deathReason;
+          }
+        });
+        roomState.firstNightDeathsHiddenUntilDawn = false;
+      }
       const text = formatNightDeathSummary(deaths);
 
-      const sheriff = roomState.players.find(p => p.id === roomState.sheriffId);
-      if (roomState.hasSheriffInGame && (!sheriff || !sheriff.isAlive)) {
-        roomState.hasSheriffInGame = false;
-        roomState.sheriffId = null;
-        gameState.sheriffId = null;
-      }
-
+      // Preserve a dead Sheriff's identity until the badge-resolution step can offer transfer/destruction.
       renderTable();
       if (!setCurrentPhase('DAY_DEATH')) return;
       updateBanner('【天亮死訊】', `天亮了！${text}`, roomState.hasSheriffInGame ? '等待死亡技能結算後，由警長指定發言方向' : '等待死亡技能結算後開始白天發言');

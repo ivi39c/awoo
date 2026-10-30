@@ -70,7 +70,7 @@
 
 ### 3.2 首夜警長競選順序
 
-<badge>高優先級：目前與已確認需求衝突</badge>
+**高優先級：目前與已確認需求衝突**
 
 **已確認的需求順序：**
 
@@ -91,7 +91,7 @@
 
 ### 3.3 警長候選人發言
 
-<badge color="warning">未完成</badge>
+**尚未完成**
 
 目前 `candidateSheriff()` 支援舉手／退出；`processSheriffCandidates()` 在倒數結束後，無候選人則進入無警長，有一位候選人則直接當選，多位候選人則直接進入 `SHERIFF_VOTING`。
 
@@ -101,7 +101,7 @@
 
 ### 3.4 首夜待公布死亡狀態
 
-<badge>高優先級：狀態模型與目標架構衝突</badge>
+**高優先級：狀態模型與目標架構衝突**
 
 目前 `game-engine.js` 的 `resolveNight()` 會直接將夜間死亡者的 `isAlive` 設為 `false`。首夜有警長競選時，`app.js` 的 `resolveNightNow()` 又把這些玩家的 `isAlive` 改回 `true`，並設定 `firstNightDeathsHiddenUntilDawn`；`announceDayDeath()` 才再次將他們設為 `false`。
 

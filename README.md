@@ -16,6 +16,7 @@
 - `js/app.js`：瀏覽器控制器，連結使用者操作、計時器、遊戲引擎及畫面更新；未來仍會繼續拆分。
 - `docs/ADDING_ROLES.md`：新增角色與技能的維護規範。
 - `docs/ARCHITECTURE.md`：模組職責、資料流程與回歸測試方向。
+- `docs/MODULAR_ARCHITECTURE_SPECIFICATION.md`：Awoo 模組化系統架構規格 v1.0.0，定義模組契約、狀態所有權、流程狀態機、測試標準與漸進式重構計畫（目前為待檢視草案）。
 - `docs/TEST_MODE.md`：全角色測試模式操作、快速流程控制與巡檢建議。
 - `docs/MODERATOR_SCRIPT.md`：角色式上帝口白、夜間順序、私密資訊及規則差異說明。
 - `tests/*.test.cjs`：使用 Node.js 的自動化測試。

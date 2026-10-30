@@ -63,3 +63,9 @@ test('global action history sits immediately below the God narration and is coll
   assert.match(css, /\.game-history-summary #gameHistorySummaryText\s*\{[^}]*text-overflow:\s*ellipsis/s);
   assert.match(css, /\.game-history-summary #gameHistorySummaryText\s*\{[^}]*white-space:\s*nowrap/s);
 });
+
+
+test('home lobby displays the current alpha version at the bottom of the card', () => {
+  assert.match(html, /class="lobby-card"[\s\S]*class="app-version"[^>]*>版本\s*<span id="appVersion">0\.9\.4-alpha\.1<\/span>/);
+  assert.match(css, /\.app-version\s*\{[^}]*margin-top:\s*20px/s);
+});

@@ -270,7 +270,9 @@
       }
       return null;
     }
-    if (role === '狼王' && reason === 'EXECUTED_BY_VOTE') {
+    // The Wolf King may activate after public execution or when the Hunter shoots them;
+    // a nighttime Hunter shot is only publicly revealed at dawn, then resolves this skill chain.
+    if (role === '狼王' && ['EXECUTED_BY_VOTE', 'HUNTER_SHOT'].includes(reason)) {
       return { type: 'wolf-king-shot', role: '狼王', actorId: Number(player.id) };
     }
     if (role === '白狼王' && reason === 'WHITE_WOLF_KING_SELF_DESTRUCT') {

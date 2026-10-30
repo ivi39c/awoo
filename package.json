@@ -1,6 +1,6 @@
 {
   "name": "awoo-werewolf-refactor",
-  "version": "0.9.3",
+  "version": "0.9.4-alpha.1",
   "private": true,
   "description": "Awoo 狼人殺手機優先 UI、角色資料庫、系統自動上帝主持與角色行動鎖定",
   "scripts": {

@@ -2260,15 +2260,32 @@ function showBgmPlayButton() {
       }, 1000);
     }
 
+    function canParticipateInSheriffElection(player) {
+      return !!player && (player.lifeState === 'PENDING_DEATH' || (player.lifeState !== 'DEAD' && player.isAlive));
+    }
+
+    function canVoteInSheriffElection(player) {
+      return canParticipateInSheriffElection(player) &&
+        !roomState.sheriffCandidates.includes(Number(player.id));
+    }
+
+    function announceDawnAfterSheriffElection() {
+      speakGod('天亮請睜眼。', announceDayDeath);
+    }
+
     function candidateSheriff(id) {
-      const candidate = roomState.players.find(p => p.id === Number(id));
-      if (roomState.currentPhase !== 'SHERIFF_ELECTION' || !candidate || !candidate.isAlive) return false;
+      const candidate = roomState.players.find(player => Number(player.id) === Number(id));
       const candidateId = Number(id);
+      const inRegistration = roomState.currentPhase === 'SHERIFF_ELECTION';
+      const inWithdrawal = roomState.currentPhase === 'SHERIFF_WITHDRAWAL';
+      if (!candidate || (!inRegistration && !inWithdrawal) || !canParticipateInSheriffElection(candidate)) return false;
       const existingIndex = roomState.sheriffCandidates.indexOf(candidateId);
       if (existingIndex >= 0) {
         roomState.sheriffCandidates.splice(existingIndex, 1);
-      } else {
+      } else if (inRegistration) {
         roomState.sheriffCandidates.push(candidateId);
+      } else {
+        return false;
       }
       renderTable();
       updateControlPanel();
@@ -2278,7 +2295,7 @@ function showBgmPlayButton() {
     function processSheriffCandidates() {
       roomState.sheriffCandidates = roomState.sheriffCandidates.filter(id => {
         const candidate = roomState.players.find(player => Number(player.id) === Number(id));
-        return candidate && candidate.isAlive;
+        return canParticipateInSheriffElection(candidate);
       });
       if (roomState.sheriffCandidates.length === 0) {
         finishSheriffElectionWithoutWinner('本局無人競選警長，本局無警長！進入白天發言。');
@@ -2288,45 +2305,120 @@ function showBgmPlayButton() {
         electSheriff(roomState.sheriffCandidates[0]);
         return;
       }
+      startSheriffCandidateSpeeches();
+    }
+
+    function startSheriffCandidateSpeeches() {
+      roomState.sheriffSpeechQueue = [...roomState.sheriffCandidates];
+      roomState.sheriffSpeechIndex = 0;
+      if (!setCurrentPhase('SHERIFF_CANDIDATE_SPEECH')) return false;
+      announceCurrentSheriffCandidateSpeech();
+      return true;
+    }
+
+    function announceCurrentSheriffCandidateSpeech() {
+      const candidateId = roomState.sheriffSpeechQueue[roomState.sheriffSpeechIndex];
+      if (candidateId == null) return startSheriffWithdrawal();
+      roomState.sheriffTimer = 60;
+      updateBanner('【警長候選人發言】', `${candidateId} 號候選人請發表競選演說。`, `發言倒數：${roomState.sheriffTimer}s`);
+      speakGod(`${candidateId} 號候選人，請開始競選發言。`);
+      renderTable();
+      updateControlPanel();
+      clearInterval(roomState.timerInterval);
+      roomState.timerInterval = setInterval(() => {
+        roomState.sheriffTimer--;
+        updateBanner('【警長候選人發言】', `${candidateId} 號候選人請發表競選演說。`, `發言倒數：${roomState.sheriffTimer}s`);
+        if (roomState.sheriffTimer <= 0) completeSheriffCandidateSpeech(candidateId);
+      }, 1000);
+    }
+
+    function completeSheriffCandidateSpeech(playerId = null) {
+      if (roomState.currentPhase !== 'SHERIFF_CANDIDATE_SPEECH') return false;
+      const currentId = roomState.sheriffSpeechQueue[roomState.sheriffSpeechIndex];
+      if (currentId == null || (playerId != null && Number(playerId) !== Number(currentId))) return false;
+      clearInterval(roomState.timerInterval);
+      roomState.timerInterval = null;
+      roomState.sheriffSpeechIndex++;
+      if (roomState.sheriffSpeechIndex >= roomState.sheriffSpeechQueue.length) return startSheriffWithdrawal();
+      announceCurrentSheriffCandidateSpeech();
+      return true;
+    }
+
+    function startSheriffWithdrawal() {
+      if (!setCurrentPhase('SHERIFF_WITHDRAWAL')) return false;
+      roomState.sheriffTimer = 15;
+      updateBanner('【警長競選退水】', '候選人發言結束，請候選人確認是否退水。', `退水倒數：${roomState.sheriffTimer}s`);
+      speakGod('警長候選人發言結束，請候選人退水。');
+      renderTable();
+      updateControlPanel();
+      clearInterval(roomState.timerInterval);
+      roomState.timerInterval = setInterval(() => {
+        roomState.sheriffTimer--;
+        updateBanner('【警長競選退水】', '候選人發言結束，請候選人確認是否退水。', `退水倒數：${roomState.sheriffTimer}s`);
+        if (roomState.sheriffTimer <= 0) finishSheriffWithdrawals();
+      }, 1000);
+      return true;
+    }
+
+    function finishSheriffWithdrawals() {
+      if (roomState.currentPhase !== 'SHERIFF_WITHDRAWAL') return false;
+      clearInterval(roomState.timerInterval);
+      roomState.timerInterval = null;
+      roomState.sheriffCandidates = roomState.sheriffCandidates.filter(id => {
+        const candidate = roomState.players.find(player => Number(player.id) === Number(id));
+        return canParticipateInSheriffElection(candidate);
+      });
+      if (roomState.sheriffCandidates.length === 0) {
+        finishSheriffElectionWithoutWinner('所有候選人均已退水，本局無警長。');
+        return true;
+      }
+      if (roomState.sheriffCandidates.length === 1) {
+        electSheriff(roomState.sheriffCandidates[0]);
+        return true;
+      }
       roomState.sheriffVotes = {};
       roomState.sheriffElectionRound = 1;
       startSheriffVoting();
+      return true;
     }
 
     function finishSheriffElectionWithoutWinner(message) {
+      roomState.sheriffElectionCompleted = true;
       roomState.hasSheriffInGame = false;
       roomState.sheriffId = null;
       gameState.sheriffId = null;
       roomState.players.forEach(player => { player.isSheriff = false; });
-      speakGod('此局無警長。', announceDayDeath);
+      speakGod('此局無警長。', announceDawnAfterSheriffElection);
     }
 
     function electSheriff(winnerId) {
-      const winner = roomState.players.find(player => Number(player.id) === Number(winnerId) && player.isAlive);
+      const winner = roomState.players.find(player => Number(player.id) === Number(winnerId) && canParticipateInSheriffElection(player));
       if (!winner) {
         finishSheriffElectionWithoutWinner('警長候選人已出局，本局無警長。');
-        return;
+        return false;
       }
+      roomState.sheriffElectionCompleted = true;
       roomState.hasSheriffInGame = true;
       roomState.sheriffId = Number(winner.id);
       gameState.sheriffId = Number(winner.id);
       roomState.players.forEach(player => { player.isSheriff = Number(player.id) === Number(winner.id); });
       renderTable();
-      speakGod(`${winner.id}號當選警長。`, announceDayDeath);
+      speakGod(`${winner.id}號當選警長。`, announceDawnAfterSheriffElection);
+      return true;
     }
 
     function startSheriffVoting() {
       if (!setCurrentPhase('SHERIFF_VOTING')) return;
       roomState.votingTimer = 15;
       roomState.sheriffVotes = {};
-      updateBanner('【警長競選投票】', `候選人：${roomState.sheriffCandidates.join('、')} 號。請存活玩家投票。`, `投票倒數：${roomState.votingTimer}s`);
-      speakGod('警長候選人發言結束，請存活玩家投票選出警長。');
+      updateBanner('【警長競選投票】', `候選人：${roomState.sheriffCandidates.join('、')} 號。請警下玩家投票。`, `投票倒數：${roomState.votingTimer}s`);
+      speakGod('警長候選人發言及退水結束，請警下玩家投票選出警長。');
       renderTable();
       updateControlPanel();
       clearInterval(roomState.timerInterval);
       roomState.timerInterval = setInterval(() => {
         roomState.votingTimer--;
-        updateBanner('【警長競選投票】', `候選人：${roomState.sheriffCandidates.join('、')} 號。請存活玩家投票。`, `投票倒數：${roomState.votingTimer}s`);
+        updateBanner('【警長競選投票】', `候選人：${roomState.sheriffCandidates.join('、')} 號。請警下玩家投票。`, `投票倒數：${roomState.votingTimer}s`);
         if (roomState.votingTimer <= 0) {
           clearInterval(roomState.timerInterval);
           roomState.timerInterval = null;

@@ -1,22 +1,14 @@
-## Phase 1 — Sheriff flow regression guardrails
+## Phase 1 — Sheriff flow regression guardrails and first-night fixes
 
-- Added `tests/sheriff-flow-regression.test.cjs` with behavior-level regression cases for all SFE-01 through SFE-16 acceptance scenarios.
-- Updated the Phase 1 test matrix with the implemented test coverage.
-- These are test-first guardrails; known gaps in the current runtime are expected to fail until corresponding fixes land. No runtime code, game rules, or product version changed.
-- Local test execution was unavailable in this environment; GitHub Actions is the validation source for this branch.
-
-## Phase 1 — Sheriff flow regression guardrails
-
-- Added `tests/sheriff-flow-regression.test.cjs` with behavior-level regression cases for night-action gating, first-night Sheriff entry, pending-death eligibility, candidate speech, dawn ordering, badge handoff, runoff, and death-skill timing.
-- Updated the Phase 1 test matrix with the implemented coverage.
-- These are test-first guardrails; known gaps in the current runtime are expected to fail until the corresponding fixes land. No runtime code, game rules, or product version changed.
-- Local test execution was unavailable in this environment; GitHub Actions is the validation source for this branch.
-
-## Phase 1 — Sheriff flow test mapping
-
-- Added `docs/PHASE_1_TEST_PLAN.md` mapping SFE-01 through SFE-16 to current functions, state fields, existing tests, and missing coverage.
-- Identified the first-night `isAlive` restoration assertion in `tests/app-smoke.test.cjs` as a source-text test that protects an implementation detail contrary to the target pending-death model.
-- No runtime code, game rules, or product version changed. Automated tests were not run in this documentation-only commit.
+- Added `docs/PHASE_1_TEST_PLAN.md` mapping SFE-01 through SFE-16 to current runtime entry points, state fields, existing tests, and missing coverage.
+- Added `tests/sheriff-flow-regression.test.cjs` with SFE-01 through SFE-16 plus SFE-07b for a sole candidate's speech and withdrawal window.
+- Introduced explicit `ALIVE`, `PENDING_DEATH`, and `DEAD` player life states. First-night deaths are deferred without temporarily restoring `isAlive`.
+- Separated Sheriff candidate eligibility from voting eligibility; pending-death players may participate in the pre-dawn election, while candidates do not vote.
+- Added candidate speech and withdrawal phases before Sheriff voting, including the single-candidate withdrawal path.
+- Gated dawn announcement until the first-night Sheriff election is complete, then narrates "天亮請睜眼" before revealing deaths.
+- Fixed Sheriff badge handoff to resume the existing daytime continuation without announcing the same night deaths a second time.
+- GitHub Actions `npm run check`: **132 tests passed, 0 failed** (run #190).
+- Product version unchanged at `0.9.4-alpha.1`. Browser/manual multi-perspective verification remains outstanding.
 
 ## 0.9.4-alpha.1 — 2026-10-30
 

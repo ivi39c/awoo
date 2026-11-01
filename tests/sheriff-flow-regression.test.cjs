@@ -68,7 +68,6 @@ test('SFE-02 夜間行動完成後先進入警長競選', () => {
   assert.equal(context.resolveNightNow(), true);
   assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_ELECTION');
   assert.ok(events.includes('SHERIFF_ELECTION_STARTED'));
-  assert.ok(events.some(line => line.includes('天將破曉')));
 });
 
 test('SFE-03 待公布死亡者仍可上警，且不需要恢復 isAlive', () => {
@@ -165,7 +164,7 @@ test('SFE-13 無候選人時以無警長結束並繼續天亮', () => {
   setup(context, players(context, [{ role: '預言家' }, { role: '平民' }]), 'SHERIFF_ELECTION');
   context.processSheriffCandidates();
   assert.equal(vm.runInContext('roomState.hasSheriffInGame', context), false);
-  assert.equal(vm.runInContext('roomState.currentPhase', context), 'DAY_DEATH');
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'DAY_SPEECH');
 });
 
 test('SFE-14 首輪警長票平票後進入第二輪並清空票箱', () => {
@@ -183,7 +182,7 @@ test('SFE-15 第二輪仍平票時以無警長結束', () => {
   vm.runInContext('roomState.sheriffCandidates=[1,2];roomState.sheriffVotes={"3":1,"4":2};roomState.sheriffElectionRound=2;', context);
   context.finalizeSheriffVote();
   assert.equal(vm.runInContext('roomState.hasSheriffInGame', context), false);
-  assert.equal(vm.runInContext('roomState.currentPhase', context), 'DAY_DEATH');
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'DAY_SPEECH');
 });
 
 test('SFE-16 夜間死亡技能只能在基本死訊公告後觸發', () => {

@@ -191,7 +191,7 @@ class Player {
         sheriffElectionCompleted: false,
         sheriffSpeechQueue: [],
         sheriffSpeechIndex: 0,
-        isTieRunoff: false;
+        isTieRunoff: false,
         runoffCandidates: [],
         lastNightDeaths: [],
         nightVictim: null,

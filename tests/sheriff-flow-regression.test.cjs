@@ -119,6 +119,20 @@ test('SFE-07 多位警長候選人必須先進入逐位候選發言階段', () =
   assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_WITHDRAWAL');
 });
 
+test('SFE-07c 候選人發言倒數可由系統推進，不受目前座位視角限制', () => {
+  const { context } = createContext();
+  setup(context, players(context, [{ role: '預言家' }, { role: '平民' }, { role: '小狼' }]), 'SHERIFF_ELECTION');
+  vm.runInContext('roomState.sheriffCandidates=[1,2];roomState.currentPerspective=1;', context);
+  context.processSheriffCandidates();
+  assert.equal(vm.runInContext('roomState.sheriffSpeechQueue[roomState.sheriffSpeechIndex]', context), 1);
+  assert.equal(context.completeSheriffCandidateSpeech(1, { automatic: true }), true);
+  assert.equal(vm.runInContext('roomState.sheriffSpeechQueue[roomState.sheriffSpeechIndex]', context), 2);
+  // The current perspective remains on seat 1; the timer must still complete seat 2's speech.
+  assert.equal(vm.runInContext('roomState.currentPerspective', context), 1);
+  assert.equal(context.completeSheriffCandidateSpeech(2, { automatic: true }), true);
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_WITHDRAWAL');
+});
+
 test('SFE-07b 單一候選人仍須完成發言與退水窗口', () => {
   const { context } = createContext();
   setup(context, players(context, [{ role: '預言家' }, { role: '平民' }]), 'SHERIFF_ELECTION');

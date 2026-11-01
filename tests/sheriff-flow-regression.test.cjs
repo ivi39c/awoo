@@ -119,6 +119,21 @@ test('SFE-07 多位警長候選人必須先進入逐位候選發言階段', () =
   assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_WITHDRAWAL');
 });
 
+test('SFE-07b 單一候選人仍須完成發言與退水窗口', () => {
+  const { context } = createContext();
+  setup(context, players(context, [{ role: '預言家' }, { role: '平民' }]), 'SHERIFF_ELECTION');
+  vm.runInContext('roomState.sheriffCandidates=[1];', context);
+  context.processSheriffCandidates();
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_CANDIDATE_SPEECH');
+  assert.equal(vm.runInContext('roomState.sheriffId', context), null);
+  assert.equal(context.completeSheriffCandidateSpeech(1), true);
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_WITHDRAWAL');
+  assert.equal(context.candidateSheriff(1), true);
+  assert.equal(context.finishSheriffWithdrawals(), true);
+  assert.equal(vm.runInContext('roomState.hasSheriffInGame', context), false);
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'DAY_SPEECH');
+});
+
 test('SFE-08 警長競選未完成不得進入天亮或公布死訊', () => {
   const { context, events } = createContext();
   setup(context, players(context, [{ role: '預言家' }, { role: '平民' }]), 'SHERIFF_ELECTION');

@@ -7,7 +7,7 @@
 - Added candidate speech and withdrawal phases before Sheriff voting, including the single-candidate withdrawal path.
 - Gated dawn announcement until the first-night Sheriff election is complete, then narrates "天亮請睜眼" before revealing deaths.
 - Fixed Sheriff badge handoff to resume the existing daytime continuation without announcing the same night deaths a second time.
-- GitHub Actions `npm run check`: **132 tests passed, 0 failed** (run #190).
+- GitHub Actions `npm run check`: **132 tests passed, 0 failed (latest run)** (run #193).
 - Product version unchanged at `0.9.4-alpha.1`. Browser/manual multi-perspective verification remains outstanding.
 
 ## 0.9.4-alpha.1 — 2026-10-30

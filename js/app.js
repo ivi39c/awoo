@@ -2338,14 +2338,15 @@ function showBgmPlayButton() {
       roomState.timerInterval = setInterval(() => {
         roomState.sheriffTimer--;
         updateBanner('【警長候選人發言】', `${candidateId} 號候選人請發表競選演說。`, `發言倒數：${roomState.sheriffTimer}s`);
-        if (roomState.sheriffTimer <= 0) completeSheriffCandidateSpeech(candidateId);
+        if (roomState.sheriffTimer <= 0) completeSheriffCandidateSpeech(candidateId, { automatic: true });
       }, 1000);
     }
 
-    function completeSheriffCandidateSpeech(playerId = null) {
+    function completeSheriffCandidateSpeech(playerId = null, options = {}) {
       if (roomState.currentPhase !== 'SHERIFF_CANDIDATE_SPEECH') return false;
       const currentId = roomState.sheriffSpeechQueue[roomState.sheriffSpeechIndex];
-      if (currentId == null || Number(roomState.currentPerspective) !== Number(currentId) || (playerId != null && Number(playerId) !== Number(currentId))) return false;
+      const automatic = !!(options && options.automatic);
+      if (currentId == null || (!automatic && Number(roomState.currentPerspective) !== Number(currentId)) || (playerId != null && Number(playerId) !== Number(currentId))) return false;
       clearInterval(roomState.timerInterval);
       roomState.timerInterval = null;
       roomState.sheriffSpeechIndex++;

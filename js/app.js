@@ -1741,6 +1741,10 @@ function showBgmPlayButton() {
       gameState.players = roomState.players;
       roomState.rolesInGame = [...new Set(dealtRoles)];
       roomState.actionHistory = [];
+      roomState.pendingNightDeaths = [];
+      roomState.sheriffElectionCompleted = false;
+      roomState.sheriffSpeechQueue = [];
+      roomState.sheriffSpeechIndex = 0;
       gameState.currentDay = 1;
       gameState.sheriffId = null;
       gameState.lastGuardedId = null;
@@ -1773,6 +1777,7 @@ function showBgmPlayButton() {
       AwooGameEngine.resetNightActions(roomState);
       roomState.hunterNightShotTargetId = null;
       roomState.firstNightDeathsHiddenUntilDawn = false;
+      roomState.pendingNightDeaths = [];
       roomState.wolfActionDecided = false;
       roomState.witchSaveDecisionMade = false;
       roomState.witchPoisonDecisionMade = false;
@@ -2197,21 +2202,18 @@ function showBgmPlayButton() {
       clearInterval(roomState.timerInterval);
       roomState.timerInterval = null;
       renderGodFlowPanel();
+      const firstNightElection = roomState.sheriffMode === 'enabled' && gameState.currentDay === 1 && !roomState.sheriffElectionCompleted;
       settleNightActions(
         roomState.nightVictim,
         roomState.witchSaveTargetId,
         roomState.witchPoisonTargetId,
-        roomState.guardTargetId
+        roomState.guardTargetId,
+        { deferDeath: firstNightElection }
       );
 
       const nightDeaths = Array.isArray(roomState.lastNightDeaths) ? roomState.lastNightDeaths : [];
-      const firstNightElection = roomState.sheriffMode === 'enabled' && gameState.currentDay === 1 && !roomState.hasSheriffInGame;
       if (firstNightElection) {
         roomState.firstNightDeathsHiddenUntilDawn = true;
-        nightDeaths.forEach(death => {
-          const player = roomState.players.find(item => Number(item.id) === Number(death.id));
-          if (player) player.isAlive = true;
-        });
         renderTable();
         if (!setCurrentPhase('SHERIFF_ELECTION')) return false;
         startSheriffCountdown();

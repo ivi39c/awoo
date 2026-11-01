@@ -77,8 +77,20 @@ Night Actions Completed
 |---|---|
 | 讀取 main 原始碼與現有測試 | 已完成 |
 | SFE-01 至 SFE-16 對照目前函式／狀態／測試 | 已完成 |
-| 本機 `npm test`／`npm run check` | 未執行：目前工作環境無法連線取得 GitHub repository；已提交 GitHub Actions 執行驗證 |
-| 新增行為測試 | 已新增 `tests/sheriff-flow-regression.test.cjs`，目前涵蓋 SFE-01～16（SFE-04／05 已補入候選人名單保留與退水專項案例） |
-| runtime 修正與模組抽取 | 尚未開始 |
+| 行為回歸測試 | 已新增 SFE-01～16，另加 SFE-07b（單一候選人發言及退水） |
+| Runtime 修正 | 已完成本階段首輪修正：待公布死亡狀態、警長參與資格、候選發言／退水、天亮閘門與警徽交接 |
+| GitHub Actions `npm run check` | **通過：132 tests、132 pass、0 fail**（run #190，commit `ce1df414e6a1ba4ad01ddfd275484f6b71e20a1f`） |
+| 本機手動瀏覽器驗收 | 尚未執行；CI 不等同瀏覽器／多人視角驗收 |
+| 模組抽取 | 尚未開始；目前仍在 `app.js` 既有流程中修正，避免先搬動未穩定邏輯 |
 
-**重要：** 本文件是測試追蹤矩陣，不是測試通過報告。新增的回歸案例是先行規格測試，預期部分案例會在現行實作上失敗；不得把測試失敗描述成 CI 通過。尚未修改遊戲規則或 runtime 程式。
+## 5. 本階段 Runtime 變更摘要
+
+- `Player.lifeState` 增加 `ALIVE`、`PENDING_DEATH`、`DEAD`；首夜警長競選期間，待公布死亡者保持 `isAlive=false`，不再暫時復活。
+- `AwooGameEngine.resolveNight()` 支援 `deferDeath`；首夜死亡可標記為待公布，其他夜晚仍直接標記為公開出局。
+- `roomState.pendingNightDeaths` 保存待公布死亡的玩家、原因、來源、夜次及公告狀態。
+- 警長候選資格與警長投票資格分開判斷；候選人不得投警長票，警下待公布死亡者仍可投票。
+- 警長流程新增 `SHERIFF_CANDIDATE_SPEECH` 與 `SHERIFF_WITHDRAWAL`；候選人逐位發言後才進入退水，再進入投票或直接當選／無警長。
+- `announceDayDeath()` 加入首夜競選完成閘門；競選完成後依序播放「天亮請睜眼」及死訊。
+- `DAY_DEATH → SHERIFF_BADGE` 與警徽處理後返回 `DAY_DEATH` 的階段轉換已補齊，避免警徽處理後重複播報死訊。
+
+**重要：** 132 項 CI 測試通過代表語法檢查與自動化測試通過，不代表已完成實際瀏覽器、語音、倒數計時或多視角手動驗收。產品版本仍為 `0.9.4-alpha.1`；本 PR 未修改產品版本。

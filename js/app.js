@@ -88,7 +88,7 @@ class Player {
     }
     function renderPlayerTargetGrid({ onSelect, isAllowed = () => true, selectedId = null, isDisabled = () => false, showDead = true, dataAttribute = null } = {}) {
       return `<div class="target-grid">${roomState.players.map(target => {
-        const dead = target.lifeState === 'DEAD' || (!target.lifeState && !target.isAlive), unavailable = !target.isAlive, allowed = isAllowed(target), selected = selectedId != null && Number(selectedId) === Number(target.id);
+        const dead = target.lifeState === 'DEAD' || (target.lifeState !== 'PENDING_DEATH' && !target.isAlive), unavailable = !target.isAlive, allowed = isAllowed(target), selected = selectedId != null && Number(selectedId) === Number(target.id);
         const disabled = !allowed || isDisabled(target) || (unavailable && !showDead);
         const dataAttr = dataAttribute ? ` ${dataAttribute}="${Number(target.id)}"` : '';
         return `<button class="target-btn${dead ? ' is-dead' : ''}${selected ? ' selected' : ''}"${dataAttr} ${disabled ? 'disabled ' : ''}onclick="${onSelect}(${Number(target.id)})" type="button" aria-disabled="${disabled ? 'true' : 'false'}" aria-pressed="${selected ? 'true' : 'false'}">${target.id}號${dead && showDead ? '（已出局）' : ''}</button>`;
@@ -1027,7 +1027,7 @@ function showBgmPlayButton() {
       roomState.players.forEach(p => {
         const isCurrentSpeaker = (p.id === roomState.activeSpeakerId);
         const card = document.createElement('div');
-        const isPubliclyDead = p.lifeState === 'DEAD' || (!p.lifeState && !p.isAlive);
+        const isPubliclyDead = p.lifeState === 'DEAD' || (p.lifeState !== 'PENDING_DEATH' && !p.isAlive);
         card.className = `seat-card ${!p.isOccupied ? 'empty' : ''} ${isPubliclyDead ? 'dead' : ''} ${isCurrentSpeaker ? 'active-speaker' : ''}`;
         card.id = `seat-${p.id}`;
         

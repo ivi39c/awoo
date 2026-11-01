@@ -2290,7 +2290,7 @@ function showBgmPlayButton() {
       const candidateId = Number(id);
       const inRegistration = roomState.currentPhase === 'SHERIFF_ELECTION';
       const inWithdrawal = roomState.currentPhase === 'SHERIFF_WITHDRAWAL';
-      if (!candidate || (!inRegistration && !inWithdrawal) || !canParticipateInSheriffElection(candidate)) return false;
+      if (!candidate || Number(roomState.currentPerspective) !== candidateId || (!inRegistration && !inWithdrawal) || !canParticipateInSheriffElection(candidate)) return false;
       const existingIndex = roomState.sheriffCandidates.indexOf(candidateId);
       if (existingIndex >= 0) {
         roomState.sheriffCandidates.splice(existingIndex, 1);
@@ -2347,7 +2347,7 @@ function showBgmPlayButton() {
     function completeSheriffCandidateSpeech(playerId = null) {
       if (roomState.currentPhase !== 'SHERIFF_CANDIDATE_SPEECH') return false;
       const currentId = roomState.sheriffSpeechQueue[roomState.sheriffSpeechIndex];
-      if (currentId == null || (playerId != null && Number(playerId) !== Number(currentId))) return false;
+      if (currentId == null || Number(roomState.currentPerspective) !== Number(currentId) || (playerId != null && Number(playerId) !== Number(currentId))) return false;
       clearInterval(roomState.timerInterval);
       roomState.timerInterval = null;
       roomState.sheriffSpeechIndex++;
@@ -2991,6 +2991,8 @@ function showBgmPlayButton() {
           announcement: '白狼王自爆並帶走一名玩家，白天流程立即中止。',
           voiceMessage: '白狼王自爆，並帶走一名玩家。天黑請閉眼。',
         });
+      } else if (returnPhase === 'DAY_DEATH') {
+        continueDayAfterDawn();
       } else {
         announceDayDeath();
       }

@@ -78,10 +78,10 @@ Night Actions Completed
 |---|---|
 | 讀取 main 原始碼與現有測試 | 已完成 |
 | SFE-01 至 SFE-17 對照目前函式／狀態／測試 | 已完成 |
-| 行為回歸測試 | 已新增 SFE-01～17，另加 SFE-07b（單一候選人發言及退水）、SFE-07c（發言倒數自動推進） |
+| 行為回歸測試 | 已新增 SFE-01～17，另加 SFE-07b（單一候選人發言及退水）、SFE-07c（實際倒數回呼自動推進，且不依賴目前座位視角） |
 | Runtime 修正 | 已完成本階段首輪修正：待公布死亡狀態、警長參與資格、候選發言／退水、天亮閘門與警徽交接 |
 | 本機測試 | 未執行；本工作階段無法取得本機 checkout，因此以 GitHub Actions 作為執行環境 |
-| GitHub Actions `npm run check` | **通過：134 tests、134 pass、0 fail**（run #203，commit `d5dc9a515fdfa19b8afdaaac3c0494cb0684e57d`） |
+| GitHub Actions `npm run check` | **通過：134 tests、134 pass、0 fail**（run #206，commit `f3f969988f4909b42827f869be81e0d788663718`） |
 | 本機手動瀏覽器驗收 | 尚未執行；CI 不等同瀏覽器／多人視角驗收 |
 | 模組抽取 | 尚未開始；目前仍在 `app.js` 既有流程中修正，避免先搬動未穩定邏輯 |
 

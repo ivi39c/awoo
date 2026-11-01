@@ -189,7 +189,7 @@ class Player {
         pendingDawnHistory: null,
         pendingNightDeaths: [],
         firstNightDeathsHiddenUntilDawn: false,
-        sheriffElectionCompleted: false;
+        sheriffElectionCompleted: false,
         sheriffSpeechQueue: [],
         sheriffSpeechIndex: 0,
         isTieRunoff: false,

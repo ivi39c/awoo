@@ -55,32 +55,33 @@
 
 Phase 1 應以可執行行為測試取代這個斷言，不可只刪除舊測試而不補上行為覆蓋。
 
-### 目前未涵蓋的關鍵整合鏈
+### 已新增的跨階段整合覆蓋
 
 ```text
 Night Actions Completed
   → Pre-dawn Sheriff Election
-  → Candidate Registration / Withdrawal / Speeches
-  → Sheriff Vote / Runoff / No Sheriff
+  → Candidate Registration / Candidate Speech / Withdrawal
+  → Single Candidate Election
   → Dawn Announcement
-  → Reveal Night Deaths
-  → Death Skill Queue / Chain
-  → Sheriff Badge Resolution
-  → Win Check / Day Speech
+  → Reveal Pending Night Death
+  → Sheriff Badge Transfer
+  → Resume Daytime
 ```
 
-上述完整鏈尚無單一整合測試覆蓋。Phase 1 的目標是先建立這條流程的測試入口與事件順序斷言，再逐步補齊各個 SFE 案例。
+`SFE-17` 已以單一整合測試串接以上路徑，並驗證待公布死亡者當選警長後，天亮才轉為公開出局、進入警徽處理、移交後回到白天流程，且不重複公告死訊。
+
+此整合案例不等同完整覆蓋所有死亡技能連鎖、平票重投及瀏覽器語音／計時器；這些仍須分別以整合案例與實際瀏覽器驗收補齊。
 
 ## 4. 執行紀錄
 
 | 項目 | 狀態 |
 |---|---|
 | 讀取 main 原始碼與現有測試 | 已完成 |
-| SFE-01 至 SFE-16 對照目前函式／狀態／測試 | 已完成 |
-| 行為回歸測試 | 已新增 SFE-01～16，另加 SFE-07b（單一候選人發言及退水） |
+| SFE-01 至 SFE-17 對照目前函式／狀態／測試 | 已完成 |
+| 行為回歸測試 | 已新增 SFE-01～17，另加 SFE-07b（單一候選人發言及退水）、SFE-07c（發言倒數自動推進） |
 | Runtime 修正 | 已完成本階段首輪修正：待公布死亡狀態、警長參與資格、候選發言／退水、天亮閘門與警徽交接 |
 | 本機測試 | 未執行；本工作階段無法取得本機 checkout，因此以 GitHub Actions 作為執行環境 |
-| GitHub Actions `npm run check` | **通過：132 tests、132 pass、0 fail**（run #193，commit `90466f04e295087801170e02e4abce7c2d6bcf82`） |
+| GitHub Actions `npm run check` | **通過：134 tests、134 pass、0 fail**（run #198，commit `ef941fee3cbebcad339512d0fb51a06c8626c1fc`） |
 | 本機手動瀏覽器驗收 | 尚未執行；CI 不等同瀏覽器／多人視角驗收 |
 | 模組抽取 | 尚未開始；目前仍在 `app.js` 既有流程中修正，避免先搬動未穩定邏輯 |
 
@@ -94,4 +95,4 @@ Night Actions Completed
 - `announceDayDeath()` 加入首夜競選完成閘門；競選完成後依序播放「天亮請睜眼」及死訊。
 - `DAY_DEATH → SHERIFF_BADGE` 與警徽處理後返回 `DAY_DEATH` 的階段轉換已補齊，避免警徽處理後重複播報死訊。
 
-**重要：** 132 項 CI 測試通過代表語法檢查與自動化測試通過，不代表已完成實際瀏覽器、語音、倒數計時或多視角手動驗收。產品版本仍為 `0.9.4-alpha.1`；本 PR 未修改產品版本。
+**重要：** 134 項 CI 測試通過代表語法檢查與自動化測試通過，不代表已完成實際瀏覽器、語音、倒數計時或多視角手動驗收。產品版本仍為 `0.9.4-alpha.1`；本 PR 未修改產品版本。

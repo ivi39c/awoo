@@ -88,8 +88,8 @@ class Player {
     }
     function renderPlayerTargetGrid({ onSelect, isAllowed = () => true, selectedId = null, isDisabled = () => false, showDead = true, dataAttribute = null } = {}) {
       return `<div class="target-grid">${roomState.players.map(target => {
-        const dead = !target.isAlive, allowed = isAllowed(target), selected = selectedId != null && Number(selectedId) === Number(target.id);
-        const disabled = !allowed || isDisabled(target) || (dead && !showDead);
+        const dead = target.lifeState === 'DEAD' || (!target.lifeState && !target.isAlive), unavailable = !target.isAlive, allowed = isAllowed(target), selected = selectedId != null && Number(selectedId) === Number(target.id);
+        const disabled = !allowed || isDisabled(target) || (unavailable && !showDead);
         const dataAttr = dataAttribute ? ` ${dataAttribute}="${Number(target.id)}"` : '';
         return `<button class="target-btn${dead ? ' is-dead' : ''}${selected ? ' selected' : ''}"${dataAttr} ${disabled ? 'disabled ' : ''}onclick="${onSelect}(${Number(target.id)})" type="button" aria-disabled="${disabled ? 'true' : 'false'}" aria-pressed="${selected ? 'true' : 'false'}">${target.id}號${dead && showDead ? '（已出局）' : ''}</button>`;
       }).join('')}</div>`;
@@ -1136,6 +1136,18 @@ function showBgmPlayButton() {
           ${canParticipateInSheriffElection(p) ? `<button class="btn-gothic" style="width:100%; margin-bottom:8px;" onclick="candidateSheriff(${p.id})">${hasRaisedHand ? '退出警長競選' : '舉手競選警長'}</button>` : '<p style="color:#888;">已出局玩家不能參與警長競選。</p>'}
           <p style="font-size:0.8rem;color:#aaa;">目前候選人：${roomState.sheriffCandidates.length ? roomState.sheriffCandidates.join('、') + ' 號' : '尚無人'}</p>
         `;
+      }
+      else if (roomState.currentPhase === 'SHERIFF_CANDIDATE_SPEECH') {
+        const speakerId = roomState.sheriffSpeechQueue[roomState.sheriffSpeechIndex];
+        controls.innerHTML = Number(p.id) === Number(speakerId)
+          ? `<p>${speakerId} 號候選人正在發表競選演說。</p><button class="btn-gothic" style="width:100%;" onclick="completeSheriffCandidateSpeech(${speakerId})">完成發言</button>`
+          : `<p style="color:#aaa;">目前由 ${speakerId} 號候選人發表競選演說，請等待。</p>`;
+      }
+      else if (roomState.currentPhase === 'SHERIFF_WITHDRAWAL') {
+        const hasRaisedHand = roomState.sheriffCandidates.includes(Number(p.id));
+        controls.innerHTML = hasRaisedHand
+          ? `<p>你仍在警長候選名單中。</p><button class="btn-gothic" style="width:100%;" onclick="candidateSheriff(${p.id})">退水</button>`
+          : '<p style="color:#aaa;">目前不是警長候選人。</p>';
       }
       else if (roomState.currentPhase === 'SHERIFF_VOTING') {
         renderSheriffVotingPanel(p, controls);
@@ -2428,14 +2440,14 @@ function showBgmPlayButton() {
     }
 
     function renderSheriffVotingPanel(player, container) {
-      if (!player.isAlive) {
-        container.innerHTML = '<p style="color:#888;">出局玩家沒有警長投票權。</p>';
+      if (!canVoteInSheriffElection(player)) {
+        container.innerHTML = roomState.sheriffCandidates.includes(Number(player.id)) ? '<p style="color:#888;">警上候選人不參與本輪警長投票。</p>' : '<p style="color:#888;">出局玩家沒有警長投票權。</p>';
         return;
       }
       const alreadyVoted = Object.prototype.hasOwnProperty.call(roomState.sheriffVotes, String(player.id));
       const candidates = roomState.sheriffCandidates.filter(id => {
         const candidate = roomState.players.find(item => Number(item.id) === Number(id));
-        return candidate && candidate.isAlive;
+        return canParticipateInSheriffElection(candidate);
       });
       container.innerHTML = `
         <p style="font-size:0.85rem;color:var(--gold-light);">警長競選投票（第 ${roomState.sheriffElectionRound} 輪，剩餘 ${roomState.votingTimer}s）</p>
@@ -2450,11 +2462,11 @@ function showBgmPlayButton() {
       if (roomState.currentPhase !== 'SHERIFF_VOTING') return false;
       const voterId = Number(roomState.currentPerspective);
       const voter = roomState.players.find(player => Number(player.id) === voterId);
-      if (!voter || !voter.isAlive) { alert('出局玩家沒有警長投票權。'); return false; }
+      if (!canVoteInSheriffElection(voter)) { alert(roomState.sheriffCandidates.includes(voterId) ? '警上候選人不能參與警長投票。' : '出局玩家沒有警長投票權。'); return false; }
       const key = String(voterId);
       if (Object.prototype.hasOwnProperty.call(roomState.sheriffVotes, key)) { alert('本輪已經投過警長票。'); return false; }
       const targetId = Number(candidateId);
-      if (targetId !== 0 && !roomState.sheriffCandidates.some(id => Number(id) === targetId && roomState.players.some(player => Number(player.id) === targetId && player.isAlive))) {
+      if (targetId !== 0 && !roomState.sheriffCandidates.some(id => Number(id) === targetId && roomState.players.some(player => Number(player.id) === targetId && canParticipateInSheriffElection(player)))) {
         alert('請選擇仍存活的警長候選人。');
         return false;
       }
@@ -2474,7 +2486,7 @@ function showBgmPlayButton() {
       });
       const candidates = roomState.sheriffCandidates.filter(id => {
         const player = roomState.players.find(item => Number(item.id) === Number(id));
-        return player && player.isAlive;
+        return canParticipateInSheriffElection(player);
       });
       const highest = counts.size ? Math.max(...counts.values()) : 0;
       const leaders = [...counts.entries()].filter(([, count]) => count === highest).map(([id]) => id);

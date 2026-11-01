@@ -286,6 +286,7 @@ class Player {
         pendingDawnHistory: null,
         lastNightDeaths: [],
         pendingNightDeaths: [],
+        firstNightDeathsHiddenUntilDawn: false,
         sheriffElectionCompleted: false,
         sheriffSpeechQueue: [],
         sheriffSpeechIndex: 0,

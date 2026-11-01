@@ -2507,6 +2507,11 @@ function showBgmPlayButton() {
     }
 
     function announceDayDeath() {
+      const sheriffElectionPhases = ['SHERIFF_ELECTION', 'SHERIFF_CANDIDATE_SPEECH', 'SHERIFF_WITHDRAWAL', 'SHERIFF_VOTING'];
+      const awaitingFirstNightElection = roomState.sheriffMode === 'enabled' && Number(gameState.currentDay) === 1 &&
+        !roomState.sheriffElectionCompleted && sheriffElectionPhases.includes(roomState.currentPhase);
+      if (awaitingFirstNightElection) return false;
+
       renderGodFlowPanel();
       const deaths = Array.isArray(roomState.lastNightDeaths) ? roomState.lastNightDeaths : [];
       if (roomState.firstNightDeathsHiddenUntilDawn) {
@@ -2514,9 +2519,11 @@ function showBgmPlayButton() {
           const player = roomState.players.find(item => Number(item.id) === Number(death.id));
           if (player) {
             player.isAlive = false;
+            player.lifeState = 'DEAD';
             player.deathReason = death.reason || player.deathReason;
           }
         });
+        roomState.pendingNightDeaths = (roomState.pendingNightDeaths || []).map(death => ({ ...death, announced: true }));
         roomState.firstNightDeathsHiddenUntilDawn = false;
       }
       const text = formatNightDeathSummary(deaths);
@@ -2538,6 +2545,7 @@ function showBgmPlayButton() {
         continueDayAfterDawn();
       });
       updateControlPanel();
+      return true;
     }
 
     function finishAfterDayExecutionDeathSkills() {

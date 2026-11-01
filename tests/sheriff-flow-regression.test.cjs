@@ -227,6 +227,42 @@ test('SFE-15 第二輪仍平票時以無警長結束', () => {
   assert.equal(vm.runInContext('roomState.currentPhase', context), 'DAY_SPEECH');
 });
 
+test('SFE-17 首夜完整流程：待公布死亡者當選警長、天亮出局、移交警徽後接回白天', () => {
+  const { context, events } = createContext();
+  const roster = players(context, [
+    { role: '預言家' },
+    { role: '平民' },
+    { role: '小狼' },
+    { role: '平民' },
+  ]);
+  setup(context, roster, 'NIGHT');
+  vm.runInContext('roomState.nightVictim=1;roomState.currentPerspective=1;', context);
+  context.checkWinCondition = () => null;
+
+  assert.equal(context.resolveNightNow(), true);
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_ELECTION');
+  assert.equal(vm.runInContext('roomState.players[0].lifeState', context), 'PENDING_DEATH');
+  assert.equal(vm.runInContext('roomState.players[0].isAlive', context), false);
+
+  assert.equal(context.candidateSheriff(1), true);
+  context.processSheriffCandidates();
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_CANDIDATE_SPEECH');
+  assert.equal(context.completeSheriffCandidateSpeech(1), true);
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_WITHDRAWAL');
+  assert.equal(context.finishSheriffWithdrawals(), true);
+
+  assert.equal(vm.runInContext('roomState.sheriffId', context), 1);
+  assert.equal(vm.runInContext('roomState.players[0].lifeState', context), 'DEAD');
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_BADGE');
+  assert.equal(events.filter(line => line.includes('天亮了')).length, 1);
+
+  assert.equal(context.resolveSheriffBadge('transfer', 2), true);
+  assert.equal(vm.runInContext('roomState.sheriffId', context), 2);
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'DAY_DEATH');
+  assert.equal(events.filter(line => line.includes('天亮了')).length, 1);
+  assert.ok(events.some(line => line.includes('警徽已移交給 2 號玩家')));
+});
+
 test('SFE-16 夜間死亡技能只能在基本死訊公告後觸發', () => {
   const { context, events } = createContext();
   setup(context, players(context, [{ role: '獵人', isAlive: false, lifeState: 'DEAD', deathReason: 'KILLED_BY_WOLF' }, { role: '平民' }]), 'SHERIFF_ELECTION');

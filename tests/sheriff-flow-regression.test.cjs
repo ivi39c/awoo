@@ -202,11 +202,13 @@ test('SFE-12 當選警長天亮出局後須進入警徽處理', () => {
 });
 
 test('SFE-13 無候選人時以無警長結束並繼續天亮', () => {
-  const { context } = createContext();
+  const { context, events } = createContext();
   setup(context, players(context, [{ role: '預言家' }, { role: '平民' }]), 'SHERIFF_ELECTION');
   context.processSheriffCandidates();
   assert.equal(vm.runInContext('roomState.hasSheriffInGame', context), false);
   assert.equal(vm.runInContext('roomState.currentPhase', context), 'DAY_SPEECH');
+  assert.ok(events.some(line => line.includes('本局無人競選警長')),
+    '無人上警時應播報正確的結束原因');
 });
 
 test('SFE-14 首輪警長票平票後進入第二輪並清空票箱', () => {

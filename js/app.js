@@ -2314,10 +2314,6 @@ function showBgmPlayButton() {
         finishSheriffElectionWithoutWinner('本局無人競選警長，本局無警長！進入白天發言。');
         return;
       }
-      if (roomState.sheriffCandidates.length === 1) {
-        electSheriff(roomState.sheriffCandidates[0]);
-        return;
-      }
       startSheriffCandidateSpeeches();
     }
 

@@ -188,7 +188,8 @@ class Player {
         actionHistory: [],
         pendingDawnHistory: null,
         pendingNightDeaths: [],
-        sheriffElectionCompleted: false,
+        firstNightDeathsHiddenUntilDawn: false,
+        sheriffElectionCompleted: false;
         sheriffSpeechQueue: [],
         sheriffSpeechIndex: 0,
         isTieRunoff: false,
@@ -2992,6 +2993,7 @@ function showBgmPlayButton() {
           voiceMessage: '白狼王自爆，並帶走一名玩家。天黑請閉眼。',
         });
       } else if (returnPhase === 'DAY_DEATH') {
+        if (!setCurrentPhase('DAY_DEATH')) return false;
         continueDayAfterDawn();
       } else {
         announceDayDeath();

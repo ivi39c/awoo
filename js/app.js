@@ -4,6 +4,7 @@ class Player {
         this.name = name;
         this.role = role;
         this.isAlive = true;
+        this.lifeState = 'ALIVE';
         this.deathReason = null;
         this.isProtected = false; 
         this.isAntidoteUsed = false; 
@@ -98,7 +99,7 @@ class Player {
       // Public dawn narration must reveal seat numbers only, never the cause of death.
       return `昨夜出局 ${deaths.map(death => `${Number(death.id)}號`).join('、')}`;
     }
-    function settleNightActions(wolfTargetId, witchSaveTargetId, witchPoisonTargetId, guardTargetId) {
+    function settleNightActions(wolfTargetId, witchSaveTargetId, witchPoisonTargetId, guardTargetId, { deferDeath = false } = {}) {
       const result = AwooGameEngine.resolveNight({
         players: gameState.players,
         wolfTargetId,
@@ -106,7 +107,8 @@ class Player {
         witchPoisonTargetId,
         guardTargetId,
         previousGuardTargetId: roomState.guardLastTarget,
-        rules: roomState.ruleset
+        rules: roomState.ruleset,
+        deferDeath
       });
       gameState.lastGuardedId = result.lastGuardedId;
       roomState.guardLastTarget = result.lastGuardedId;
@@ -118,6 +120,7 @@ class Player {
           const existingDeath = nightDeaths.find(death => Number(death.id) === hunterShotTargetId);
           if (!existingDeath) {
             target.isAlive = false;
+            target.lifeState = deferDeath ? 'PENDING_DEATH' : 'DEAD';
             target.deathReason = 'HUNTER_SHOT';
             nightDeaths.push({ id: hunterShotTargetId, reason: 'HUNTER_SHOT' });
           }
@@ -126,6 +129,7 @@ class Player {
         }
       }
       roomState.lastNightDeaths = nightDeaths;
+      roomState.pendingNightDeaths = deferDeath ? nightDeaths.map(death => ({ playerId: Number(death.id), cause: death.reason, source: death.reason === 'KILLED_BY_WOLF' ? 'WOLF' : 'NIGHT_ACTION', night: Number(gameState.currentDay), announced: false })) : [];
       roomState.hunterNightShotTargetId = null;
       // Keep the public death log pending until God finishes the dawn announcement.
       roomState.pendingDawnHistory = {
@@ -159,6 +163,7 @@ class Player {
       roomState.players.forEach(player => {
         player.role = '未發牌';
         player.isAlive = true;
+        player.lifeState = 'ALIVE';
         player.deathReason = null;
         player.deathSkillUsed = false;
         player.isProtected = false;
@@ -182,7 +187,11 @@ class Player {
         rolesInGame: [],
         actionHistory: [],
         pendingDawnHistory: null,
-        isTieRunoff: false,
+        pendingNightDeaths: [],
+        sheriffElectionCompleted: false,
+        sheriffSpeechQueue: [],
+        sheriffSpeechIndex: 0,
+        isTieRunoff: false;
         runoffCandidates: [],
         lastNightDeaths: [],
         nightVictim: null,
@@ -275,6 +284,10 @@ class Player {
         actionHistory: [],
         pendingDawnHistory: null,
         lastNightDeaths: [],
+        pendingNightDeaths: [],
+        sheriffElectionCompleted: false,
+        sheriffSpeechQueue: [],
+        sheriffSpeechIndex: 0,
         rolesInGame: [],
         nightVictim: null,
         executedVictim: null,
@@ -319,6 +332,7 @@ class Player {
       roomState.players.forEach(player => {
         player.role = '未發牌';
         player.isAlive = true;
+        player.lifeState = 'ALIVE';
         player.deathReason = null;
         player.deathSkillUsed = false;
         player.isProtected = false;
@@ -466,6 +480,10 @@ class Player {
       lastNightDeaths: [],
       hunterNightShotTargetId: null,
       firstNightDeathsHiddenUntilDawn: false,
+      pendingNightDeaths: [],
+      sheriffElectionCompleted: false,
+      sheriffSpeechQueue: [],
+      sheriffSpeechIndex: 0,
       actionHistory: [],
       witchSaveTargetId: null,
       witchPoisonTargetId: null,
@@ -738,6 +756,7 @@ class Player {
 
       player.role = definition.name;
       player.isAlive = true;
+      player.lifeState = 'ALIVE';
       player.deathReason = null;
       player.deathSkillUsed = false;
       player.isProtected = false;
@@ -1008,7 +1027,8 @@ function showBgmPlayButton() {
       roomState.players.forEach(p => {
         const isCurrentSpeaker = (p.id === roomState.activeSpeakerId);
         const card = document.createElement('div');
-        card.className = `seat-card ${!p.isOccupied ? 'empty' : ''} ${!p.isAlive ? 'dead' : ''} ${isCurrentSpeaker ? 'active-speaker' : ''}`;
+        const isPubliclyDead = p.lifeState === 'DEAD' || (!p.lifeState && !p.isAlive);
+        card.className = `seat-card ${!p.isOccupied ? 'empty' : ''} ${isPubliclyDead ? 'dead' : ''} ${isCurrentSpeaker ? 'active-speaker' : ''}`;
         card.id = `seat-${p.id}`;
         
         card.innerHTML = `
@@ -1070,8 +1090,9 @@ function showBgmPlayButton() {
       const p = roomState.players.find(x => x.id === roomState.currentPerspective);
       if (!p) return;
       recordTestedRole(p.role);
-      const hideDeathStatus = roomState.firstNightDeathsHiddenUntilDawn && roomState.currentPhase === 'SHERIFF_ELECTION';
-      const deathStatus = hideDeathStatus ? '' : ` (${p.isAlive ? '存活' : '已出局'})`;
+      const hideDeathStatus = p.lifeState === 'PENDING_DEATH' || (roomState.firstNightDeathsHiddenUntilDawn && roomState.currentPhase.startsWith('SHERIFF_'));
+      const isPubliclyDead = p.lifeState === 'DEAD' || (!p.lifeState && !p.isAlive);
+      const deathStatus = hideDeathStatus ? '' : ` (${isPubliclyDead ? '已出局' : '存活'})`;
 
       document.getElementById('roleIdentityInfo').innerHTML = `
         當前檢視：<b>${AwooUI.escapeHtml(p.id)}號 ${AwooUI.escapeHtml(p.name)}</b> ${roomState.isSpectator ? '<span style="color:var(--gold-primary);">[觀眾席]</span>' : ''}<br>
@@ -1112,7 +1133,7 @@ function showBgmPlayButton() {
           <div style="text-align:center; margin-bottom:8px;">
             <span style="color:var(--gold-light); font-size:0.9rem;">競選舉手倒數：<b style="color:var(--crimson-bright); font-size:1.1rem;"><span id="sheriffTimerSec">${roomState.sheriffTimer}</span>s</b></span>
           </div>
-          ${p.isAlive ? `<button class="btn-gothic" style="width:100%; margin-bottom:8px;" onclick="candidateSheriff(${p.id})">${hasRaisedHand ? '退出警長競選' : '舉手競選警長'}</button>` : '<p style="color:#888;">出局玩家不能參與警長競選。</p>'}
+          ${canParticipateInSheriffElection(p) ? `<button class="btn-gothic" style="width:100%; margin-bottom:8px;" onclick="candidateSheriff(${p.id})">${hasRaisedHand ? '退出警長競選' : '舉手競選警長'}</button>` : '<p style="color:#888;">已出局玩家不能參與警長競選。</p>'}
           <p style="font-size:0.8rem;color:#aaa;">目前候選人：${roomState.sheriffCandidates.length ? roomState.sheriffCandidates.join('、') + ' 號' : '尚無人'}</p>
         `;
       }
@@ -1710,6 +1731,7 @@ function showBgmPlayButton() {
       roomState.players.forEach((p, idx) => {
         p.role = dealtRoles[idx];
         p.isAlive = true;
+        p.lifeState = 'ALIVE';
         p.deathReason = null;
         p.deathSkillUsed = false;
         p.isProtected = false;

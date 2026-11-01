@@ -9,7 +9,8 @@
 - Fixed Sheriff badge handoff to resume the existing daytime continuation without announcing the same night deaths a second time.
 - Added SFE-17 end-to-end regression coverage for first-night death → pending-death Sheriff candidate → election → dawn death reveal → badge transfer → daytime continuation.
 - Fixed candidate speech timer progression so the system can advance to the next candidate even when the active seat perspective is not the speaker.
-- GitHub Actions `npm run check`: **134 tests passed, 0 failed** (run #198).
+- Preserved the specific no-Sheriff outcome reason in moderator narration instead of replacing every case with a generic announcement.
+- GitHub Actions `npm run check`: **134 tests passed, 0 failed** (run #203).
 - Product version unchanged at `0.9.4-alpha.1`. Browser/manual multi-perspective verification remains outstanding.
 
 ## 0.9.4-alpha.1 — 2026-10-30

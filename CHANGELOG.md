@@ -1,3 +1,10 @@
+## Phase 1 — Sheriff flow regression guardrails
+
+- Added `tests/sheriff-flow-regression.test.cjs` with behavior-level regression cases for night-action gating, first-night Sheriff entry, pending-death eligibility, candidate speech, dawn ordering, badge handoff, runoff, and death-skill timing.
+- Updated the Phase 1 test matrix with the implemented coverage.
+- These are test-first guardrails; known gaps in the current runtime are expected to fail until the corresponding fixes land. No runtime code, game rules, or product version changed.
+- Local test execution was unavailable in this environment; GitHub Actions is the validation source for this branch.
+
 ## Phase 1 — Sheriff flow test mapping
 
 - Added `docs/PHASE_1_TEST_PLAN.md` mapping SFE-01 through SFE-16 to current functions, state fields, existing tests, and missing coverage.

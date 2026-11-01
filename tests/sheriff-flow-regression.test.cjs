@@ -78,6 +78,22 @@ test('SFE-03 待公布死亡者仍可上警，且不需要恢復 isAlive', () =>
   assert.deepEqual([...vm.runInContext('roomState.sheriffCandidates', context)], [1]);
 });
 
+test('SFE-04 待公布死亡者上警後可保留在候選名單', () => {
+  const { context } = createContext();
+  setup(context, players(context, [{ role: '預言家', isAlive: false, lifeState: 'PENDING_DEATH' }, { role: '平民' }, { role: '小狼' }]), 'SHERIFF_ELECTION');
+  vm.runInContext('roomState.sheriffCandidates=[1,2];', context);
+  context.processSheriffCandidates();
+  assert.deepEqual([...vm.runInContext('roomState.sheriffCandidates', context)], [1,2]);
+});
+
+test('SFE-05 待公布死亡候選人可以正常退水', () => {
+  const { context } = createContext();
+  setup(context, players(context, [{ role: '預言家', isAlive: false, lifeState: 'PENDING_DEATH' }, { role: '平民' }]), 'SHERIFF_ELECTION');
+  vm.runInContext('roomState.sheriffCandidates=[1];', context);
+  assert.equal(context.candidateSheriff(1), true);
+  assert.deepEqual([...vm.runInContext('roomState.sheriffCandidates', context)], []);
+});
+
 test('SFE-06 待公布死亡且位於警下的玩家依一般資格仍可投票', () => {
   const { context } = createContext();
   setup(context, players(context, [{ role: '預言家' }, { role: '小狼' }, { role: '平民', isAlive: false, lifeState: 'PENDING_DEATH' }]), 'SHERIFF_VOTING');

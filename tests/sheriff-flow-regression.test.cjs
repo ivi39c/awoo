@@ -91,6 +91,9 @@ test('SFE-05 待公布死亡候選人可以正常退水', () => {
   vm.runInContext('roomState.sheriffCandidates=[1];', context);
   assert.equal(context.candidateSheriff(1), true);
   assert.deepEqual([...vm.runInContext('roomState.sheriffCandidates', context)], []);
+  vm.runInContext('roomState.sheriffCandidates=[1];roomState.currentPhase="SHERIFF_WITHDRAWAL";', context);
+  assert.equal(context.candidateSheriff(1), true);
+  assert.deepEqual([...vm.runInContext('roomState.sheriffCandidates', context)], []);
 });
 
 test('SFE-06 待公布死亡且位於警下的玩家依一般資格仍可投票', () => {
@@ -99,6 +102,8 @@ test('SFE-06 待公布死亡且位於警下的玩家依一般資格仍可投票'
   vm.runInContext('roomState.currentPerspective=3;roomState.sheriffCandidates=[1,2];', context);
   assert.equal(context.voteSheriff(1), true);
   assert.equal(vm.runInContext('roomState.sheriffVotes["3"]', context), 1);
+  vm.runInContext('roomState.currentPerspective=1;', context);
+  assert.equal(context.voteSheriff(1), false, '警上候選人不得參與本輪投票');
 });
 
 test('SFE-07 多位警長候選人必須先進入逐位候選發言階段', () => {
@@ -108,6 +113,10 @@ test('SFE-07 多位警長候選人必須先進入逐位候選發言階段', () =
   context.processSheriffCandidates();
   assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_CANDIDATE_SPEECH');
   assert.deepEqual([...vm.runInContext('roomState.sheriffSpeechQueue', context)], [1,2]);
+  assert.equal(context.completeSheriffCandidateSpeech(1), true);
+  vm.runInContext('roomState.currentPerspective=2;', context);
+  assert.equal(context.completeSheriffCandidateSpeech(2), true);
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_WITHDRAWAL');
 });
 
 test('SFE-08 警長競選未完成不得進入天亮或公布死訊', () => {
@@ -157,6 +166,10 @@ test('SFE-12 當選警長天亮出局後須進入警徽處理', () => {
   assert.ok(events.some(line => line.includes('天亮了')));
   assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_BADGE');
   assert.equal(vm.runInContext('roomState.sheriffId', context), 1);
+  assert.equal(context.resolveSheriffBadge('transfer', 2), true);
+  assert.equal(vm.runInContext('roomState.sheriffId', context), 2);
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'DAY_DEATH');
+  assert.equal(events.filter(line => line.includes('天亮了')).length, 1, '警徽處理後不得重複公布死訊');
 });
 
 test('SFE-13 無候選人時以無警長結束並繼續天亮', () => {

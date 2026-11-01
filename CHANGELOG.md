@@ -1,3 +1,9 @@
+## Phase 1 — Sheriff flow test mapping
+
+- Added `docs/PHASE_1_TEST_PLAN.md` mapping SFE-01 through SFE-16 to current functions, state fields, existing tests, and missing coverage.
+- Identified the first-night `isAlive` restoration assertion in `tests/app-smoke.test.cjs` as a source-text test that protects an implementation detail contrary to the target pending-death model.
+- No runtime code, game rules, or product version changed. Automated tests were not run in this documentation-only commit.
+
 ## 0.9.4-alpha.1 — 2026-10-30
 
 - [修復] 首夜警長競選期間暫緩公開夜間死亡狀態；結束競選後才公布昨夜出局名單。

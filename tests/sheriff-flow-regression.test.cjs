@@ -187,8 +187,8 @@ test('SFE-15 第二輪仍平票時以無警長結束', () => {
 
 test('SFE-16 夜間死亡技能只能在基本死訊公告後觸發', () => {
   const { context, events } = createContext();
-  setup(context, players(context, [{ role: '獵人', isAlive: false, deathReason: 'KILLED_BY_WOLF' }, { role: '平民' }]), 'SHERIFF_ELECTION');
-  vm.runInContext('roomState.lastNightDeaths=[{id:1,reason:"KILLED_BY_WOLF"}];', context);
+  setup(context, players(context, [{ role: '獵人', isAlive: false, lifeState: 'DEAD', deathReason: 'KILLED_BY_WOLF' }, { role: '平民' }]), 'SHERIFF_ELECTION');
+  vm.runInContext('roomState.sheriffElectionCompleted=true;roomState.lastNightDeaths=[{id:1,reason:"KILLED_BY_WOLF"}];', context);
   context.startDeathSkillResolution = () => { events.push('DEATH_SKILL_STARTED'); return true; };
   context.announceDayDeath();
   const revealIndex = events.findIndex(line => line.includes('天亮了'));

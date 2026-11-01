@@ -2399,7 +2399,7 @@ function showBgmPlayButton() {
       roomState.sheriffId = null;
       gameState.sheriffId = null;
       roomState.players.forEach(player => { player.isSheriff = false; });
-      speakGod('此局無警長。', announceDawnAfterSheriffElection);
+      speakGod(message || '此局無警長。', announceDawnAfterSheriffElection);
     }
 
     function electSheriff(winnerId) {

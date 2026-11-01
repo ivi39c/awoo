@@ -151,7 +151,7 @@ test('SFE-12 當選警長天亮出局後須進入警徽處理', () => {
   const { context, events } = createContext();
   const list = players(context, [{ role: '預言家', isAlive: false, isSheriff: true, lifeState: 'PENDING_DEATH' }, { role: '平民' }]);
   setup(context, list, 'SHERIFF_ELECTION');
-  vm.runInContext("roomState.sheriffId=1;roomState.hasSheriffInGame=true;gameState.sheriffId=1;roomState.players[0].isSheriff=true;roomState.lastNightDeaths=[{id:1,reason:'KILLED_BY_WOLF'}];", context);
+  vm.runInContext("roomState.sheriffId=1;roomState.hasSheriffInGame=true;roomState.sheriffElectionCompleted=true;roomState.firstNightDeathsHiddenUntilDawn=true;gameState.sheriffId=1;roomState.players[0].isSheriff=true;roomState.lastNightDeaths=[{id:1,reason:'KILLED_BY_WOLF'}];", context);
   context.checkWinCondition = () => null;
   context.announceDayDeath();
   assert.ok(events.some(line => line.includes('天亮了')));

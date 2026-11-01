@@ -1,13 +1,15 @@
 ## Phase 1 — Sheriff flow regression guardrails and first-night fixes
 
 - Added `docs/PHASE_1_TEST_PLAN.md` mapping SFE-01 through SFE-16 to current runtime entry points, state fields, existing tests, and missing coverage.
-- Added `tests/sheriff-flow-regression.test.cjs` with SFE-01 through SFE-16 plus SFE-07b for a sole candidate's speech and withdrawal window.
+- Added `tests/sheriff-flow-regression.test.cjs` with SFE-01 through SFE-17 plus SFE-07b for a sole candidate's speech / withdrawal window and SFE-07c for timer-driven speech progression.
 - Introduced explicit `ALIVE`, `PENDING_DEATH`, and `DEAD` player life states. First-night deaths are deferred without temporarily restoring `isAlive`.
 - Separated Sheriff candidate eligibility from voting eligibility; pending-death players may participate in the pre-dawn election, while candidates do not vote.
 - Added candidate speech and withdrawal phases before Sheriff voting, including the single-candidate withdrawal path.
 - Gated dawn announcement until the first-night Sheriff election is complete, then narrates "天亮請睜眼" before revealing deaths.
 - Fixed Sheriff badge handoff to resume the existing daytime continuation without announcing the same night deaths a second time.
-- GitHub Actions `npm run check`: **132 tests passed, 0 failed (latest run)** (run #193).
+- Added SFE-17 end-to-end regression coverage for first-night death → pending-death Sheriff candidate → election → dawn death reveal → badge transfer → daytime continuation.
+- Fixed candidate speech timer progression so the system can advance to the next candidate even when the active seat perspective is not the speaker.
+- GitHub Actions `npm run check`: **134 tests passed, 0 failed** (run #198).
 - Product version unchanged at `0.9.4-alpha.1`. Browser/manual multi-perspective verification remains outstanding.
 
 ## 0.9.4-alpha.1 — 2026-10-30

@@ -77,8 +77,8 @@ Night Actions Completed
 |---|---|
 | 讀取 main 原始碼與現有測試 | 已完成 |
 | SFE-01 至 SFE-16 對照目前函式／狀態／測試 | 已完成 |
-| 本機 `npm test`／`npm run check` | 未執行：目前工作環境無法連線取得 GitHub repository |
-| 新增行為測試 | 下一個工作項目 |
+| 本機 `npm test`／`npm run check` | 未執行：目前工作環境無法連線取得 GitHub repository；已提交 GitHub Actions 執行驗證 |
+| 新增行為測試 | 已新增 `tests/sheriff-flow-regression.test.cjs`，目前涵蓋 SFE-01、02、03、06～16；SFE-04／05 將補入候選人名單保留與退水專項案例 |
 | runtime 修正與模組抽取 | 尚未開始 |
 
-**重要：** 本文件是測試追蹤矩陣，不是測試通過報告，也沒有修改遊戲規則或 runtime 程式。
+**重要：** 本文件是測試追蹤矩陣，不是測試通過報告。新增的回歸案例是先行規格測試，預期部分案例會在現行實作上失敗；不得把測試失敗描述成 CI 通過。尚未修改遊戲規則或 runtime 程式。

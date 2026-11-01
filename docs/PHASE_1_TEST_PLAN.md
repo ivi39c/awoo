@@ -80,7 +80,7 @@ Night Actions Completed
 | 行為回歸測試 | 已新增 SFE-01～16，另加 SFE-07b（單一候選人發言及退水） |
 | Runtime 修正 | 已完成本階段首輪修正：待公布死亡狀態、警長參與資格、候選發言／退水、天亮閘門與警徽交接 |
 | 本機測試 | 未執行；本工作階段無法取得本機 checkout，因此以 GitHub Actions 作為執行環境 |
-| GitHub Actions `npm run check` | **通過：132 tests、132 pass、0 fail**（run #192，commit `cf47330db1a617a7246d212503ab8be070a8527f`） |
+| GitHub Actions `npm run check` | **通過：132 tests、132 pass、0 fail**（run #193，commit `90466f04e295087801170e02e4abce7c2d6bcf82`） |
 | 本機手動瀏覽器驗收 | 尚未執行；CI 不等同瀏覽器／多人視角驗收 |
 | 模組抽取 | 尚未開始；目前仍在 `app.js` 既有流程中修正，避免先搬動未穩定邏輯 |
 

@@ -89,7 +89,7 @@ Night Actions Completed
 
 ### 5.1 測試模式視角隔離
 
-- `activePlayerId`：正式模式的實際操作玩家識別，來源為登入／入座後的 `mySeatId`；觀戰者為 `null`。
+- `activePlayerId`：正式模式目前入座玩家的識別，來源為 `mySeatId`；觀戰者為 `null`。現階段這是前端原型的身分分離，不等於伺服器端認證；未來多人化必須由伺服器 session／權限層驗證行動者。
 - `viewerPerspective`：目前 UI 預覽的座位。正式模式固定對應 `activePlayerId`；測試模式可切換以巡檢不同角色面板。
 - `currentPerspective` 暫時保留作為既有 UI 相容欄位，但所有會改變遊戲狀態的玩家操作必須經 `getActingPlayerId()` 取得行動者，不可直接把 UI 視角當成已驗證身分。
 - 正式模式 `getActingPlayerId()` 只讀 `activePlayerId`；測試模式才允許以 `viewerPerspective` 模擬行動者。切換視角本身不得寫入 `activePlayerId`、改變玩家權限或直接變更遊戲狀態。

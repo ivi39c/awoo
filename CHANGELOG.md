@@ -49,6 +49,9 @@
 
 # Changelog
 
+## [Unreleased]
+- Sheriff election: a sole registered candidate is elected immediately without candidate speeches, withdrawal, or voting. Multiple candidates continue through speeches and withdrawal; if only one remains after withdrawals, that candidate is elected directly.
+
 ## 2026-10-25 — Requirement audit and Witch potion rule
 
 - Added `docs/PROJECT_HANDOFF.md` and `docs/REQUIREMENTS_TRACEABILITY.md` to preserve project continuity and map requirements to source/test evidence.

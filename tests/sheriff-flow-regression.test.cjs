@@ -288,7 +288,7 @@ test('SFE-16 夜間死亡技能只能在基本死訊公告後觸發', () => {
 test('SFE-13b 全部候選人退水使用獨立無警長原因與口白', () => {
   const { context, events } = createContext();
   setup(context, players(context, [{ role: '預言家' }, { role: '平民' }]), 'SHERIFF_WITHDRAWAL');
-  vm.runInContext('roomState.sheriffCandidates=[1,2];', context);
+  vm.runInContext('roomState.sheriffCandidates=[];', context);
   context.finishSheriffWithdrawals();
   assert.equal(vm.runInContext('roomState.sheriffNoWinnerReason', context), 'ALL_WITHDRAWN');
   assert.ok(events.some(line => line.includes('所有參選玩家均已退選')));

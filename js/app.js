@@ -1498,7 +1498,7 @@ function showBgmPlayButton() {
       const target = roomState.players.find(p => p.id === Number(targetId));
       const result = document.getElementById('seerResult');
       const validation = AwooGameEngine.validateNightAction({
-        players: roomState.players, actorId: roomState.currentPerspective,
+        players: roomState.players, actorId: getActingPlayerId(),
         action: 'seerCheck', targetId, state: { phase: roomState.currentPhase }
       });
       if (!validation.valid) {
@@ -1506,7 +1506,7 @@ function showBgmPlayButton() {
         return;
       }
       roomState.seerTargetId = validation.target.id;
-      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, message: `預言家查驗 ${validation.target.id} 號。` });
+      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: getActingPlayerId(), message: `預言家查驗 ${validation.target.id} 號。` });
       const isWolf = getRoleCamp(target.role) === '狼人';
       if (result) {
         result.textContent = `查驗結果：${targetId}號 是 ${isWolf ? '狼人陣營（查殺）' : '好人陣營（金水）'}`;
@@ -1521,7 +1521,7 @@ function showBgmPlayButton() {
       if (!canSubmitModeratorAction('witchSaveDecision')) return false;
       if (roomState.witchSaveDecisionMade || roomState.witchElixirUsed) return false;
       const validation = AwooGameEngine.validateNightAction({
-        players: roomState.players, actorId: roomState.currentPerspective,
+        players: roomState.players, actorId: getActingPlayerId(),
         action: 'witchSave', state: {
           phase: roomState.currentPhase, currentDay: gameState.currentDay, nightVictim: roomState.nightVictim,
           witchElixirUsed: roomState.witchElixirUsed, witchPoisonUsed: roomState.witchPoisonUsed,
@@ -1532,7 +1532,7 @@ function showBgmPlayButton() {
       roomState.witchElixirUsed = true;
       roomState.witchSaveDecisionMade = true;
       roomState.witchSaveTargetId = Number(validation.target.id);
-      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, roleActionLabel: `解救 ${roomState.witchSaveTargetId}號`, message: `解救 ${roomState.witchSaveTargetId}號` });
+      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: getActingPlayerId(), roleActionLabel: `解救 ${roomState.witchSaveTargetId}號`, message: `解救 ${roomState.witchSaveTargetId}號` });
       alert('已使用解藥；目標已記錄在女巫私密面板。');
       updateControlPanel();
       renderGodFlowPanel();
@@ -1567,7 +1567,7 @@ function showBgmPlayButton() {
       if (roomState.currentPhase !== 'NIGHT' || roomState.witchPoisonUsed || roomState.witchPoisonDecisionMade) return false;
       const validation = AwooGameEngine.validateNightAction({
         players: roomState.players,
-        actorId: roomState.currentPerspective,
+        actorId: getActingPlayerId(),
         action: 'witchPoison',
         targetId,
         state: { phase: roomState.currentPhase, currentDay: gameState.currentDay, witchPoisonUsed: roomState.witchPoisonUsed, witchElixirUsed: roomState.witchElixirUsed },
@@ -1586,7 +1586,7 @@ function showBgmPlayButton() {
       const targetId = roomState.witchPoisonDraftTargetId;
       const validation = AwooGameEngine.validateNightAction({
         players: roomState.players,
-        actorId: roomState.currentPerspective,
+        actorId: getActingPlayerId(),
         action: 'witchPoison',
         targetId,
         state: {
@@ -1603,7 +1603,7 @@ function showBgmPlayButton() {
       roomState.witchPoisonUsed = true;
       roomState.witchPoisonDecisionMade = true;
       roomState.witchPoisonTargetId = Number(validation.target.id);
-      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, roleActionLabel: `毒殺 ${roomState.witchPoisonTargetId}號`, message: `毒殺 ${roomState.witchPoisonTargetId}號` });
+      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: getActingPlayerId(), roleActionLabel: `毒殺 ${roomState.witchPoisonTargetId}號`, message: `毒殺 ${roomState.witchPoisonTargetId}號` });
       roomState.showWitchPoisonTargets = false;
       roomState.witchPoisonDraftTargetId = null;
       updateControlPanel();
@@ -1636,14 +1636,14 @@ function showBgmPlayButton() {
       if (!canSubmitModeratorAction('guardProtect')) return false;
       if (roomState.guardTargetId != null) { alert('守衛本夜已完成守護。'); return false; }
       const validation = AwooGameEngine.validateNightAction({
-        players: roomState.players, actorId: roomState.currentPerspective,
+        players: roomState.players, actorId: getActingPlayerId(),
         action: 'guardProtect', targetId, state: {
           phase: roomState.currentPhase, previousGuardTargetId: roomState.guardLastTarget
         }
       });
       if (!validation.valid) { alert(validation.reason); return; }
       roomState.guardTargetId = Number(validation.target.id);
-      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, message: `守衛守護 ${validation.target.id} 號。` });
+      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: getActingPlayerId(), message: `守衛守護 ${validation.target.id} 號。` });
       alert('守衛行動已記錄；目標保存在守衛的私密技能紀錄中。');
       updateControlPanel();
       renderGodFlowPanel();
@@ -1655,12 +1655,12 @@ function showBgmPlayButton() {
       if (!canSubmitModeratorAction('wolfAttack')) return false;
       if (roomState.wolfActionDecided || roomState.nightVictim != null) { alert('狼人本夜已確認襲擊目標。'); return false; }
       const validation = AwooGameEngine.validateNightAction({
-        players: roomState.players, actorId: roomState.currentPerspective,
+        players: roomState.players, actorId: getActingPlayerId(),
         action: 'wolfAttack', targetId, state: { phase: roomState.currentPhase }
       });
       if (!validation.valid) { alert(validation.reason); return; }
       roomState.nightVictim = Number(validation.target.id);
-      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, message: `狼人夜刀指定 ${roomState.nightVictim} 號。` });
+      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: getActingPlayerId(), message: `狼人夜刀指定 ${roomState.nightVictim} 號。` });
       roomState.wolfActionDecided = true;
       // Avoid interrupting the God narration with a blocking browser alert.
       updateControlPanel();

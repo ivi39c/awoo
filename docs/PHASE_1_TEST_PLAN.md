@@ -28,7 +28,7 @@
 | SFE-04 | 待公布死亡者可成為候選人並參與候選人發言 | `processSheriffCandidates()`、`electSheriff()`；`sheriffCandidates`、候選發言隊列 | 無警長競選整合測試 | 驗證候選名單保留待公布死亡者，且候選發言隊列包含該玩家；候選發言目前尚未實作 |
 | SFE-05 | 待公布死亡者可退水 | `candidateSheriff()`；`sheriffCandidates` | 無直接行為測試 | 驗證加入與退出均成功，候選名單更新且不提前公開死亡 |
 | SFE-06 | 待公布死亡者在警下且符合一般資格時可投票 | `voteSheriff()`、`renderSheriffVotingPanel()`；`currentPerspective`、`sheriffVotes` | 無警長投票行為整合測試 | 分離候選資格與投票資格；驗證待公布死亡本身不構成拒絕原因，候選人仍受一般警下投票限制 |
-| SFE-07 | 多名候選人逐位發言 | `processSheriffCandidates()`、`startSheriffVoting()`；候選名單、發言隊列、計時器 | 無候選發言測試 | 新增候選發言階段及順序測試；目前多候選人直接進入警長投票，口白卻稱候選人發言已結束 |
+| SFE-07 | 多名候選人逐位發言；僅一位候選人時直接當選 | `processSheriffCandidates()`、`startSheriffVoting()`；候選名單、發言隊列、計時器 | 無候選發言測試 | 新增候選發言階段及順序測試；多位候選人才進入發言／退水流程，僅一位候選人時應直接當選 |
 | SFE-08 | 競選未完成前不得天亮或公布死亡 | `startSheriffVoting()`、`finalizeSheriffVote()`、`announceDayDeath()`；`currentPhase`、`pendingDawnHistory` | `tests/app-smoke.test.cjs` 僅做靜態檢查 | 以實際流程斷言候選發言、退水、投票及平票未結束前，不會進入天亮公告或公開死訊 |
 | SFE-09 | 競選完成後才播「天亮請睜眼」並公布昨夜死亡 | `electSheriff()`、`finishSheriffElectionWithoutWinner()`、`announceDayDeath()`；主持腳本與階段 | `tests/moderator-script.test.cjs` 只驗證夜間腳本口白；無跨階段測試 | 收集實際主持／階段事件，斷言「天將破曉 → 競選完成 → 天亮請睜眼 → 公布死亡」 |
 | SFE-10 | 死訊公開前不得顯示出局、死因或公開紀錄；不得改回存活 | `resolveNightNow()`、`renderTable()`、`updateControlPanel()`、`announceDayDeath()`；目前使用 `firstNightDeathsHiddenUntilDawn` | `tests/app-smoke.test.cjs` 目前反而斷言暫時恢復 `isAlive` | 移除會保護錯誤設計的靜態斷言；新增狀態與 UI 可見性行為測試，確認 `PENDING_DEATH` 不等於 `ALIVE` 或公開 `DEAD` |
@@ -78,7 +78,7 @@ Night Actions Completed
 |---|---|
 | 讀取 main 原始碼與現有測試 | 已完成 |
 | SFE-01 至 SFE-17 對照目前函式／狀態／測試 | 已完成 |
-| 行為回歸測試 | 已新增 SFE-01～17，另加 SFE-07b（單一候選人發言及退水）、SFE-07c（實際倒數回呼自動推進，且不依賴目前座位視角） |
+| 行為回歸測試 | 已新增 SFE-01～17，另加 SFE-07b（單一候選人直接當選，不進入發言／退水／投票）、SFE-07c（實際倒數回呼自動推進，且不依賴目前座位視角） |
 | Runtime 修正 | 已完成本階段首輪修正：待公布死亡狀態、警長參與資格、候選發言／退水、天亮閘門與警徽交接 |
 | 本機測試 | 未執行；本工作階段無法取得本機 checkout，因此以 GitHub Actions 作為執行環境 |
 | GitHub Actions `npm run check` | **通過：134 tests、134 pass、0 fail**（run #206，commit `f3f969988f4909b42827f869be81e0d788663718`） |
@@ -95,7 +95,13 @@ Night Actions Completed
 - 正式模式 `getActingPlayerId()` 只讀 `activePlayerId`；測試模式才允許以 `viewerPerspective` 模擬行動者。切換視角本身不得寫入 `activePlayerId`、改變玩家權限或直接變更遊戲狀態。
 - 視角選單、測試橫幅、測試操作按鈕只在 `isTestMode` 顯示；觀眾、影音、圖鑑、設定等正式功能在測試模式仍須保留。測試模式是正式遊戲 UI 加上測試工具，不得另建一套替代遊戲流程。
 
-### 5.2 無警長結果事件與主持口白
+### 5.2 單一候選人直接當選
+
+- 報名截止並完成候選人資格檢查後，若候選人數量恰為一位，立即呼叫 electSheriff()。
+- 單一候選人不進入候選人發言、退水或警長投票階段；主持人直接宣布該玩家當選，接續天亮流程。
+- 多位候選人仍依序進入候選人發言、退水；退水後若只剩一位，該玩家直接當選，不進入投票。
+
+### 5.3 無警長結果事件與主持口白
 
 | Event code | 觸發條件 | 主持口白 |
 |---|---|---|
@@ -123,6 +129,7 @@ Night Actions Completed
 
 ## 7. 本次追加驗收（2026-11-03）
 
+- 單一候選人於候選人資格檢查後直接當選，跳過候選人發言、退水與投票；多位候選人仍依既定發言／退水流程。
 - 新增 `activePlayerId` 與 `viewerPerspective` 明確分工；`getActingPlayerId()` 在正式模式讀取實際玩家識別，在測試模式才以預覽視角模擬操作玩家。
 - 測試視角切換只更新預覽視角，不會改寫 `activePlayerId`；測試案例同時檢查正式模式無法藉由切換視角改變行動者。
 - 將無警長主持口白集中至 `SHERIFF_NO_WINNER_NARRATION`，使用 `NO_CANDIDATES`、`ALL_WITHDRAWN`、`FINAL_TIE`、`INVALID_WINNER`、`BADGE_DESTROYED` 等原因代碼；`ELECTION_ABORTED` 保留作明確房規事件，不自動觸發。

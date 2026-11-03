@@ -46,7 +46,7 @@ test('女巫毒藥選擇器列出所有座位，出局玩家反灰且 disabled',
     roomState.isTestMode = true;
     roomState.gameStarted = true;
     roomState.currentPhase = 'NIGHT';
-    roomState.currentPerspective = 3;
+    roomState.currentPerspective = roomState.viewerPerspective = 3;
     roomState.playerCount = 7;
     roomState.players = [
       new Player(1, 'P1', '平民'), new Player(2, 'P2', '平民'),
@@ -80,7 +80,7 @@ test('從女巫選擇座位到夜晚結算的整條鏈會將 1 號列入死亡�
     roomState.gameStarted = true;
     roomState.gameOver = false;
     roomState.currentPhase = 'NIGHT';
-    roomState.currentPerspective = 3;
+    roomState.currentPerspective = roomState.viewerPerspective = 3;
     roomState.playerCount = 7;
     roomState.sheriffMode = 'disabled';
     roomState.ruleset = window.AwooRuleset.resolveRuleset({ winMode: 'edge' });
@@ -129,7 +129,7 @@ test('確認毒藥時會再次檢查首夜雙藥限制，不能沿用過期的�
   const { context } = makeContext();
   vm.runInContext(`
     roomState.isTestMode = true; roomState.gameStarted = true; roomState.currentPhase = 'NIGHT';
-    roomState.currentPerspective = 2; roomState.players = [
+    roomState.currentPerspective = roomState.viewerPerspective = 2; roomState.players = [
       new Player(1, 'target', '平民'), new Player(2, 'witch', '女巫'), new Player(3, 'wolf', '小狼')
     ];
     gameState.players = roomState.players; gameState.currentDay = 1;
@@ -151,7 +151,7 @@ test('已出局目標不可投毒，且取消選擇不會消耗毒藥', () => {
   const { context } = makeContext();
   vm.runInContext(`
     roomState.isTestMode = true; roomState.gameStarted = true; roomState.currentPhase = 'NIGHT';
-    roomState.currentPerspective = 3;
+    roomState.currentPerspective = roomState.viewerPerspective = 3;
     roomState.players = [new Player(1, 'dead', '平民'), new Player(2, 'witch', '女巫'), new Player(3, 'wolf', '小狼')];
     roomState.players[0].isAlive = false; gameState.players = roomState.players;
     roomState.witchPoisonUsed = false; roomState.witchPoisonTargetId = null;
@@ -168,7 +168,7 @@ test('若夜間投毒直接觸發勝負，結束公告仍會說明 1 號已出�
   const { context, elements } = makeContext();
   vm.runInContext(`
     roomState.isTestMode = true; roomState.gameStarted = true; roomState.gameOver = false;
-    roomState.currentPhase = 'NIGHT'; roomState.currentPerspective = 3; roomState.playerCount = 6;
+    roomState.currentPhase = 'NIGHT'; roomState.currentPerspective = roomState.viewerPerspective = 3; roomState.playerCount = 6;
     roomState.sheriffMode = 'disabled';
     roomState.ruleset = window.AwooRuleset.resolveRuleset({ winMode: 'edge' });
     roomState.players = [
@@ -206,7 +206,7 @@ test('女巫毒藥目標不會寫入全局通知或公開行動紀錄，白天�
     roomState.gameStarted = true;
     roomState.gameOver = false;
     roomState.currentPhase = 'NIGHT';
-    roomState.currentPerspective = 1;
+    roomState.currentPerspective = roomState.viewerPerspective = 1;
     roomState.ruleset = window.AwooRuleset.resolveRuleset({ winMode: 'edge' });
     roomState.players = [
       new Player(1, 'Witch', '女巫'),
@@ -250,7 +250,7 @@ test('女巫毒藥目標不會寫入全局通知或公開行動紀錄，白天�
   assert.ok(privateHistory.some(entry => entry.visibility === 'private' && /2\s*號/.test(entry.message)),
     '目標號碼仍需保存於私密技能紀錄');
 
-  vm.runInContext("roomState.currentPhase = 'DAY_DEATH'; roomState.currentPerspective = 1;", context);
+  vm.runInContext("roomState.currentPhase = 'DAY_DEATH'; roomState.currentPerspective = roomState.viewerPerspective = 1;", context);
   context.updateControlPanel();
   const witchSummary = elements.get('actionControls').children.find(child => child.className === 'witch-day-summary');
   assert.ok(witchSummary, '白天女巫控制台應顯示藥劑使用摘要');

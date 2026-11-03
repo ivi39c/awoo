@@ -4,6 +4,7 @@ class Player {
         this.name = name;
         this.role = role;
         this.isAlive = true;
+        this.lifeState = 'ALIVE';
         this.deathReason = null;
         this.isProtected = false; 
         this.isAntidoteUsed = false; 
@@ -87,8 +88,8 @@ class Player {
     }
     function renderPlayerTargetGrid({ onSelect, isAllowed = () => true, selectedId = null, isDisabled = () => false, showDead = true, dataAttribute = null } = {}) {
       return `<div class="target-grid">${roomState.players.map(target => {
-        const dead = !target.isAlive, allowed = isAllowed(target), selected = selectedId != null && Number(selectedId) === Number(target.id);
-        const disabled = !allowed || isDisabled(target) || (dead && !showDead);
+        const dead = target.lifeState === 'DEAD' || (target.lifeState !== 'PENDING_DEATH' && !target.isAlive), unavailable = !target.isAlive, allowed = isAllowed(target), selected = selectedId != null && Number(selectedId) === Number(target.id);
+        const disabled = !allowed || isDisabled(target) || (unavailable && !showDead);
         const dataAttr = dataAttribute ? ` ${dataAttribute}="${Number(target.id)}"` : '';
         return `<button class="target-btn${dead ? ' is-dead' : ''}${selected ? ' selected' : ''}"${dataAttr} ${disabled ? 'disabled ' : ''}onclick="${onSelect}(${Number(target.id)})" type="button" aria-disabled="${disabled ? 'true' : 'false'}" aria-pressed="${selected ? 'true' : 'false'}">${target.id}號${dead && showDead ? '（已出局）' : ''}</button>`;
       }).join('')}</div>`;
@@ -98,7 +99,7 @@ class Player {
       // Public dawn narration must reveal seat numbers only, never the cause of death.
       return `昨夜出局 ${deaths.map(death => `${Number(death.id)}號`).join('、')}`;
     }
-    function settleNightActions(wolfTargetId, witchSaveTargetId, witchPoisonTargetId, guardTargetId) {
+    function settleNightActions(wolfTargetId, witchSaveTargetId, witchPoisonTargetId, guardTargetId, { deferDeath = false } = {}) {
       const result = AwooGameEngine.resolveNight({
         players: gameState.players,
         wolfTargetId,
@@ -106,7 +107,8 @@ class Player {
         witchPoisonTargetId,
         guardTargetId,
         previousGuardTargetId: roomState.guardLastTarget,
-        rules: roomState.ruleset
+        rules: roomState.ruleset,
+        deferDeath
       });
       gameState.lastGuardedId = result.lastGuardedId;
       roomState.guardLastTarget = result.lastGuardedId;
@@ -118,6 +120,7 @@ class Player {
           const existingDeath = nightDeaths.find(death => Number(death.id) === hunterShotTargetId);
           if (!existingDeath) {
             target.isAlive = false;
+            target.lifeState = deferDeath ? 'PENDING_DEATH' : 'DEAD';
             target.deathReason = 'HUNTER_SHOT';
             nightDeaths.push({ id: hunterShotTargetId, reason: 'HUNTER_SHOT' });
           }
@@ -126,6 +129,7 @@ class Player {
         }
       }
       roomState.lastNightDeaths = nightDeaths;
+      roomState.pendingNightDeaths = deferDeath ? nightDeaths.map(death => ({ playerId: Number(death.id), cause: death.reason, source: death.reason === 'KILLED_BY_WOLF' ? 'WOLF' : 'NIGHT_ACTION', night: Number(gameState.currentDay), announced: false })) : [];
       roomState.hunterNightShotTargetId = null;
       // Keep the public death log pending until God finishes the dawn announcement.
       roomState.pendingDawnHistory = {
@@ -159,6 +163,7 @@ class Player {
       roomState.players.forEach(player => {
         player.role = '未發牌';
         player.isAlive = true;
+        player.lifeState = 'ALIVE';
         player.deathReason = null;
         player.deathSkillUsed = false;
         player.isProtected = false;
@@ -179,9 +184,16 @@ class Player {
         gameStarted: false,
         gameOver: false,
         currentPerspective: roomState.mySeatId || roomState.currentPerspective || 1,
+        viewerPerspective: roomState.mySeatId || roomState.currentPerspective || 1,
+        activePlayerId: roomState.mySeatId || 1,
         rolesInGame: [],
         actionHistory: [],
         pendingDawnHistory: null,
+        pendingNightDeaths: [],
+        firstNightDeathsHiddenUntilDawn: false,
+        sheriffElectionCompleted: false,
+        sheriffSpeechQueue: [],
+        sheriffSpeechIndex: 0,
         isTieRunoff: false,
         runoffCandidates: [],
         lastNightDeaths: [],
@@ -272,9 +284,16 @@ class Player {
         gameOver: false,
         currentPhase: 'LOBBY',
         currentPerspective: roomState.mySeatId || 1,
+        viewerPerspective: roomState.mySeatId || 1,
+        activePlayerId: roomState.mySeatId || 1,
         actionHistory: [],
         pendingDawnHistory: null,
         lastNightDeaths: [],
+        pendingNightDeaths: [],
+        firstNightDeathsHiddenUntilDawn: false,
+        sheriffElectionCompleted: false,
+        sheriffSpeechQueue: [],
+        sheriffSpeechIndex: 0,
         rolesInGame: [],
         nightVictim: null,
         executedVictim: null,
@@ -319,6 +338,7 @@ class Player {
       roomState.players.forEach(player => {
         player.role = '未發牌';
         player.isAlive = true;
+        player.lifeState = 'ALIVE';
         player.deathReason = null;
         player.deathSkillUsed = false;
         player.isProtected = false;
@@ -461,11 +481,17 @@ class Player {
       hasSheriffInGame: false,
       currentPhase: 'LOBBY',
       currentPerspective: 1,
+      viewerPerspective: 1,
+      activePlayerId: 1,
       gameStarted: false,
       gameOver: false,
       lastNightDeaths: [],
       hunterNightShotTargetId: null,
       firstNightDeathsHiddenUntilDawn: false,
+      pendingNightDeaths: [],
+      sheriffElectionCompleted: false,
+      sheriffSpeechQueue: [],
+      sheriffSpeechIndex: 0,
       actionHistory: [],
       witchSaveTargetId: null,
       witchPoisonTargetId: null,
@@ -656,10 +682,16 @@ class Player {
     function startQuickBotTest() {
       // Explicit local-only test mode: perspective switching and role overrides are allowed here.
       roomState.isTestMode = true;
+      roomState.activePlayerId = Number(roomState.mySeatId || 1);
+      roomState.viewerPerspective = Number(roomState.mySeatId || 1);
+      roomState.currentPerspective = roomState.viewerPerspective;
       roomState.testedRoles = new Set();
       roomState.isHost = true;
       roomState.isSpectator = false;
       roomState.mySeatId = 1;
+      roomState.activePlayerId = 1;
+      roomState.viewerPerspective = 1;
+      roomState.currentPerspective = 1;
       roomState.sheriffMode = 'enabled';
       roomState.ruleset = AwooRuleset.resolveRuleset();
       roomState.currentPhase = 'LOBBY';
@@ -681,9 +713,11 @@ class Player {
         selector.setAttribute?.('aria-hidden', roomState.isTestMode ? 'false' : 'true');
       }
       if (banner) banner.style.display = roomState.isTestMode ? 'flex' : 'none';
+      // Test mode is the production game UI plus additional test controls.
+      // Never hide normal production features merely because the test overlay is enabled.
       ['spectatorCountBtn', 'mediaTopBtn', 'compendiumTopBtn', 'settingsTopBtn'].forEach(id => {
         const control = document.getElementById(id);
-        if (control) control.style.display = roomState.isTestMode ? 'none' : '';
+        if (control) control.style.display = '';
       });
       const skipSpeechButton = document.getElementById('testModeSkipSpeechButton');
       if (skipSpeechButton) skipSpeechButton.hidden = !roomState.isTestMode || !roomState.gameStarted || roomState.currentPhase !== 'DAY_SPEECH' || roomState.gameOver;
@@ -738,6 +772,7 @@ class Player {
 
       player.role = definition.name;
       player.isAlive = true;
+      player.lifeState = 'ALIVE';
       player.deathReason = null;
       player.deathSkillUsed = false;
       player.isProtected = false;
@@ -925,10 +960,13 @@ function showBgmPlayButton() {
       }
 
       if (roomState.isSpectator) {
+        roomState.activePlayerId = null;
         roomState.currentPerspective = 1;
       } else if (roomState.mySeatId) {
+        roomState.activePlayerId = Number(roomState.mySeatId);
         roomState.currentPerspective = roomState.mySeatId;
       }
+      roomState.viewerPerspective = roomState.currentPerspective;
 
       updateSpectatorUI();
       renderTable();
@@ -992,6 +1030,8 @@ function showBgmPlayButton() {
       emptySeat.isOccupied = true;
       roomState.isSpectator = false;
       roomState.mySeatId = emptySeat.id;
+      roomState.activePlayerId = Number(emptySeat.id);
+      roomState.viewerPerspective = Number(emptySeat.id);
       roomState.currentPerspective = emptySeat.id;
 
       roomState.spectators = roomState.spectators.filter(s => s.name !== myName);
@@ -1008,7 +1048,8 @@ function showBgmPlayButton() {
       roomState.players.forEach(p => {
         const isCurrentSpeaker = (p.id === roomState.activeSpeakerId);
         const card = document.createElement('div');
-        card.className = `seat-card ${!p.isOccupied ? 'empty' : ''} ${!p.isAlive ? 'dead' : ''} ${isCurrentSpeaker ? 'active-speaker' : ''}`;
+        const isPubliclyDead = p.lifeState === 'DEAD' || (p.lifeState !== 'PENDING_DEATH' && !p.isAlive);
+        card.className = `seat-card ${!p.isOccupied ? 'empty' : ''} ${isPubliclyDead ? 'dead' : ''} ${isCurrentSpeaker ? 'active-speaker' : ''}`;
         card.id = `seat-${p.id}`;
         
         card.innerHTML = `
@@ -1035,6 +1076,12 @@ function showBgmPlayButton() {
       });
     }
 
+    function getActingPlayerId() {
+      // In production, the locally seated player ID is authoritative. Test mode may simulate
+      // another seat, but changing the viewer never mutates activePlayerId.
+      return Number(roomState.isTestMode ? roomState.viewerPerspective : roomState.activePlayerId);
+    }
+
     function updatePerspectiveSelect() {
       const select = document.getElementById('perspectiveSelect');
       if (!select) return;
@@ -1044,7 +1091,7 @@ function showBgmPlayButton() {
         opt.value = p.id;
         const roleName = getRoleDefinition(p.role)?.name || p.role || '未發牌';
         opt.textContent = `視角：${p.id}號（${roleName}）`;
-        if (Number(p.id) === Number(roomState.currentPerspective)) opt.selected = true;
+        if (Number(p.id) === getActingPlayerId()) opt.selected = true;
         select.appendChild(opt);
       });
       updateTestModeUI();
@@ -1053,11 +1100,13 @@ function showBgmPlayButton() {
     function switchPerspective(id) {
       if (!roomState.isTestMode) {
         roomState.currentPerspective = roomState.mySeatId || 1;
+        roomState.viewerPerspective = roomState.currentPerspective;
         updatePerspectiveSelect();
         return false;
       }
       const nextId = Number(id);
       if (!roomState.players.some(player => player.id === nextId)) return false;
+      roomState.viewerPerspective = nextId;
       roomState.currentPerspective = nextId;
       // Rebuild the selector from the current dealt roles so its label and panel perspective stay aligned.
       updatePerspectiveSelect();
@@ -1067,11 +1116,12 @@ function showBgmPlayButton() {
     }
 
     function updateControlPanel() {
-      const p = roomState.players.find(x => x.id === roomState.currentPerspective);
+      const p = roomState.players.find(x => x.id === getActingPlayerId());
       if (!p) return;
       recordTestedRole(p.role);
-      const hideDeathStatus = roomState.firstNightDeathsHiddenUntilDawn && roomState.currentPhase === 'SHERIFF_ELECTION';
-      const deathStatus = hideDeathStatus ? '' : ` (${p.isAlive ? '存活' : '已出局'})`;
+      const hideDeathStatus = p.lifeState === 'PENDING_DEATH' || (roomState.firstNightDeathsHiddenUntilDawn && roomState.currentPhase.startsWith('SHERIFF_'));
+      const isPubliclyDead = p.lifeState === 'DEAD' || (!p.lifeState && !p.isAlive);
+      const deathStatus = hideDeathStatus ? '' : ` (${isPubliclyDead ? '已出局' : '存活'})`;
 
       document.getElementById('roleIdentityInfo').innerHTML = `
         當前檢視：<b>${AwooUI.escapeHtml(p.id)}號 ${AwooUI.escapeHtml(p.name)}</b> ${roomState.isSpectator ? '<span style="color:var(--gold-primary);">[觀眾席]</span>' : ''}<br>
@@ -1112,9 +1162,21 @@ function showBgmPlayButton() {
           <div style="text-align:center; margin-bottom:8px;">
             <span style="color:var(--gold-light); font-size:0.9rem;">競選舉手倒數：<b style="color:var(--crimson-bright); font-size:1.1rem;"><span id="sheriffTimerSec">${roomState.sheriffTimer}</span>s</b></span>
           </div>
-          ${p.isAlive ? `<button class="btn-gothic" style="width:100%; margin-bottom:8px;" onclick="candidateSheriff(${p.id})">${hasRaisedHand ? '退出警長競選' : '舉手競選警長'}</button>` : '<p style="color:#888;">出局玩家不能參與警長競選。</p>'}
+          ${canParticipateInSheriffElection(p) ? `<button class="btn-gothic" style="width:100%; margin-bottom:8px;" onclick="candidateSheriff(${p.id})">${hasRaisedHand ? '退出警長競選' : '舉手競選警長'}</button>` : '<p style="color:#888;">已出局玩家不能參與警長競選。</p>'}
           <p style="font-size:0.8rem;color:#aaa;">目前候選人：${roomState.sheriffCandidates.length ? roomState.sheriffCandidates.join('、') + ' 號' : '尚無人'}</p>
         `;
+      }
+      else if (roomState.currentPhase === 'SHERIFF_CANDIDATE_SPEECH') {
+        const speakerId = roomState.sheriffSpeechQueue[roomState.sheriffSpeechIndex];
+        controls.innerHTML = Number(p.id) === Number(speakerId)
+          ? `<p>${speakerId} 號候選人正在發表競選演說。</p><button class="btn-gothic" style="width:100%;" onclick="completeSheriffCandidateSpeech(${speakerId})">完成發言</button>`
+          : `<p style="color:#aaa;">目前由 ${speakerId} 號候選人發表競選演說，請等待。</p>`;
+      }
+      else if (roomState.currentPhase === 'SHERIFF_WITHDRAWAL') {
+        const hasRaisedHand = roomState.sheriffCandidates.includes(Number(p.id));
+        controls.innerHTML = hasRaisedHand
+          ? `<p>你仍在警長候選名單中。</p><button class="btn-gothic" style="width:100%;" onclick="candidateSheriff(${p.id})">退水</button>`
+          : '<p style="color:#aaa;">目前不是警長候選人。</p>';
       }
       else if (roomState.currentPhase === 'SHERIFF_VOTING') {
         renderSheriffVotingPanel(p, controls);
@@ -1406,7 +1468,7 @@ function showBgmPlayButton() {
 
     function hunterNightShoot(targetId) {
       if (!canSubmitModeratorAction('hunterNightShot')) return false;
-      const hunter = roomState.players.find(player => Number(player.id) === Number(roomState.currentPerspective));
+      const hunter = roomState.players.find(player => Number(player.id) === getActingPlayerId());
       const target = roomState.players.find(player => Number(player.id) === Number(targetId) && player.isAlive && Number(player.id) !== Number(hunter?.id));
       if (!isHunterEligibleToShoot(hunter) || !target) { alert('本夜獵人不可開槍或目標無效。'); return false; }
       roomState.hunterNightShotTargetId = Number(target.id);
@@ -1420,7 +1482,7 @@ function showBgmPlayButton() {
 
     function declineHunterNightShot() {
       if (!canSubmitModeratorAction('hunterNightShot')) return false;
-      const hunter = roomState.players.find(player => Number(player.id) === Number(roomState.currentPerspective));
+      const hunter = roomState.players.find(player => Number(player.id) === getActingPlayerId());
       if (!isHunterEligibleToShoot(hunter)) return false;
       roomState.hunterNightShotUsed = true;
       hunter.canShoot = false;
@@ -1434,7 +1496,7 @@ function showBgmPlayButton() {
       const target = roomState.players.find(p => p.id === Number(targetId));
       const result = document.getElementById('seerResult');
       const validation = AwooGameEngine.validateNightAction({
-        players: roomState.players, actorId: roomState.currentPerspective,
+        players: roomState.players, actorId: getActingPlayerId(),
         action: 'seerCheck', targetId, state: { phase: roomState.currentPhase }
       });
       if (!validation.valid) {
@@ -1442,7 +1504,7 @@ function showBgmPlayButton() {
         return;
       }
       roomState.seerTargetId = validation.target.id;
-      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, message: `預言家查驗 ${validation.target.id} 號。` });
+      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: getActingPlayerId(), message: `預言家查驗 ${validation.target.id} 號。` });
       const isWolf = getRoleCamp(target.role) === '狼人';
       if (result) {
         result.textContent = `查驗結果：${targetId}號 是 ${isWolf ? '狼人陣營（查殺）' : '好人陣營（金水）'}`;
@@ -1457,7 +1519,7 @@ function showBgmPlayButton() {
       if (!canSubmitModeratorAction('witchSaveDecision')) return false;
       if (roomState.witchSaveDecisionMade || roomState.witchElixirUsed) return false;
       const validation = AwooGameEngine.validateNightAction({
-        players: roomState.players, actorId: roomState.currentPerspective,
+        players: roomState.players, actorId: getActingPlayerId(),
         action: 'witchSave', state: {
           phase: roomState.currentPhase, currentDay: gameState.currentDay, nightVictim: roomState.nightVictim,
           witchElixirUsed: roomState.witchElixirUsed, witchPoisonUsed: roomState.witchPoisonUsed,
@@ -1468,7 +1530,7 @@ function showBgmPlayButton() {
       roomState.witchElixirUsed = true;
       roomState.witchSaveDecisionMade = true;
       roomState.witchSaveTargetId = Number(validation.target.id);
-      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, roleActionLabel: `解救 ${roomState.witchSaveTargetId}號`, message: `解救 ${roomState.witchSaveTargetId}號` });
+      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: getActingPlayerId(), roleActionLabel: `解救 ${roomState.witchSaveTargetId}號`, message: `解救 ${roomState.witchSaveTargetId}號` });
       alert('已使用解藥；目標已記錄在女巫私密面板。');
       updateControlPanel();
       renderGodFlowPanel();
@@ -1503,7 +1565,7 @@ function showBgmPlayButton() {
       if (roomState.currentPhase !== 'NIGHT' || roomState.witchPoisonUsed || roomState.witchPoisonDecisionMade) return false;
       const validation = AwooGameEngine.validateNightAction({
         players: roomState.players,
-        actorId: roomState.currentPerspective,
+        actorId: getActingPlayerId(),
         action: 'witchPoison',
         targetId,
         state: { phase: roomState.currentPhase, currentDay: gameState.currentDay, witchPoisonUsed: roomState.witchPoisonUsed, witchElixirUsed: roomState.witchElixirUsed },
@@ -1522,7 +1584,7 @@ function showBgmPlayButton() {
       const targetId = roomState.witchPoisonDraftTargetId;
       const validation = AwooGameEngine.validateNightAction({
         players: roomState.players,
-        actorId: roomState.currentPerspective,
+        actorId: getActingPlayerId(),
         action: 'witchPoison',
         targetId,
         state: {
@@ -1539,7 +1601,7 @@ function showBgmPlayButton() {
       roomState.witchPoisonUsed = true;
       roomState.witchPoisonDecisionMade = true;
       roomState.witchPoisonTargetId = Number(validation.target.id);
-      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, roleActionLabel: `毒殺 ${roomState.witchPoisonTargetId}號`, message: `毒殺 ${roomState.witchPoisonTargetId}號` });
+      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: getActingPlayerId(), roleActionLabel: `毒殺 ${roomState.witchPoisonTargetId}號`, message: `毒殺 ${roomState.witchPoisonTargetId}號` });
       roomState.showWitchPoisonTargets = false;
       roomState.witchPoisonDraftTargetId = null;
       updateControlPanel();
@@ -1572,14 +1634,14 @@ function showBgmPlayButton() {
       if (!canSubmitModeratorAction('guardProtect')) return false;
       if (roomState.guardTargetId != null) { alert('守衛本夜已完成守護。'); return false; }
       const validation = AwooGameEngine.validateNightAction({
-        players: roomState.players, actorId: roomState.currentPerspective,
+        players: roomState.players, actorId: getActingPlayerId(),
         action: 'guardProtect', targetId, state: {
           phase: roomState.currentPhase, previousGuardTargetId: roomState.guardLastTarget
         }
       });
       if (!validation.valid) { alert(validation.reason); return; }
       roomState.guardTargetId = Number(validation.target.id);
-      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, message: `守衛守護 ${validation.target.id} 號。` });
+      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: getActingPlayerId(), message: `守衛守護 ${validation.target.id} 號。` });
       alert('守衛行動已記錄；目標保存在守衛的私密技能紀錄中。');
       updateControlPanel();
       renderGodFlowPanel();
@@ -1591,12 +1653,12 @@ function showBgmPlayButton() {
       if (!canSubmitModeratorAction('wolfAttack')) return false;
       if (roomState.wolfActionDecided || roomState.nightVictim != null) { alert('狼人本夜已確認襲擊目標。'); return false; }
       const validation = AwooGameEngine.validateNightAction({
-        players: roomState.players, actorId: roomState.currentPerspective,
+        players: roomState.players, actorId: getActingPlayerId(),
         action: 'wolfAttack', targetId, state: { phase: roomState.currentPhase }
       });
       if (!validation.valid) { alert(validation.reason); return; }
       roomState.nightVictim = Number(validation.target.id);
-      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: roomState.currentPerspective, message: `狼人夜刀指定 ${roomState.nightVictim} 號。` });
+      recordGameHistory({ visibility: 'private', phaseLabel: '夜間技能', actorId: getActingPlayerId(), message: `狼人夜刀指定 ${roomState.nightVictim} 號。` });
       roomState.wolfActionDecided = true;
       // Avoid interrupting the God narration with a blocking browser alert.
       updateControlPanel();
@@ -1647,7 +1709,7 @@ function showBgmPlayButton() {
     }
 
     function confirmVote() {
-      const voterId = Number(roomState.currentPerspective);
+      const voterId = getActingPlayerId();
       const validation = AwooGameEngine.validateVoteSelection({
         players: roomState.players, voterId, targetId: currentVoteTarget,
         votes: roomState.userVotes, phase: roomState.currentPhase
@@ -1710,6 +1772,7 @@ function showBgmPlayButton() {
       roomState.players.forEach((p, idx) => {
         p.role = dealtRoles[idx];
         p.isAlive = true;
+        p.lifeState = 'ALIVE';
         p.deathReason = null;
         p.deathSkillUsed = false;
         p.isProtected = false;
@@ -1719,6 +1782,10 @@ function showBgmPlayButton() {
       gameState.players = roomState.players;
       roomState.rolesInGame = [...new Set(dealtRoles)];
       roomState.actionHistory = [];
+      roomState.pendingNightDeaths = [];
+      roomState.sheriffElectionCompleted = false;
+      roomState.sheriffSpeechQueue = [];
+      roomState.sheriffSpeechIndex = 0;
       gameState.currentDay = 1;
       gameState.sheriffId = null;
       gameState.lastGuardedId = null;
@@ -1729,6 +1796,8 @@ function showBgmPlayButton() {
       roomState.sheriffId = null;
       roomState.sheriffCandidates = [];
       roomState.sheriffVotes = {};
+      roomState.sheriffNoWinnerReason = null;
+      roomState.sheriffNoWinnerNarration = null;
       roomState.sheriffElectionRound = 0;
       roomState.deathSkillQueue = [];
       roomState.deathSkillReturnPhase = null;
@@ -1751,6 +1820,7 @@ function showBgmPlayButton() {
       AwooGameEngine.resetNightActions(roomState);
       roomState.hunterNightShotTargetId = null;
       roomState.firstNightDeathsHiddenUntilDawn = false;
+      roomState.pendingNightDeaths = [];
       roomState.wolfActionDecided = false;
       roomState.witchSaveDecisionMade = false;
       roomState.witchPoisonDecisionMade = false;
@@ -1890,7 +1960,7 @@ function showBgmPlayButton() {
     }
 
     function isCurrentPerspectiveRole(roleName) {
-      const player = roomState.players.find(item => Number(item.id) === Number(roomState.currentPerspective));
+      const player = roomState.players.find(item => Number(item.id) === getActingPlayerId());
       if (!player || !player.isAlive) return false;
       if (roleName === '狼人陣營') return getRoleCamp(player.role) === '狼人';
       const actual = getRoleDefinition(player.role);
@@ -2175,21 +2245,18 @@ function showBgmPlayButton() {
       clearInterval(roomState.timerInterval);
       roomState.timerInterval = null;
       renderGodFlowPanel();
+      const firstNightElection = roomState.sheriffMode === 'enabled' && gameState.currentDay === 1 && !roomState.sheriffElectionCompleted;
       settleNightActions(
         roomState.nightVictim,
         roomState.witchSaveTargetId,
         roomState.witchPoisonTargetId,
-        roomState.guardTargetId
+        roomState.guardTargetId,
+        { deferDeath: firstNightElection }
       );
 
       const nightDeaths = Array.isArray(roomState.lastNightDeaths) ? roomState.lastNightDeaths : [];
-      const firstNightElection = roomState.sheriffMode === 'enabled' && gameState.currentDay === 1 && !roomState.hasSheriffInGame;
       if (firstNightElection) {
         roomState.firstNightDeathsHiddenUntilDawn = true;
-        nightDeaths.forEach(death => {
-          const player = roomState.players.find(item => Number(item.id) === Number(death.id));
-          if (player) player.isAlive = true;
-        });
         renderTable();
         if (!setCurrentPhase('SHERIFF_ELECTION')) return false;
         startSheriffCountdown();
@@ -2236,15 +2303,32 @@ function showBgmPlayButton() {
       }, 1000);
     }
 
+    function canParticipateInSheriffElection(player) {
+      return !!player && (player.lifeState === 'PENDING_DEATH' || (player.lifeState !== 'DEAD' && player.isAlive));
+    }
+
+    function canVoteInSheriffElection(player) {
+      return canParticipateInSheriffElection(player) &&
+        !roomState.sheriffCandidates.includes(Number(player.id));
+    }
+
+    function announceDawnAfterSheriffElection() {
+      speakGod('天亮請睜眼。', announceDayDeath);
+    }
+
     function candidateSheriff(id) {
-      const candidate = roomState.players.find(p => p.id === Number(id));
-      if (roomState.currentPhase !== 'SHERIFF_ELECTION' || !candidate || !candidate.isAlive) return false;
+      const candidate = roomState.players.find(player => Number(player.id) === Number(id));
       const candidateId = Number(id);
+      const inRegistration = roomState.currentPhase === 'SHERIFF_ELECTION';
+      const inWithdrawal = roomState.currentPhase === 'SHERIFF_WITHDRAWAL';
+      if (!candidate || getActingPlayerId() !== candidateId || (!inRegistration && !inWithdrawal) || !canParticipateInSheriffElection(candidate)) return false;
       const existingIndex = roomState.sheriffCandidates.indexOf(candidateId);
       if (existingIndex >= 0) {
         roomState.sheriffCandidates.splice(existingIndex, 1);
-      } else {
+      } else if (inRegistration) {
         roomState.sheriffCandidates.push(candidateId);
+      } else {
+        return false;
       }
       renderTable();
       updateControlPanel();
@@ -2254,55 +2338,143 @@ function showBgmPlayButton() {
     function processSheriffCandidates() {
       roomState.sheriffCandidates = roomState.sheriffCandidates.filter(id => {
         const candidate = roomState.players.find(player => Number(player.id) === Number(id));
-        return candidate && candidate.isAlive;
+        return canParticipateInSheriffElection(candidate);
       });
       if (roomState.sheriffCandidates.length === 0) {
-        finishSheriffElectionWithoutWinner('本局無人競選警長，本局無警長！進入白天發言。');
+        finishSheriffElectionWithoutWinner(null, 'NO_CANDIDATES');
         return;
       }
       if (roomState.sheriffCandidates.length === 1) {
         electSheriff(roomState.sheriffCandidates[0]);
         return;
       }
+      startSheriffCandidateSpeeches();
+    }
+
+    function startSheriffCandidateSpeeches() {
+      roomState.sheriffSpeechQueue = [...roomState.sheriffCandidates];
+      roomState.sheriffSpeechIndex = 0;
+      if (!setCurrentPhase('SHERIFF_CANDIDATE_SPEECH')) return false;
+      announceCurrentSheriffCandidateSpeech();
+      return true;
+    }
+
+    function announceCurrentSheriffCandidateSpeech() {
+      const candidateId = roomState.sheriffSpeechQueue[roomState.sheriffSpeechIndex];
+      if (candidateId == null) return startSheriffWithdrawal();
+      roomState.sheriffTimer = 60;
+      updateBanner('【警長候選人發言】', `${candidateId} 號候選人請發表競選演說。`, `發言倒數：${roomState.sheriffTimer}s`);
+      speakGod(`${candidateId} 號候選人，請開始競選發言。`);
+      renderTable();
+      updateControlPanel();
+      clearInterval(roomState.timerInterval);
+      roomState.timerInterval = setInterval(() => {
+        roomState.sheriffTimer--;
+        updateBanner('【警長候選人發言】', `${candidateId} 號候選人請發表競選演說。`, `發言倒數：${roomState.sheriffTimer}s`);
+        if (roomState.sheriffTimer <= 0) completeSheriffCandidateSpeech(candidateId, { automatic: true });
+      }, 1000);
+    }
+
+    function completeSheriffCandidateSpeech(playerId = null, options = {}) {
+      if (roomState.currentPhase !== 'SHERIFF_CANDIDATE_SPEECH') return false;
+      const currentId = roomState.sheriffSpeechQueue[roomState.sheriffSpeechIndex];
+      const automatic = !!(options && options.automatic);
+      if (currentId == null || (!automatic && getActingPlayerId() !== Number(currentId)) || (playerId != null && Number(playerId) !== Number(currentId))) return false;
+      clearInterval(roomState.timerInterval);
+      roomState.timerInterval = null;
+      roomState.sheriffSpeechIndex++;
+      if (roomState.sheriffSpeechIndex >= roomState.sheriffSpeechQueue.length) return startSheriffWithdrawal();
+      announceCurrentSheriffCandidateSpeech();
+      return true;
+    }
+
+    function startSheriffWithdrawal() {
+      if (!setCurrentPhase('SHERIFF_WITHDRAWAL')) return false;
+      roomState.sheriffTimer = 15;
+      updateBanner('【警長競選退水】', '候選人發言結束，請候選人確認是否退水。', `退水倒數：${roomState.sheriffTimer}s`);
+      speakGod('警長候選人發言結束，請候選人退水。');
+      renderTable();
+      updateControlPanel();
+      clearInterval(roomState.timerInterval);
+      roomState.timerInterval = setInterval(() => {
+        roomState.sheriffTimer--;
+        updateBanner('【警長競選退水】', '候選人發言結束，請候選人確認是否退水。', `退水倒數：${roomState.sheriffTimer}s`);
+        if (roomState.sheriffTimer <= 0) finishSheriffWithdrawals();
+      }, 1000);
+      return true;
+    }
+
+    function finishSheriffWithdrawals() {
+      if (roomState.currentPhase !== 'SHERIFF_WITHDRAWAL') return false;
+      clearInterval(roomState.timerInterval);
+      roomState.timerInterval = null;
+      roomState.sheriffCandidates = roomState.sheriffCandidates.filter(id => {
+        const candidate = roomState.players.find(player => Number(player.id) === Number(id));
+        return canParticipateInSheriffElection(candidate);
+      });
+      if (roomState.sheriffCandidates.length === 0) {
+        finishSheriffElectionWithoutWinner(null, 'ALL_WITHDRAWN');
+        return true;
+      }
+      if (roomState.sheriffCandidates.length === 1) {
+        electSheriff(roomState.sheriffCandidates[0]);
+        return true;
+      }
       roomState.sheriffVotes = {};
       roomState.sheriffElectionRound = 1;
       startSheriffVoting();
+      return true;
     }
 
-    function finishSheriffElectionWithoutWinner(message) {
+    const SHERIFF_NO_WINNER_NARRATION = Object.freeze({
+      NO_CANDIDATES: '本局無人參選警長，未產生警長。',
+      ALL_WITHDRAWN: '所有參選玩家均已退選，本局未產生警長。',
+      FINAL_TIE: '警長競選最終仍為平票，本局未產生警長。',
+      ELECTION_ABORTED: '警長競選中止，本局未產生警長。',
+      BADGE_DESTROYED: '警長已銷毀警徽，本局不再有警長。',
+      INVALID_WINNER: '警長候選人已失去參選資格，本局未產生警長。',
+    });
+
+    function finishSheriffElectionWithoutWinner(message, reasonCode = null) {
+      const narration = reasonCode ? SHERIFF_NO_WINNER_NARRATION[reasonCode] : (message || '此局無警長。');
+      roomState.sheriffNoWinnerReason = reasonCode || 'UNSPECIFIED';
+      roomState.sheriffNoWinnerNarration = narration;
+      roomState.sheriffElectionCompleted = true;
       roomState.hasSheriffInGame = false;
       roomState.sheriffId = null;
       gameState.sheriffId = null;
       roomState.players.forEach(player => { player.isSheriff = false; });
-      speakGod('此局無警長。', announceDayDeath);
+      speakGod(narration, announceDawnAfterSheriffElection);
     }
 
     function electSheriff(winnerId) {
-      const winner = roomState.players.find(player => Number(player.id) === Number(winnerId) && player.isAlive);
+      const winner = roomState.players.find(player => Number(player.id) === Number(winnerId) && canParticipateInSheriffElection(player));
       if (!winner) {
-        finishSheriffElectionWithoutWinner('警長候選人已出局，本局無警長。');
-        return;
+        finishSheriffElectionWithoutWinner(null, 'INVALID_WINNER');
+        return false;
       }
+      roomState.sheriffElectionCompleted = true;
       roomState.hasSheriffInGame = true;
       roomState.sheriffId = Number(winner.id);
       gameState.sheriffId = Number(winner.id);
       roomState.players.forEach(player => { player.isSheriff = Number(player.id) === Number(winner.id); });
       renderTable();
-      speakGod(`${winner.id}號當選警長。`, announceDayDeath);
+      speakGod(`${winner.id}號當選警長。`, announceDawnAfterSheriffElection);
+      return true;
     }
 
     function startSheriffVoting() {
       if (!setCurrentPhase('SHERIFF_VOTING')) return;
       roomState.votingTimer = 15;
       roomState.sheriffVotes = {};
-      updateBanner('【警長競選投票】', `候選人：${roomState.sheriffCandidates.join('、')} 號。請存活玩家投票。`, `投票倒數：${roomState.votingTimer}s`);
-      speakGod('警長候選人發言結束，請存活玩家投票選出警長。');
+      updateBanner('【警長競選投票】', `候選人：${roomState.sheriffCandidates.join('、')} 號。請警下玩家投票。`, `投票倒數：${roomState.votingTimer}s`);
+      speakGod('警長候選人發言及退水結束，請警下玩家投票選出警長。');
       renderTable();
       updateControlPanel();
       clearInterval(roomState.timerInterval);
       roomState.timerInterval = setInterval(() => {
         roomState.votingTimer--;
-        updateBanner('【警長競選投票】', `候選人：${roomState.sheriffCandidates.join('、')} 號。請存活玩家投票。`, `投票倒數：${roomState.votingTimer}s`);
+        updateBanner('【警長競選投票】', `候選人：${roomState.sheriffCandidates.join('、')} 號。請警下玩家投票。`, `投票倒數：${roomState.votingTimer}s`);
         if (roomState.votingTimer <= 0) {
           clearInterval(roomState.timerInterval);
           roomState.timerInterval = null;
@@ -2312,14 +2484,14 @@ function showBgmPlayButton() {
     }
 
     function renderSheriffVotingPanel(player, container) {
-      if (!player.isAlive) {
-        container.innerHTML = '<p style="color:#888;">出局玩家沒有警長投票權。</p>';
+      if (!canVoteInSheriffElection(player)) {
+        container.innerHTML = roomState.sheriffCandidates.includes(Number(player.id)) ? '<p style="color:#888;">警上候選人不參與本輪警長投票。</p>' : '<p style="color:#888;">出局玩家沒有警長投票權。</p>';
         return;
       }
       const alreadyVoted = Object.prototype.hasOwnProperty.call(roomState.sheriffVotes, String(player.id));
       const candidates = roomState.sheriffCandidates.filter(id => {
         const candidate = roomState.players.find(item => Number(item.id) === Number(id));
-        return candidate && candidate.isAlive;
+        return canParticipateInSheriffElection(candidate);
       });
       container.innerHTML = `
         <p style="font-size:0.85rem;color:var(--gold-light);">警長競選投票（第 ${roomState.sheriffElectionRound} 輪，剩餘 ${roomState.votingTimer}s）</p>
@@ -2332,13 +2504,13 @@ function showBgmPlayButton() {
 
     function voteSheriff(candidateId) {
       if (roomState.currentPhase !== 'SHERIFF_VOTING') return false;
-      const voterId = Number(roomState.currentPerspective);
+      const voterId = getActingPlayerId();
       const voter = roomState.players.find(player => Number(player.id) === voterId);
-      if (!voter || !voter.isAlive) { alert('出局玩家沒有警長投票權。'); return false; }
+      if (!canVoteInSheriffElection(voter)) { alert(roomState.sheriffCandidates.includes(voterId) ? '警上候選人不能參與警長投票。' : '出局玩家沒有警長投票權。'); return false; }
       const key = String(voterId);
       if (Object.prototype.hasOwnProperty.call(roomState.sheriffVotes, key)) { alert('本輪已經投過警長票。'); return false; }
       const targetId = Number(candidateId);
-      if (targetId !== 0 && !roomState.sheriffCandidates.some(id => Number(id) === targetId && roomState.players.some(player => Number(player.id) === targetId && player.isAlive))) {
+      if (targetId !== 0 && !roomState.sheriffCandidates.some(id => Number(id) === targetId && roomState.players.some(player => Number(player.id) === targetId && canParticipateInSheriffElection(player)))) {
         alert('請選擇仍存活的警長候選人。');
         return false;
       }
@@ -2358,7 +2530,7 @@ function showBgmPlayButton() {
       });
       const candidates = roomState.sheriffCandidates.filter(id => {
         const player = roomState.players.find(item => Number(item.id) === Number(id));
-        return player && player.isAlive;
+        return canParticipateInSheriffElection(player);
       });
       const highest = counts.size ? Math.max(...counts.values()) : 0;
       const leaders = [...counts.entries()].filter(([, count]) => count === highest).map(([id]) => id);
@@ -2371,7 +2543,7 @@ function showBgmPlayButton() {
           startSheriffVoting();
           return true;
         }
-        finishSheriffElectionWithoutWinner('警長競選未能決出唯一當選者，本局無警長。');
+        finishSheriffElectionWithoutWinner(null, 'FINAL_TIE');
         return true;
       }
       electSheriff(leaders[0]);
@@ -2379,6 +2551,11 @@ function showBgmPlayButton() {
     }
 
     function announceDayDeath() {
+      const sheriffElectionPhases = ['SHERIFF_ELECTION', 'SHERIFF_CANDIDATE_SPEECH', 'SHERIFF_WITHDRAWAL', 'SHERIFF_VOTING'];
+      const awaitingFirstNightElection = roomState.sheriffMode === 'enabled' && Number(gameState.currentDay) === 1 &&
+        !roomState.sheriffElectionCompleted && sheriffElectionPhases.includes(roomState.currentPhase);
+      if (awaitingFirstNightElection) return false;
+
       renderGodFlowPanel();
       const deaths = Array.isArray(roomState.lastNightDeaths) ? roomState.lastNightDeaths : [];
       if (roomState.firstNightDeathsHiddenUntilDawn) {
@@ -2386,9 +2563,11 @@ function showBgmPlayButton() {
           const player = roomState.players.find(item => Number(item.id) === Number(death.id));
           if (player) {
             player.isAlive = false;
+            player.lifeState = 'DEAD';
             player.deathReason = death.reason || player.deathReason;
           }
         });
+        roomState.pendingNightDeaths = (roomState.pendingNightDeaths || []).map(death => ({ ...death, announced: true }));
         roomState.firstNightDeathsHiddenUntilDawn = false;
       }
       const text = formatNightDeathSummary(deaths);
@@ -2410,6 +2589,7 @@ function showBgmPlayButton() {
         continueDayAfterDawn();
       });
       updateControlPanel();
+      return true;
     }
 
     function finishAfterDayExecutionDeathSkills() {
@@ -2680,7 +2860,7 @@ function showBgmPlayButton() {
       if (roomState.currentPhase !== 'DEATH_SKILL') return false;
       const current = roomState.deathSkillQueue[0];
       if (!current) return false;
-      if (Number(roomState.currentPerspective) !== Number(current.playerId)) {
+      if (getActingPlayerId() !== Number(current.playerId)) {
         alert(`請先切換到 ${current.playerId} 號座位。`);
         return false;
       }
@@ -2701,7 +2881,7 @@ function showBgmPlayButton() {
       if (roomState.currentPhase !== 'DEATH_SKILL') return false;
       const current = roomState.deathSkillQueue[0];
       if (!current || current.skill.type !== 'hunter-shot') return false;
-      if (Number(roomState.currentPerspective) !== Number(current.playerId)) {
+      if (getActingPlayerId() !== Number(current.playerId)) {
         alert(`請先切換到 ${current.playerId} 號座位。`);
         return false;
       }
@@ -2817,7 +2997,7 @@ function showBgmPlayButton() {
     function resolveSheriffBadge(action, targetId = null) {
       if (roomState.currentPhase !== 'SHERIFF_BADGE') return false;
       const sheriff = roomState.players.find(player => Number(player.id) === Number(roomState.sheriffId));
-      if (!sheriff || sheriff.isAlive || Number(roomState.currentPerspective) !== Number(sheriff.id)) {
+      if (!sheriff || sheriff.isAlive || getActingPlayerId() !== Number(sheriff.id)) {
         alert('請切換到已出局的警長座位處理警徽。');
         return false;
       }
@@ -2841,12 +3021,14 @@ function showBgmPlayButton() {
         roomState.sheriffId = null;
         gameState.sheriffId = null;
         roomState.hasSheriffInGame = false;
+        roomState.sheriffNoWinnerReason = 'BADGE_DESTROYED';
+        roomState.sheriffNoWinnerNarration = SHERIFF_NO_WINNER_NARRATION.BADGE_DESTROYED;
       }
       const returnPhase = roomState.sheriffBadgeReturnPhase;
       const executedVictimId = roomState.sheriffBadgeExecutedVictim;
       roomState.sheriffBadgeReturnPhase = null;
       roomState.sheriffBadgeExecutedVictim = null;
-      speakGod(successor ? `警徽已移交給 ${successor.id} 號玩家。` : '警徽已銷毀，本局不再有警長。');
+      speakGod(successor ? `警徽已移交給 ${successor.id} 號玩家。` : SHERIFF_NO_WINNER_NARRATION.BADGE_DESTROYED);
       renderTable();
       if (returnPhase === 'LAST_WORDS') {
         startLastWordsPhase(executedVictimId);
@@ -2855,6 +3037,9 @@ function showBgmPlayButton() {
           announcement: '白狼王自爆並帶走一名玩家，白天流程立即中止。',
           voiceMessage: '白狼王自爆，並帶走一名玩家。天黑請閉眼。',
         });
+      } else if (returnPhase === 'DAY_DEATH') {
+        if (!setCurrentPhase('DAY_DEATH')) return false;
+        continueDayAfterDawn();
       } else {
         announceDayDeath();
       }
@@ -2946,7 +3131,7 @@ function showBgmPlayButton() {
     }
 
     async function toggleSelfMic() {
-      const p = roomState.players.find(x => x.id === roomState.currentPerspective);
+      const p = roomState.players.find(x => x.id === getActingPlayerId());
       if (!p) return;
 
       if (!p.micOn) {
@@ -2964,7 +3149,7 @@ function showBgmPlayButton() {
     }
 
     async function toggleSelfCam() {
-      const p = roomState.players.find(x => x.id === roomState.currentPerspective);
+      const p = roomState.players.find(x => x.id === getActingPlayerId());
       if (!p) return;
       
       if (!p.camOn) {

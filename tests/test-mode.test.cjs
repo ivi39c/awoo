@@ -60,10 +60,10 @@ test('測試模式入口會建立 12 人 Bot 測試局並啟用全視角選單',
   assert.equal(vm.runInContext('roomState.players.length', context), 12);
   assert.equal(elements.get('perspectiveSelect').style.display, '');
   assert.equal(elements.get('testModeBanner').style.display, 'flex');
-  assert.equal(elements.get('spectatorCountBtn').style.display, 'none');
-  assert.equal(elements.get('mediaTopBtn').style.display, 'none');
-  assert.equal(elements.get('compendiumTopBtn').style.display, 'none');
-  assert.equal(elements.get('settingsTopBtn').style.display, 'none');
+  assert.equal(elements.get('spectatorCountBtn').style.display, '', '測試模式仍保留正式觀眾功能');
+  assert.equal(elements.get('mediaTopBtn').style.display, '', '測試模式仍保留正式影音功能');
+  assert.equal(elements.get('compendiumTopBtn').style.display, '', '測試模式仍保留正式角色圖鑑');
+  assert.equal(elements.get('settingsTopBtn').style.display, '', '測試模式仍保留正式設定入口');
   assert.equal(elements.get('testModeResolveNightButton').hidden, true);
   assert.equal(elements.get('testModeSkipSpeechButton').hidden, true);
   assert.match(elements.get('perspectiveSelect').children[0].textContent, /^視角：1號（.+）$/);
@@ -115,6 +115,13 @@ test('正式模式禁止切換視角，測試模式允許切換有效座位', ()
   vm.runInContext('roomState.isTestMode = true', context);
   assert.equal(context.switchPerspective(2), true);
   assert.equal(vm.runInContext('roomState.currentPerspective', context), 2);
+  assert.equal(vm.runInContext('roomState.viewerPerspective', context), 2);
+  assert.equal(vm.runInContext('roomState.activePlayerId', context), 1, '切換測試視角不得改變真正的玩家身分');
+  assert.equal(context.getActingPlayerId(), 2, '測試模式的操作對象由測試視角模擬');
+  vm.runInContext('roomState.isTestMode = false;', context);
+  assert.equal(context.getActingPlayerId(), 1, '正式模式操作身分必須回到 activePlayerId');
+  assert.equal(context.switchPerspective(2), false);
+  assert.equal(context.getActingPlayerId(), 1, '正式模式切換視角不得改變操作身分');
   assert.equal(elements.get('perspectiveSelect').children[1].textContent, '視角：2號（平民）');
   assert.equal(context.switchPerspective(999), false);
 });
@@ -206,6 +213,8 @@ test('白狼王帶走警長後處理警徽仍會直接進入下一夜', () => {
     roomState.sheriffId = 2;
     roomState.sheriffBadgeReturnPhase = 'WHITE_WOLF_KING_SELF_DESTRUCT';
     roomState.sheriffBadgeExecutedVictim = null;
+    roomState.isTestMode = true;
+    roomState.viewerPerspective = 2;
     roomState.currentPerspective = 2;
   `, context);
   let nightStarted = false;

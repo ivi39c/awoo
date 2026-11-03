@@ -1,3 +1,26 @@
+## Phase 1 — Sheriff flow regression guardrails and first-night fixes
+
+### 2026-11-03 — Test perspective isolation and Sheriff outcome narration
+
+- Separated `activePlayerId` (actual acting seat) from `viewerPerspective` (UI preview seat); production actions resolve through `activePlayerId`, while test mode may simulate the selected preview seat without mutating the actual identity.
+- Kept perspective switching and test controls behind the test-mode flag; production mode continues to use the production game UI.
+- Centralized no-Sheriff voice lines by event code: no candidates, all candidates withdrawn, final tie, invalid candidate, and badge destruction. Reserved election-aborted narration for an explicit ruleset cancellation event.
+- Added regression coverage for identity isolation, all-candidates-withdrawn narration, final-tie reason, and badge destruction.
+
+
+- Added `docs/PHASE_1_TEST_PLAN.md` mapping SFE-01 through SFE-16 to current runtime entry points, state fields, existing tests, and missing coverage.
+- Added `tests/sheriff-flow-regression.test.cjs` with SFE-01 through SFE-17 plus SFE-07b for a sole candidate's speech / withdrawal window and SFE-07c for simulated timer-callback progression independent of the selected seat perspective.
+- Introduced explicit `ALIVE`, `PENDING_DEATH`, and `DEAD` player life states. First-night deaths are deferred without temporarily restoring `isAlive`.
+- Separated Sheriff candidate eligibility from voting eligibility; pending-death players may participate in the pre-dawn election, while candidates do not vote.
+- Added candidate speech and withdrawal phases before Sheriff voting, including the single-candidate withdrawal path.
+- Gated dawn announcement until the first-night Sheriff election is complete, then narrates "天亮請睜眼" before revealing deaths.
+- Fixed Sheriff badge handoff to resume the existing daytime continuation without announcing the same night deaths a second time.
+- Added SFE-17 end-to-end regression coverage for first-night death → pending-death Sheriff candidate → election → dawn death reveal → badge transfer → daytime continuation.
+- Fixed candidate speech timer progression so the system can advance to the next candidate even when the active seat perspective is not the speaker.
+- Preserved the specific no-Sheriff outcome reason in moderator narration instead of replacing every case with a generic announcement.
+- GitHub Actions `npm run check`: **134 tests passed, 0 failed** (run #206).
+- Product version unchanged at `0.9.4-alpha.1`. Browser/manual multi-perspective verification remains outstanding.
+
 ## 0.9.4-alpha.1 — 2026-10-30
 
 - [修復] 首夜警長競選期間暫緩公開夜間死亡狀態；結束競選後才公布昨夜出局名單。
@@ -25,6 +48,9 @@
 - GitHub Actions `Awoo checks` passed on commit `7b75b3a9fbc1bbace5405567b48328c21bf03253`: syntax checks passed; **100/100 automated tests passed**. Browser/mobile acceptance is still outstanding.
 
 # Changelog
+
+## [Unreleased]
+- Sheriff election: a sole registered candidate is elected immediately without candidate speeches, withdrawal, or voting. Multiple candidates continue through speeches and withdrawal; if only one remains after withdrawals, that candidate is elected directly.
 
 ## 2026-10-25 — Requirement audit and Witch potion rule
 

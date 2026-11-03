@@ -192,6 +192,7 @@
     guardTargetId = null,
     previousGuardTargetId = null,
     rules = {},
+    deferDeath = false,
   }) {
     if (!Array.isArray(players)) throw new TypeError('resolveNight() 需要 players 陣列。');
     const warnings = [];
@@ -246,6 +247,7 @@
       const player = findPlayer(players, death.id);
       if (player) {
         player.isAlive = false;
+        player.lifeState = deferDeath ? 'PENDING_DEATH' : 'DEAD';
         player.deathReason = death.reason;
       }
     });
@@ -293,6 +295,7 @@
     if (Number(target.id) === Number(actor.id)) return { valid: false, reason: '不能選擇自己作為死亡技能目標。' };
     actor.deathSkillUsed = true;
     target.isAlive = false;
+    target.lifeState = 'DEAD';
     target.deathReason = skill.type === 'hunter-shot' ? 'HUNTER_SHOT' : skill.type === 'white-wolf-king-shot' ? 'WHITE_WOLF_KING_SHOT' : 'WOLF_KING_SHOT';
     return { valid: true, skill, actor, target, death: { id: Number(target.id), reason: target.deathReason } };
   }

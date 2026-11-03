@@ -53,7 +53,7 @@ test('首頁顯示與 package.json、CHANGELOG 同步的測試版本號', () => 
   assert.match(changelog, /## 0\.9\.4-alpha\.1 — 2026-10-30/);
 });
 
-test('night action deaths are merged at settlement and first-night Sheriff election hides the result until dawn', () => {
+test('night action deaths are merged at settlement and first-night deaths remain pending until dawn', () => {
   const app = fs.readFileSync(path.join(root, 'js/app.js'), 'utf8');
   const hunterShootStart = app.indexOf('function hunterNightShoot');
   const hunterShootEnd = app.indexOf('function declineHunterNightShot', hunterShootStart);
@@ -66,19 +66,20 @@ test('night action deaths are merged at settlement and first-night Sheriff elect
   const settlementEnd = app.indexOf('// Role data and alias/camp helpers', settlementStart);
   const settlement = app.slice(settlementStart, settlementEnd);
   assert.match(settlement, /const nightDeaths = result\.deaths\.map/);
-  assert.match(settlement, /nightDeaths\.push\(\{ id: hunterShotTargetId, reason: 'HUNTER_SHOT' \}\)/);
-  assert.match(settlement, /phaseLabel: nightDeaths\.length \? '昨夜出局' : '平安夜'/);
+  assert.match(settlement, /pendingNightDeaths = deferDeath/);
+  assert.match(settlement, /deferDeath/);
 
   const resolveStart = app.indexOf('function resolveNightNow');
   const resolveEnd = app.indexOf('function startNextNight', resolveStart);
   const resolve = app.slice(resolveStart, resolveEnd);
-  assert.ok(resolve.indexOf('const firstNightElection =') < resolve.indexOf('const immediateWinner'),
-    '首夜警長競選必須先於公開天亮結算與勝負檢查');
-  assert.match(resolve, /firstNightDeathsHiddenUntilDawn = true/);
+  assert.match(resolve, /\{ deferDeath: firstNightElection \}/);
+  assert.doesNotMatch(resolve, /player\.isAlive\s*=\s*true/,
+    '不得用暫時恢復 isAlive 來隱藏首夜死訊');
 
   const announceStart = app.indexOf('function announceDayDeath');
   const announceEnd = app.indexOf('function finishAfterDayExecutionDeathSkills', announceStart);
   const announce = app.slice(announceStart, announceEnd);
-  assert.match(announce, /if \(roomState\.firstNightDeathsHiddenUntilDawn\)[\s\S]*?player\.isAlive = false[\s\S]*?roomState\.firstNightDeathsHiddenUntilDawn = false/);
-  assert.match(app, /const hideDeathStatus = roomState\.firstNightDeathsHiddenUntilDawn && roomState\.currentPhase === 'SHERIFF_ELECTION'/);
+  assert.match(announce, /awaitingFirstNightElection/);
+  assert.match(announce, /player\.lifeState = 'DEAD'/);
+  assert.match(app, /lifeState === 'PENDING_DEATH'/);
 });

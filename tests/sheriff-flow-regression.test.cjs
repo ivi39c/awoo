@@ -147,8 +147,9 @@ test('SFE-07b 只有一位候選人時直接當選，不進入發言、退水或
   assert.equal(vm.runInContext('roomState.sheriffId', context), 1);
   assert.equal(vm.runInContext('roomState.hasSheriffInGame', context), true);
   assert.equal(vm.runInContext('roomState.sheriffElectionCompleted', context), true);
-  assert.equal(vm.runInContext('roomState.currentPhase', context), 'DAY_SPEECH');
+  assert.equal(vm.runInContext('roomState.currentPhase', context), 'DAY_DEATH');
   assert.ok(events.some(line => line.includes('1號當選警長')));
+  assert.ok(events.some(line => line.includes('天亮請睜眼')));
   assert.ok(!events.some(line => line.includes('請開始競選發言')));
   assert.ok(!events.some(line => line.includes('請候選人退水')));
 });

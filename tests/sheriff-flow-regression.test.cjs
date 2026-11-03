@@ -47,7 +47,7 @@ function players(context, definitions) {
 function setup(context, playerList, phase) {
   context.__players = playerList;
   context.__phase = phase;
-  vm.runInContext("roomState.players=__players;roomState.playerCount=__players.length;roomState.gameStarted=true;roomState.gameOver=false;roomState.currentPhase=__phase;roomState.currentPerspective=1;roomState.sheriffMode='enabled';roomState.hasSheriffInGame=false;roomState.sheriffId=null;roomState.sheriffCandidates=[];roomState.sheriffVotes={};roomState.sheriffElectionRound=1;roomState.lastNightDeaths=[];roomState.firstNightDeathsHiddenUntilDawn=false;roomState.deathSkillQueue=[];roomState.deathSkillDeaths=[];roomState.guardLastTarget=null;roomState.ruleset=AwooRuleset.resolveRuleset();gameState.players=roomState.players;gameState.currentDay=1;gameState.currentPhase=__phase;gameState.sheriffId=null;", context);
+  vm.runInContext("roomState.players=__players;roomState.playerCount=__players.length;roomState.gameStarted=true;roomState.gameOver=false;roomState.currentPhase=__phase;roomState.currentPerspective=1;roomState.viewerPerspective=1;roomState.activePlayerId=1;roomState.isTestMode=true;roomState.sheriffMode='enabled';roomState.hasSheriffInGame=false;roomState.sheriffId=null;roomState.sheriffCandidates=[];roomState.sheriffVotes={};roomState.sheriffElectionRound=1;roomState.lastNightDeaths=[];roomState.firstNightDeathsHiddenUntilDawn=false;roomState.deathSkillQueue=[];roomState.deathSkillDeaths=[];roomState.guardLastTarget=null;roomState.ruleset=AwooRuleset.resolveRuleset();gameState.players=roomState.players;gameState.currentDay=1;gameState.currentPhase=__phase;gameState.sheriffId=null;", context);
   delete context.__players;
   delete context.__phase;
 }
@@ -99,7 +99,7 @@ test('SFE-05 待公布死亡候選人可以正常退水', () => {
 test('SFE-06 待公布死亡且位於警下的玩家依一般資格仍可投票', () => {
   const { context } = createContext();
   setup(context, players(context, [{ role: '預言家' }, { role: '小狼' }, { role: '平民', isAlive: false, lifeState: 'PENDING_DEATH' }]), 'SHERIFF_VOTING');
-  vm.runInContext('roomState.currentPerspective=3;roomState.sheriffCandidates=[1,2];', context);
+  vm.runInContext('roomState.currentPerspective=3;roomState.viewerPerspective=3;roomState.sheriffCandidates=[1,2];', context);
   assert.equal(context.voteSheriff(1), true);
   assert.equal(vm.runInContext('roomState.sheriffVotes["3"]', context), 1);
   vm.runInContext('roomState.currentPerspective=1;', context);
@@ -213,7 +213,8 @@ test('SFE-13 無候選人時以無警長結束並繼續天亮', () => {
   context.processSheriffCandidates();
   assert.equal(vm.runInContext('roomState.hasSheriffInGame', context), false);
   assert.equal(vm.runInContext('roomState.currentPhase', context), 'DAY_SPEECH');
-  assert.ok(events.some(line => line.includes('本局無人競選警長')),
+  assert.equal(vm.runInContext('roomState.sheriffNoWinnerReason', context), 'NO_CANDIDATES');
+  assert.ok(events.some(line => line.includes('本局無人參選警長')),
     '無人上警時應播報正確的結束原因');
 });
 
@@ -281,4 +282,23 @@ test('SFE-16 夜間死亡技能只能在基本死訊公告後觸發', () => {
   const skillIndex = events.indexOf('DEATH_SKILL_STARTED');
   assert.ok(revealIndex >= 0);
   assert.ok(skillIndex > revealIndex);
+});
+
+
+test('SFE-13b 全部候選人退水使用獨立無警長原因與口白', () => {
+  const { context, events } = createContext();
+  setup(context, players(context, [{ role: '預言家' }, { role: '平民' }]), 'SHERIFF_WITHDRAWAL');
+  vm.runInContext('roomState.sheriffCandidates=[1,2];', context);
+  context.finishSheriffWithdrawals();
+  assert.equal(vm.runInContext('roomState.sheriffNoWinnerReason', context), 'ALL_WITHDRAWN');
+  assert.ok(events.some(line => line.includes('所有參選玩家均已退選')));
+});
+
+test('SFE-13c 銷毀警徽記錄為警徽終止，不與競選失敗混用', () => {
+  const { context, events } = createContext();
+  setup(context, players(context, [{ role: '預言家', isAlive: false }, { role: '平民' }]), 'SHERIFF_BADGE');
+  vm.runInContext('roomState.sheriffId=1;roomState.hasSheriffInGame=true;roomState.players[0].isSheriff=true;roomState.sheriffBadgeReturnPhase="DAY_DEATH";', context);
+  assert.equal(context.resolveSheriffBadge('destroy'), true);
+  assert.equal(vm.runInContext('roomState.sheriffNoWinnerReason', context), 'BADGE_DESTROYED');
+  assert.ok(events.some(line => line.includes('銷毀警徽')));
 });

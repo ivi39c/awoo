@@ -102,7 +102,7 @@ test('SFE-06 待公布死亡且位於警下的玩家依一般資格仍可投票'
   vm.runInContext('roomState.currentPerspective=3;roomState.viewerPerspective=3;roomState.sheriffCandidates=[1,2];', context);
   assert.equal(context.voteSheriff(1), true);
   assert.equal(vm.runInContext('roomState.sheriffVotes["3"]', context), 1);
-  vm.runInContext('roomState.currentPerspective=1;', context);
+  vm.runInContext('roomState.currentPerspective=1;roomState.viewerPerspective=1;', context);
   assert.equal(context.voteSheriff(1), false, '警上候選人不得參與本輪投票');
 });
 
@@ -114,7 +114,7 @@ test('SFE-07 多位警長候選人必須先進入逐位候選發言階段', () =
   assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_CANDIDATE_SPEECH');
   assert.deepEqual([...vm.runInContext('roomState.sheriffSpeechQueue', context)], [1,2]);
   assert.equal(context.completeSheriffCandidateSpeech(1), true);
-  vm.runInContext('roomState.currentPerspective=2;', context);
+  vm.runInContext('roomState.currentPerspective=2;roomState.viewerPerspective=2;', context);
   assert.equal(context.completeSheriffCandidateSpeech(2), true);
   assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_WITHDRAWAL');
 });

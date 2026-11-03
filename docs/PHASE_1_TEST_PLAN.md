@@ -93,7 +93,7 @@ Night Actions Completed
 - `viewerPerspective`：目前 UI 預覽的座位。正式模式固定對應 `activePlayerId`；測試模式可切換以巡檢不同角色面板。
 - `currentPerspective` 暫時保留作為既有 UI 相容欄位，但所有會改變遊戲狀態的玩家操作必須經 `getActingPlayerId()` 取得行動者，不可直接把 UI 視角當成已驗證身分。
 - 正式模式 `getActingPlayerId()` 只讀 `activePlayerId`；測試模式才允許以 `viewerPerspective` 模擬行動者。切換視角本身不得寫入 `activePlayerId`、改變玩家權限或直接變更遊戲狀態。
-- 視角選單、測試橫幅、測試操作按鈕只在 `isTestMode` 顯示；測試模式是正式遊戲 UI 加上測試工具，不得另建一套替代遊戲流程。
+- 視角選單、測試橫幅、測試操作按鈕只在 `isTestMode` 顯示；觀眾、影音、圖鑑、設定等正式功能在測試模式仍須保留。測試模式是正式遊戲 UI 加上測試工具，不得另建一套替代遊戲流程。
 
 ### 5.2 無警長結果事件與主持口白
 

@@ -85,7 +85,30 @@ Night Actions Completed
 | 本機手動瀏覽器驗收 | 尚未執行；CI 不等同瀏覽器／多人視角驗收 |
 | 模組抽取 | 尚未開始；目前仍在 `app.js` 既有流程中修正，避免先搬動未穩定邏輯 |
 
-## 5. 本階段 Runtime 變更摘要
+## 5. 測試模式與無警長結果的新增規格
+
+### 5.1 測試模式視角隔離
+
+- `activePlayerId`：正式模式的實際操作玩家識別，來源為登入／入座後的 `mySeatId`；觀戰者為 `null`。
+- `viewerPerspective`：目前 UI 預覽的座位。正式模式固定對應 `activePlayerId`；測試模式可切換以巡檢不同角色面板。
+- `currentPerspective` 暫時保留作為既有 UI 相容欄位，但所有會改變遊戲狀態的玩家操作必須經 `getActingPlayerId()` 取得行動者，不可直接把 UI 視角當成已驗證身分。
+- 正式模式 `getActingPlayerId()` 只讀 `activePlayerId`；測試模式才允許以 `viewerPerspective` 模擬行動者。切換視角本身不得寫入 `activePlayerId`、改變玩家權限或直接變更遊戲狀態。
+- 視角選單、測試橫幅、測試操作按鈕只在 `isTestMode` 顯示；測試模式是正式遊戲 UI 加上測試工具，不得另建一套替代遊戲流程。
+
+### 5.2 無警長結果事件與主持口白
+
+| Event code | 觸發條件 | 主持口白 |
+|---|---|---|
+| `NO_CANDIDATES` | 報名截止時無人參選 | 本局無人參選警長，未產生警長。 |
+| `ALL_WITHDRAWN` | 所有候選人退水 | 所有參選玩家均已退選，本局未產生警長。 |
+| `FINAL_TIE` | 最終重投仍未決出唯一當選者 | 警長競選最終仍為平票，本局未產生警長。 |
+| `ELECTION_ABORTED` | 房規明確規定競選取消 | 警長競選中止，本局未產生警長。 |
+| `BADGE_DESTROYED` | 已當選警長出局後銷毀警徽 | 警長已銷毀警徽，本局不再有警長。 |
+| `INVALID_WINNER` | 候選人於當選前失去參選資格 | 警長候選人已失去參選資格，本局未產生警長。 |
+
+主持口白由 `SHERIFF_NO_WINNER_NARRATION` 集中管理；領域流程以事件代碼記錄原因。`ELECTION_ABORTED` 僅作房規擴充代碼，現有程式不得在沒有明確取消事件時自行套用。狼自爆造成競選暫停／延後時，應依房規恢復或延後流程，不可直接當成無警長。
+
+## 6. 本階段 Runtime 變更摘要
 
 - `Player.lifeState` 增加 `ALIVE`、`PENDING_DEATH`、`DEAD`；首夜警長競選期間，待公布死亡者保持 `isAlive=false`，不再暫時復活。
 - `AwooGameEngine.resolveNight()` 支援 `deferDeath`；首夜死亡可標記為待公布，其他夜晚仍直接標記為公開出局。
@@ -96,3 +119,12 @@ Night Actions Completed
 - `DAY_DEATH → SHERIFF_BADGE` 與警徽處理後返回 `DAY_DEATH` 的階段轉換已補齊，避免警徽處理後重複播報死訊。
 
 **重要：** 134 項 CI 測試通過代表語法檢查與自動化測試通過，不代表已完成實際瀏覽器、語音、倒數計時或多視角手動驗收。產品版本仍為 `0.9.4-alpha.1`；本 PR 未修改產品版本。
+
+
+## 7. 本次追加驗收（2026-11-03）
+
+- 新增 `activePlayerId` 與 `viewerPerspective` 明確分工；`getActingPlayerId()` 在正式模式讀取實際玩家識別，在測試模式才以預覽視角模擬操作玩家。
+- 測試視角切換只更新預覽視角，不會改寫 `activePlayerId`；測試案例同時檢查正式模式無法藉由切換視角改變行動者。
+- 將無警長主持口白集中至 `SHERIFF_NO_WINNER_NARRATION`，使用 `NO_CANDIDATES`、`ALL_WITHDRAWN`、`FINAL_TIE`、`INVALID_WINNER`、`BADGE_DESTROYED` 等原因代碼；`ELECTION_ABORTED` 保留作明確房規事件，不自動觸發。
+- 新增全部退水與警徽銷毀原因測試；原有無人參選及最終平票測試補上原因代碼斷言。
+- 本次程式變更尚待 CI 執行；瀏覽器／實際多人權限驗收仍未完成。

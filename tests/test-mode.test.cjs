@@ -60,10 +60,10 @@ test('測試模式入口會建立 12 人 Bot 測試局並啟用全視角選單',
   assert.equal(vm.runInContext('roomState.players.length', context), 12);
   assert.equal(elements.get('perspectiveSelect').style.display, '');
   assert.equal(elements.get('testModeBanner').style.display, 'flex');
-  assert.equal(elements.get('spectatorCountBtn').style.display, 'none');
-  assert.equal(elements.get('mediaTopBtn').style.display, 'none');
-  assert.equal(elements.get('compendiumTopBtn').style.display, 'none');
-  assert.equal(elements.get('settingsTopBtn').style.display, 'none');
+  assert.equal(elements.get('spectatorCountBtn').style.display, '', '測試模式仍保留正式觀眾功能');
+  assert.equal(elements.get('mediaTopBtn').style.display, '', '測試模式仍保留正式影音功能');
+  assert.equal(elements.get('compendiumTopBtn').style.display, '', '測試模式仍保留正式角色圖鑑');
+  assert.equal(elements.get('settingsTopBtn').style.display, '', '測試模式仍保留正式設定入口');
   assert.equal(elements.get('testModeResolveNightButton').hidden, true);
   assert.equal(elements.get('testModeSkipSpeechButton').hidden, true);
   assert.match(elements.get('perspectiveSelect').children[0].textContent, /^視角：1號（.+）$/);

@@ -1,5 +1,13 @@
 ## Phase 1 — Sheriff flow regression guardrails and first-night fixes
 
+### 2026-11-03 — Test perspective isolation and Sheriff outcome narration
+
+- Separated `activePlayerId` (actual acting seat) from `viewerPerspective` (UI preview seat); production actions resolve through `activePlayerId`, while test mode may simulate the selected preview seat without mutating the actual identity.
+- Kept perspective switching and test controls behind the test-mode flag; production mode continues to use the production game UI.
+- Centralized no-Sheriff voice lines by event code: no candidates, all candidates withdrawn, final tie, invalid candidate, and badge destruction. Reserved election-aborted narration for an explicit ruleset cancellation event.
+- Added regression coverage for identity isolation, all-candidates-withdrawn narration, final-tie reason, and badge destruction.
+
+
 - Added `docs/PHASE_1_TEST_PLAN.md` mapping SFE-01 through SFE-16 to current runtime entry points, state fields, existing tests, and missing coverage.
 - Added `tests/sheriff-flow-regression.test.cjs` with SFE-01 through SFE-17 plus SFE-07b for a sole candidate's speech / withdrawal window and SFE-07c for simulated timer-callback progression independent of the selected seat perspective.
 - Introduced explicit `ALIVE`, `PENDING_DEATH`, and `DEAD` player life states. First-night deaths are deferred without temporarily restoring `isAlive`.

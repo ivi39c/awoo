@@ -115,6 +115,13 @@ test('正式模式禁止切換視角，測試模式允許切換有效座位', ()
   vm.runInContext('roomState.isTestMode = true', context);
   assert.equal(context.switchPerspective(2), true);
   assert.equal(vm.runInContext('roomState.currentPerspective', context), 2);
+  assert.equal(vm.runInContext('roomState.viewerPerspective', context), 2);
+  assert.equal(vm.runInContext('roomState.activePlayerId', context), 1, '切換測試視角不得改變真正的玩家身分');
+  assert.equal(context.getActingPlayerId(), 2, '測試模式的操作對象由測試視角模擬');
+  vm.runInContext('roomState.isTestMode = false;', context);
+  assert.equal(context.getActingPlayerId(), 1, '正式模式操作身分必須回到 activePlayerId');
+  assert.equal(context.switchPerspective(2), false);
+  assert.equal(context.getActingPlayerId(), 1, '正式模式切換視角不得改變操作身分');
   assert.equal(elements.get('perspectiveSelect').children[1].textContent, '視角：2號（平民）');
   assert.equal(context.switchPerspective(999), false);
 });

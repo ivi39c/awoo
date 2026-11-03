@@ -713,9 +713,11 @@ class Player {
         selector.setAttribute?.('aria-hidden', roomState.isTestMode ? 'false' : 'true');
       }
       if (banner) banner.style.display = roomState.isTestMode ? 'flex' : 'none';
+      // Test mode is the production game UI plus additional test controls.
+      // Never hide normal production features merely because the test overlay is enabled.
       ['spectatorCountBtn', 'mediaTopBtn', 'compendiumTopBtn', 'settingsTopBtn'].forEach(id => {
         const control = document.getElementById(id);
-        if (control) control.style.display = roomState.isTestMode ? 'none' : '';
+        if (control) control.style.display = '';
       });
       const skipSpeechButton = document.getElementById('testModeSkipSpeechButton');
       if (skipSpeechButton) skipSpeechButton.hidden = !roomState.isTestMode || !roomState.gameStarted || roomState.currentPhase !== 'DAY_SPEECH' || roomState.gameOver;
@@ -1098,10 +1100,6 @@ function showBgmPlayButton() {
     function switchPerspective(id) {
       if (!roomState.isTestMode) {
         roomState.currentPerspective = roomState.mySeatId || 1;
-       roomState.viewerPerspective = roomState.currentPerspective;
-       roomState.activePlayerId = Number(roomState.mySeatId || 1);
-       roomState.viewerPerspective = roomState.currentPerspective;
-       roomState.activePlayerId = Number(roomState.mySeatId || 1);
         roomState.viewerPerspective = roomState.currentPerspective;
         updatePerspectiveSelect();
         return false;

@@ -1075,7 +1075,7 @@ function showBgmPlayButton() {
     }
 
     function getActingPlayerId() {
-      // In production, the authenticated seat is authoritative. Test mode may simulate
+      // In production, the locally seated player ID is authoritative. Test mode may simulate
       // another seat, but changing the viewer never mutates activePlayerId.
       return Number(roomState.isTestMode ? roomState.viewerPerspective : roomState.activePlayerId);
     }

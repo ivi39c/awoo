@@ -176,7 +176,7 @@ test('測試用手動步驟需切換到對應角色後確認', () => {
   context.renderGodFlowPanel();
   assert.equal(context.completeModeratorManualAction(), false);
   assert.equal(vm.runInContext('roomState.moderatorManualCompletedStepIndex', context), null);
-  vm.runInContext('roomState.currentPerspective = 2', context);
+  vm.runInContext('roomState.currentPerspective = 2; roomState.viewerPerspective = 2', context);
   assert.equal(context.completeModeratorManualAction(), true);
   assert.equal(vm.runInContext('roomState.moderatorManualCompletedStepIndex', context), 0);
   assert.equal(elements.get('godFlowNextButton').disabled, false);

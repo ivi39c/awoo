@@ -2344,6 +2344,10 @@ function showBgmPlayButton() {
         finishSheriffElectionWithoutWinner(null, 'NO_CANDIDATES');
         return;
       }
+      if (roomState.sheriffCandidates.length === 1) {
+        electSheriff(roomState.sheriffCandidates[0]);
+        return;
+      }
       startSheriffCandidateSpeeches();
     }
 

@@ -139,19 +139,18 @@ test('SFE-07c 候選人發言倒數可由系統推進，不受目前座位視角
   assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_WITHDRAWAL');
 });
 
-test('SFE-07b 單一候選人仍須完成發言與退水窗口', () => {
-  const { context } = createContext();
+test('SFE-07b 只有一位候選人時直接當選，不進入發言、退水或投票', () => {
+  const { context, events } = createContext();
   setup(context, players(context, [{ role: '預言家' }, { role: '平民' }]), 'SHERIFF_ELECTION');
   vm.runInContext('roomState.sheriffCandidates=[1];', context);
   context.processSheriffCandidates();
-  assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_CANDIDATE_SPEECH');
-  assert.equal(vm.runInContext('roomState.sheriffId', context), null);
-  assert.equal(context.completeSheriffCandidateSpeech(1), true);
-  assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_WITHDRAWAL');
-  assert.equal(context.candidateSheriff(1), true);
-  assert.equal(context.finishSheriffWithdrawals(), true);
-  assert.equal(vm.runInContext('roomState.hasSheriffInGame', context), false);
+  assert.equal(vm.runInContext('roomState.sheriffId', context), 1);
+  assert.equal(vm.runInContext('roomState.hasSheriffInGame', context), true);
+  assert.equal(vm.runInContext('roomState.sheriffElectionCompleted', context), true);
   assert.equal(vm.runInContext('roomState.currentPhase', context), 'DAY_SPEECH');
+  assert.ok(events.some(line => line.includes('1號當選警長')));
+  assert.ok(!events.some(line => line.includes('請開始競選發言')));
+  assert.ok(!events.some(line => line.includes('請候選人退水')));
 });
 
 test('SFE-08 警長競選未完成不得進入天亮或公布死訊', () => {
@@ -255,10 +254,6 @@ test('SFE-17 首夜完整流程：待公布死亡者當選警長、天亮出局�
 
   assert.equal(context.candidateSheriff(1), true);
   context.processSheriffCandidates();
-  assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_CANDIDATE_SPEECH');
-  assert.equal(context.completeSheriffCandidateSpeech(1), true);
-  assert.equal(vm.runInContext('roomState.currentPhase', context), 'SHERIFF_WITHDRAWAL');
-  assert.equal(context.finishSheriffWithdrawals(), true);
 
   assert.equal(vm.runInContext('roomState.sheriffId', context), 1);
   assert.equal(vm.runInContext('roomState.players[0].lifeState', context), 'DEAD');

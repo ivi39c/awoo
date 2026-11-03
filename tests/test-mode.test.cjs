@@ -213,6 +213,8 @@ test('白狼王帶走警長後處理警徽仍會直接進入下一夜', () => {
     roomState.sheriffId = 2;
     roomState.sheriffBadgeReturnPhase = 'WHITE_WOLF_KING_SELF_DESTRUCT';
     roomState.sheriffBadgeExecutedVictim = null;
+    roomState.isTestMode = true;
+    roomState.viewerPerspective = 2;
     roomState.currentPerspective = 2;
   `, context);
   let nightStarted = false;

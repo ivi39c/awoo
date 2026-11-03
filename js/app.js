@@ -689,6 +689,9 @@ class Player {
       roomState.isHost = true;
       roomState.isSpectator = false;
       roomState.mySeatId = 1;
+      roomState.activePlayerId = 1;
+      roomState.viewerPerspective = 1;
+      roomState.currentPerspective = 1;
       roomState.sheriffMode = 'enabled';
       roomState.ruleset = AwooRuleset.resolveRuleset();
       roomState.currentPhase = 'LOBBY';
@@ -1795,6 +1798,8 @@ function showBgmPlayButton() {
       roomState.sheriffId = null;
       roomState.sheriffCandidates = [];
       roomState.sheriffVotes = {};
+      roomState.sheriffNoWinnerReason = null;
+      roomState.sheriffNoWinnerNarration = null;
       roomState.sheriffElectionRound = 0;
       roomState.deathSkillQueue = [];
       roomState.deathSkillReturnPhase = null;
@@ -3014,12 +3019,14 @@ function showBgmPlayButton() {
         roomState.sheriffId = null;
         gameState.sheriffId = null;
         roomState.hasSheriffInGame = false;
+        roomState.sheriffNoWinnerReason = 'BADGE_DESTROYED';
+        roomState.sheriffNoWinnerNarration = SHERIFF_NO_WINNER_NARRATION.BADGE_DESTROYED;
       }
       const returnPhase = roomState.sheriffBadgeReturnPhase;
       const executedVictimId = roomState.sheriffBadgeExecutedVictim;
       roomState.sheriffBadgeReturnPhase = null;
       roomState.sheriffBadgeExecutedVictim = null;
-      speakGod(successor ? `警徽已移交給 ${successor.id} 號玩家。` : '警徽已銷毀，本局不再有警長。');
+      speakGod(successor ? `警徽已移交給 ${successor.id} 號玩家。` : SHERIFF_NO_WINNER_NARRATION.BADGE_DESTROYED);
       renderTable();
       if (returnPhase === 'LAST_WORDS') {
         startLastWordsPhase(executedVictimId);
